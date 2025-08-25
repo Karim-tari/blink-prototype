@@ -265,9 +265,9 @@ const AutobotApp = () => {
     
     const contextualMessages = {
       shoes: isReturningUser ? [
-        `Found shoes in size ${userProfile.shoeSize} 👟`,
-        `Here are size ${userProfile.shoeSize} options`,
-        `Found these in your size ${userProfile.shoeSize}`
+        `Perfect! I've got some size ${userProfile.shoeSize} options for you 👟`,
+        `Here's what I found in your size ${userProfile.shoeSize}`,
+        `Got some great size ${userProfile.shoeSize} picks!`
       ] : [
         `Shoes! 👟 What size should I look for?`,
         `What size do you need?`,
@@ -737,7 +737,7 @@ const AutobotApp = () => {
     const productInfo = getProductCategory();
     // Removed retailer names as requested
     const availabilityOptions = ['In Stock', 'Limited Stock', 'Back Ordered', '2-3 in stock'];
-    const deliveryOptions = ['Tomorrow', '2-3 days', '3-5 days', 'Next week'];
+    const deliveryOptions = ['Tomorrow', 'Tomorrow', '2 days', 'Next week'];
 
     // Generate dynamic search results
     const searchResults = {
@@ -992,7 +992,7 @@ const AutobotApp = () => {
       category: 'shoes',
       availability: 'In Stock',
       authenticity: 'Brand New',
-      deliveryDate: ['Tomorrow', '2-3 days', '3-5 days'][Math.floor(Math.random() * 3)],
+      deliveryDate: ['Tomorrow', 'Tomorrow', '2 days'][Math.floor(Math.random() * 3)],
       description: `Classic Nike Air Jordan 14 basketball shoes identified from your image`,
       confidence: Math.floor(Math.random() * 15) + 85 // 85-99% confidence
     };
@@ -1071,7 +1071,7 @@ const AutobotApp = () => {
       brand: brand,
       availability: 'In Stock',
       authenticity: 'Verified',
-      deliveryDate: ['Tomorrow', '2-3 days', '3-5 days'][Math.floor(Math.random() * 3)],
+      deliveryDate: ['Tomorrow', 'Tomorrow', '2 days'][Math.floor(Math.random() * 3)],
       description: `Product from external link`,
       url: url
     };
@@ -1667,7 +1667,7 @@ const generateColorVariantOptions = (mainResult) => {
       brand: mainResult.brand,
       availability: variant.available ? 'In Stock' : 'Out of Stock',
       authenticity: 'Brand New',
-      deliveryDate: ['Tomorrow', '2-3 days', '3-5 days'][Math.floor(Math.random() * 3)],
+      deliveryDate: ['Tomorrow', 'Tomorrow', '2 days'][Math.floor(Math.random() * 3)],
       image: variant.image,
       description: `${mainResult.title.replace('Black', variant.color)} - ${variant.color} colorway`,
       isColorVariant: true,
@@ -2204,7 +2204,7 @@ const SearchResultCard = ({ data, onPurchaseIntent, onImageClick, onViewDetails 
             fontSize: '14px', 
             color: '#666'
           }}>
-            Get this by {data.deliveryDate.toLowerCase()}
+            Get this {data.deliveryDate.toLowerCase()}
           </div>
           
           {data.isSecondHand && (
@@ -3395,7 +3395,7 @@ const ImageProductCard = ({ data, onPurchaseIntent }) => {
           </div>
           
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-            Get this by {product.deliveryDate.toLowerCase()}
+            Get this {product.deliveryDate.toLowerCase()}
           </div>
         </div>
       </div>
