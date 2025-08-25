@@ -93,11 +93,11 @@ const AutobotApp = () => {
       brandsToAvoid: ['off-brand']
     },
     purchaseHistory: [
-      { item: 'Air Jordan 4 Black Cat', date: '2 weeks ago', price: 210 },
+      { item: 'Air Jordan 20 Black', date: '2 weeks ago', price: 190 },
       { item: 'AirPods Pro 2nd Gen', date: '1 month ago', price: 249 },
       { item: 'MacBook Pro 14"', date: '3 months ago', price: 1999 }
     ],
-    lastPurchasedShoes: 'Air Jordan 4 Black Cat',
+    lastPurchasedShoes: 'Air Jordan 20 Black',
     lastPurchasedLaptop: 'MacBook Pro 14"',
     preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony'],
     totalSpent: 2458,
@@ -189,11 +189,11 @@ const AutobotApp = () => {
         brandsToAvoid: ['off-brand']
       },
       purchaseHistory: [
-        { item: 'Air Jordan 4 Black Cat', date: '2 weeks ago', price: 210 },
+        { item: 'Air Jordan 20 Black', date: '2 weeks ago', price: 190 },
         { item: 'AirPods Pro 2nd Gen', date: '1 month ago', price: 249 },
         { item: 'MacBook Pro 14"', date: '3 months ago', price: 1999 }
       ],
-      lastPurchasedShoes: 'Air Jordan 4 Black Cat',
+      lastPurchasedShoes: 'Air Jordan 20 Black',
       lastPurchasedLaptop: 'MacBook Pro 14"',
       preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony'],
       totalSpent: 2458,
@@ -213,7 +213,7 @@ const AutobotApp = () => {
         }, 1000);
       } else if (currentFlow === 'chat' && userType === 'returning') {
                 setTimeout(() => {
-          addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying those Air Jordan 4s you got yesterday! They're fire! 🔥\n\nTell me what's on your mind? Anything else you're hunting for today?`);
+          addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying those Air Jordan 20s you got yesterday! They're fire! 🔥\n\nTell me what's on your mind? Anything else you're hunting for today?`);
           setHasInitializedMessages(true);
       }, 1000);
     }
@@ -265,18 +265,18 @@ const AutobotApp = () => {
     
     const contextualMessages = {
       shoes: isReturningUser ? [
-        `More shoes! 👟 Since you loved those ${userProfile.lastPurchasedShoes} from 2 weeks ago, I'm thinking size ${userProfile.shoeSize} again? Or trying something different this time?`,
-        `Nice! You're definitely building a solid collection. Size ${userProfile.shoeSize} like usual, shipping to Oak Street?`,
-        `Love the shoe game! Based on your Nike preferences and that size ${userProfile.shoeSize} fit from last time, want me to find similar options?`
+        `Found shoes in size ${userProfile.shoeSize} 👟`,
+        `Here are size ${userProfile.shoeSize} options`,
+        `Found these in your size ${userProfile.shoeSize}`
       ] : [
-        `Shoes! 👟 What size should I look for? I'll remember this for future searches.`,
-        `Nice choice! Looking for any particular style or brand?`,
-        `Shoe shopping! Let me know your size and I'll find some great options.`
+        `Shoes! 👟 What size should I look for?`,
+        `What size do you need?`,
+        `Let me know your shoe size and I'll find options`
       ],
       laptop: [
-        `Laptop shopping again! That ${userProfile.lastPurchasedLaptop} treating you well, or time for an upgrade? 💻`,
-        `Tech time! Since you went premium with the MacBook last time, staying in the Apple ecosystem or exploring other options?`,
-        `Got it! You spent good money on that ${userProfile.lastPurchasedLaptop} - what's driving the need for another one?`
+        `Finding laptops 💻`,
+        `Searching for laptop options`,
+        `Looking for laptops`
       ],
       phone: [
         `Phone hunting! 📱 What type of phone are you looking for?`,
@@ -284,19 +284,19 @@ const AutobotApp = () => {
         `Phone shopping! Let me find some great options for you.`
       ],
       audio: [
-        `Audio gear! Those AirPods Pro you got last month working out, or need something different? 🎧`,
-        `Headphone time! I remember you liked the AirPods Pro quality - going for similar premium stuff or trying over-ears?`,
-        `Got it! Since you're in the Apple ecosystem with that MacBook and AirPods, staying with Apple or exploring?`
+        `Finding audio gear 🎧`,
+        `Searching for headphones`,
+        `Looking for audio options`
       ],
       monitor: [
-        `Monitor shopping! With that MacBook Pro setup, I'm thinking you want something that'll complement it nicely? 🖥️`,
-        `Nice! For your SF setup, thinking big screen for productivity or focusing on color accuracy?`,
-        `Got it! Based on your tech preferences, probably want something premium that matches your MacBook quality?`
+        `Finding monitors 🖥️`,
+        `Searching for monitor options`,
+        `Looking for displays`
       ],
       watch: [
-        `Smart watch! Given your Apple ecosystem (MacBook, AirPods), I'm guessing Apple Watch? ⌚`,
-        `Watch shopping! You seem to like premium tech - going high-end or trying something more budget-friendly?`,
-        `Nice choice! For your Oak Street lifestyle, thinking fitness tracking or more general smart features?`
+        `Finding watches ⌚`,
+        `Searching for smartwatch options`,
+        `Looking for watches`
       ],
       'nintendo-switch': [
         `Nintendo Switch! 🎮 Let me find some great options for you.`,
@@ -473,17 +473,81 @@ const AutobotApp = () => {
             }
           ]
         };
+      } else if (request.includes('jordan 20') || request.includes('jordan20') || (request.includes('air jordan') && request.includes('20'))) {
+        return {
+          category: 'shoes',
+          emoji: '👟',
+          products: [
+            { 
+              name: 'Air Jordan 20 Black', 
+              basePrice: 190, 
+              brand: 'Nike',
+              image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`,
+              isUsed: false,
+              condition: 'Brand New',
+              colorVariants: [
+                { color: 'Black', image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`, available: true },
+                { color: 'Orange', image: `${process.env.PUBLIC_URL}/Jordan20/orange.jpg`, available: true },
+                { color: 'Red', image: `${process.env.PUBLIC_URL}/Jordan20/red.jpg.webp`, available: true }
+              ]
+            },
+            { 
+              name: 'Air Jordan 20 White/Silver', 
+              basePrice: 195, 
+              brand: 'Nike',
+              image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`, // Using black as placeholder
+              isUsed: false,
+              condition: 'Brand New',
+              colorVariants: [
+                { color: 'White/Silver', image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`, available: true },
+                { color: 'Black', image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`, available: true }
+              ]
+            },
+            { 
+              name: 'Air Jordan 20 Black (Used - Like New)', 
+              basePrice: 190, 
+              brand: 'Nike',
+              usedPrice: 145,
+              image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`,
+              isUsed: true,
+              condition: 'Used - Like New'
+            },
+            { 
+              name: 'Air Jordan 20 White (Used - Very Good)', 
+              basePrice: 195, 
+              brand: 'Nike',
+              usedPrice: 150,
+              image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`,
+              isUsed: true,
+              condition: 'Used - Very Good'
+            },
+            { 
+              name: 'Air Jordan 20 Stealth (Used - Good)', 
+              basePrice: 185, 
+              brand: 'Nike',
+              usedPrice: 135,
+              image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`,
+              isUsed: true,
+              condition: 'Used - Good'
+            }
+          ]
+        };
       } else if (request.includes('shoes') || request.includes('sneaker') || request.includes('jordan') || request.includes('nike')) {
         return {
           category: 'shoes',
           emoji: '👟',
           products: [
             { 
-              name: 'Air Jordan 4 Black Cat', 
-              basePrice: 210, 
+              name: 'Air Jordan 20 Black', 
+              basePrice: 190, 
               brand: 'Nike',
-              usedPrice: 180,
-              image: 'https://static.nike.com/a/images/t_PDP_1728_v1/f_auto,q_auto:eco/be8b4594-8d7f-4916-9419-405da1de3f0e/air-jordan-4-retro-shoes-zF0vm0.png'
+              usedPrice: 160,
+              image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`,
+              colorVariants: [
+                { color: 'Black', image: `${process.env.PUBLIC_URL}/Jordan20/black.jpg.webp`, available: true },
+                { color: 'Orange', image: `${process.env.PUBLIC_URL}/Jordan20/orange.jpg`, available: true },
+                { color: 'Red', image: `${process.env.PUBLIC_URL}/Jordan20/red.jpg.webp`, available: true }
+              ]
             },
             { 
               name: 'Nike Air Force 1', 
@@ -700,9 +764,14 @@ const AutobotApp = () => {
         // For the main result, prioritize new items for consumer electronics
         const isMainlyNewProduct = ['gaming', 'phone', 'laptop', 'audio', 'watch'].includes(productInfo.category);
         
-        // Main result should be new for consumer electronics, mixed for others
-        const isUsed = isMainlyNewProduct ? false : (Math.random() > 0.5 && product.usedPrice);
-        const basePrice = isUsed ? product.usedPrice : product.basePrice;
+        // Use explicit isUsed property if set, otherwise use the random logic
+        const isUsed = product.hasOwnProperty('isUsed') ? product.isUsed : (isMainlyNewProduct ? false : (Math.random() > 0.5 && product.usedPrice));
+        
+        // Debug logging for transformation
+        if (product.name.includes('Jordan 20')) {
+          console.log(`🔧 Transforming: ${product.name}, isUsed: ${isUsed}, hasIsUsedProperty: ${product.hasOwnProperty('isUsed')}, originalIsUsed: ${product.isUsed}`);
+        }
+        const basePrice = isUsed ? (product.usedPrice || product.basePrice) : product.basePrice;
         const priceVariation = isUsed ? Math.floor(Math.random() * 40) - 20 : Math.floor(Math.random() * 50) - 25;
         
         const finalPrice = basePrice + priceVariation;
@@ -715,7 +784,7 @@ const AutobotApp = () => {
         const discountedPrice = couponSavings ? finalPrice - couponSavings.discount : finalPrice;
         
         return {
-          title: product.name + (isUsed ? ' (Used - Very Good)' : ''),
+          title: product.name.includes('Used') ? product.name : product.name + (isUsed ? ' (Used - Very Good)' : ''),
           price: discountedPrice,
           originalPrice: couponSavings ? finalPrice : null,
           shipping: shipping,
@@ -725,6 +794,8 @@ const AutobotApp = () => {
           image: product.image || productInfo.emoji,
           deliveryDate: deliveryOptions[Math.floor(Math.random() * deliveryOptions.length)],
           isUsed: isUsed,
+          condition: product.condition,
+          colorVariants: product.colorVariants,
           couponApplied: couponSavings ? true : false,
           couponPercentage: couponSavings ? couponSavings.percentage : null,
           // Add metadata for used options count
@@ -1195,8 +1266,8 @@ const AutobotApp = () => {
         const contextualMsg = getContextualMessage(category, message);
         addAutobotMessage(contextualMsg);
         
-        // For shoes, ask for size confirmation before searching
-        if (category === 'shoes') {
+        // For shoes, only ask for size if we don't know it
+        if (category === 'shoes' && (!userProfile.shoeSize || userType === 'new')) {
           setWaitingForSizeConfirmation(true);
           setPendingShoeSearch(message);
           return;
@@ -1316,6 +1387,34 @@ const AutobotApp = () => {
       position: 'relative',
       minHeight: '100vh'
     }}>
+      {/* Join the Waitlist - Fixed at top right */}
+      <motion.a
+        href="https://karim-tari.github.io/Blink-Lander/"
+        target="_blank"
+        rel="noopener noreferrer"
+        whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
+        whileTap={{ scale: 0.95 }}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1001,
+          padding: '8px 16px',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          color: '#3b82f6',
+          textDecoration: 'none',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '600',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          letterSpacing: '0.025em'
+        }}
+      >
+        Join the Waitlist
+      </motion.a>
+      
       {/* Header - Fixed at top center */}
       <div style={{
         position: 'fixed',
@@ -1548,6 +1647,37 @@ const FullscreenImageViewer = ({ image, title, onClose }) => {
   );
 };
 
+const generateColorVariantOptions = (mainResult) => {
+  if (!mainResult.colorVariants) return [];
+  
+  const variantOptions = [];
+  
+  // Create a product option for each color variant (excluding the main one)
+  mainResult.colorVariants.forEach((variant, index) => {
+    // Skip the first variant as it's already shown as the main product
+    if (index === 0) return;
+    
+    const priceVariation = Math.floor(Math.random() * 20) - 10; // ±$10 price variation
+    const variantPrice = Math.max(50, mainResult.price + priceVariation);
+    
+    variantOptions.push({
+      title: mainResult.title.replace('Black', variant.color),
+      price: variantPrice,
+      shipping: Math.random() > 0.7 ? Math.floor(Math.random() * 15) + 5 : 0,
+      brand: mainResult.brand,
+      availability: variant.available ? 'In Stock' : 'Out of Stock',
+      authenticity: 'Brand New',
+      deliveryDate: ['Tomorrow', '2-3 days', '3-5 days'][Math.floor(Math.random() * 3)],
+      image: variant.image,
+      description: `${mainResult.title.replace('Black', variant.color)} - ${variant.color} colorway`,
+      isColorVariant: true,
+      originalProduct: mainResult.title
+    });
+  });
+  
+  return variantOptions;
+};
+
 const generateUsedOptions = (mainResult) => {
   const conditions = ['Used - Like New', 'Used - Very Good', 'Used - Good', 'Used - Acceptable'];
   const usedOptions = [];
@@ -1704,7 +1834,9 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
           flexDirection: 'column',
           gap: '16px'
         }}>
-          {(data.results[0].hasUsedOptions && !data.results[0].isUsed 
+          {(data.results[0].colorVariants && !data.results[0].isUsed
+            ? generateColorVariantOptions(data.results[0])
+            : data.results[0].hasUsedOptions && !data.results[0].isUsed 
             ? generateUsedOptions(data.results[0]) 
             : data.results
           ).map((result, index) => (
@@ -1781,28 +1913,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
                   )}
                 </div>
 
-                {/* Tags */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  <span style={{
-                    backgroundColor: result.availability === 'In Stock' ? '#10b981' : '#f59e0b',
-                    color: 'white',
-                    padding: '4px 12px',
-                    borderRadius: '16px',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}>
-                    {result.availability}
-                  </span>
-                  <span style={{
-                    backgroundColor: '#e2e8f0',
-                    color: '#475569',
-                    padding: '4px 12px',
-                    borderRadius: '16px',
-                    fontSize: '12px'
-                  }}>
-                    📦 {result.deliveryDate}
-                  </span>
-                </div>
+
               </div>
 
               {/* Buy Button */}
@@ -1818,7 +1929,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
                 style={{
                   width: '100%',
                   padding: '14px 20px',
-                  background: '#1a1a1a',
+                  background: '#3b82f6',
                   color: 'white',
                   border: 'none',
                   borderRadius: '10px',
@@ -2183,7 +2294,17 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
           <motion.button
               whileHover={{ backgroundColor: '#f8f9fa' }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onWebView && onWebView(data)}
+            onClick={() => {
+              if (onWebView) {
+                // If the main product has color variants, show only those variants
+                if (data.results[0].colorVariants && !data.results[0].isUsed) {
+                  const colorVariantResults = generateColorVariantOptions(data.results[0]);
+                  onWebView({ ...data, results: colorVariantResults });
+                } else {
+                  onWebView(data);
+                }
+              }
+            }}
               style={{
                 padding: '8px 16px',
                 backgroundColor: 'transparent',
@@ -2197,8 +2318,10 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
                 textDecoration: 'underline'
               }}
             >
-              {data.results[0].hasUsedOptions && !data.results[0].isUsed 
-                ? `Show me used options (${data.results[0].usedOptionsCount})` 
+              {data.results[0].colorVariants && !data.results[0].isUsed
+                ? `Show me other colors (${data.results[0].colorVariants.length - 1})`
+                : data.results[0].hasUsedOptions && !data.results[0].isUsed 
+                ? `Show me more options (${data.results[0].usedOptionsCount})` 
                 : `View (${data.results.length}) more Options`}
           </motion.button>
           </div>
@@ -2240,6 +2363,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [animationComplete, setAnimationComplete] = useState(false);
   const [lottieData, setLottieData] = useState(null);
+  const [selectedVariants, setSelectedVariants] = useState({});
 
   useEffect(() => {
     // Load Lottie animation data
@@ -2280,53 +2404,49 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
   const products = data.results || [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+      color: '#1e293b'
+    }}>
       {/* Web View Header with Back Button */}
       <div style={{
         background: '#ffffff',
-        color: '#1a1a1a',
-        padding: '12px 16px',
+        color: '#1e293b',
+        padding: '12px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-        borderBottom: '1px solid #f3f4f6'
+        borderBottom: '1px solid #e2e8f0'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <motion.button
-            onClick={onClose}
-            whileHover={{ scale: 1.05, backgroundColor: '#f3f4f6' }}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              color: '#6b7280',
-              fontSize: '14px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontWeight: '500'
-            }}
-          >
-            ← Back
-          </motion.button>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '-0.3px' }}>Blink</div>
-          </div>
-        </div>
+        <motion.button
+          onClick={onClose}
+          whileHover={{ color: '#64748b' }}
+          whileTap={{ scale: 0.98 }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#1e293b',
+            fontSize: '15px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontWeight: '500',
+            padding: '4px 0'
+          }}
+        >
+          ← Back
+        </motion.button>
         <div style={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          background: '#f3f4f6',
-          padding: '4px 12px',
-          borderRadius: '12px'
+          fontSize: '13px', 
+          color: '#64748b', 
+          fontWeight: '500',
+          letterSpacing: '0.025em'
         }}>
-          <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '500' }}>
-            {products.length} items
-          </div>
+          {products.length} items
         </div>
       </div>
 
@@ -2334,9 +2454,36 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '20px',
-        background: '#fafafa'
+        padding: '0 20px 24px',
+        background: 'transparent'
       }}>
+        {/* Logo Section - Now inside scrollable content */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '24px 0 32px'
+        }}>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+          >
+            <img 
+              src={`${process.env.PUBLIC_URL}/logo.svg`}
+              alt="Blink Logo"
+              style={{
+                height: '32px',
+                filter: 'brightness(0)' // Make logo black
+              }}
+            />
+          </motion.div>
+        </div>
         {isLoading ? (
           // Cool Lottie Loading Screen
           <motion.div
@@ -2350,12 +2497,12 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+              background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff',
+              color: '#1e293b',
               zIndex: 1000
             }}
           >
@@ -2399,27 +2546,15 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                   style={{
                     width: '60px',
                     height: '60px',
-                    border: '3px solid rgba(255, 255, 255, 0.3)',
-                    borderTop: '3px solid #ffffff',
+                    border: '3px solid rgba(30, 41, 59, 0.3)',
+                    borderTop: '3px solid #1e293b',
                     borderRadius: '50%'
                   }}
                 />
               )}
             </motion.div>
             
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                marginBottom: '8px',
-                textAlign: 'center'
-              }}
-            >
-              Blink
-            </motion.div>
+            
             
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -2431,94 +2566,89 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                 textAlign: 'center'
               }}
             >
-              What you want in a Blink
+              Loading results...
             </motion.div>
             
-            {/* Animated dots */}
-            <motion.div
-              style={{
-                display: 'flex',
-                gap: '4px',
-                marginTop: '16px'
-              }}
-            >
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.5, 1, 0.5]
-                  }}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                    delay: i * 0.2
-                  }}
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: '#ffffff'
-                  }}
-                />
-              ))}
-            </motion.div>
+
           </motion.div>
         ) : (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px'
+            gap: '12px'
           }}>
-            {products.map((result, index) => (
+            {(() => {
+              // Separate primary (new/color variants) and secondary (used) options
+              const primaryProducts = products.filter(product => product.isUsed !== true);
+              const secondaryProducts = products.filter(product => product.isUsed === true);
+              
+              console.log('🔍 Debug - All products:', products);
+              console.log('🔍 Debug - Primary products:', primaryProducts);
+              console.log('🔍 Debug - Secondary products:', secondaryProducts);
+              console.log('🔍 Debug - Secondary products length:', secondaryProducts.length);
+              
+              return (
+                <>
+                  {/* Primary Options */}
+                  {primaryProducts.map((result, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  delay: index * 0.15,
+                  duration: 0.6,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
+
                 style={{
-                  backgroundColor: 'white',
+                  background: '#ffffff',
                   borderRadius: '12px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e5e7eb'
+                  padding: '16px',
+                  border: '1px solid #e2e8f0'
                 }}
               >
                 {/* Product Image */}
-                {result.image && (result.image.startsWith('http') || result.image.includes('PUBLIC_URL') || result.image.startsWith('/')) ? (
-                  <img 
-                    src={result.image} 
-                    alt={result.title}
-                    style={{
-                      width: '100%',
-                      height: '150px',
-                      objectFit: 'contain',
-                      borderRadius: '6px',
+                {(() => {
+                  const selectedVariant = selectedVariants[index];
+                  const imageToShow = selectedVariant ? selectedVariant.image : result.image;
+                  return imageToShow && (imageToShow.startsWith('http') || imageToShow.includes('PUBLIC_URL') || imageToShow.startsWith('/')) ? (
+                    <img 
+                      src={imageToShow} 
+                      alt={selectedVariant ? `${result.title} - ${selectedVariant.color}` : result.title}
+                      style={{
+                        width: '100%',
+                        height: '140px',
+                        objectFit: 'contain',
+                        borderRadius: '8px',
+                        marginBottom: '12px',
+                        backgroundColor: '#fafbfc'
+                      }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      fontSize: '48px', 
+                      textAlign: 'center', 
                       marginBottom: '12px',
-                      backgroundColor: '#f9fafb'
-                    }}
-                  />
-                ) : (
-                  <div style={{ 
-                    fontSize: '48px', 
-                    textAlign: 'center', 
-                    marginBottom: '12px',
-                    height: '150px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {result.image}
-                  </div>
-                )}
+                      height: '150px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {result.image}
+                    </div>
+                  );
+                })()}
 
                 {/* Product Info */}
-                <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '16px' }}>
                   <h3 style={{ 
                     fontSize: '16px', 
                     fontWeight: '600', 
                     marginBottom: '6px',
-                    color: '#1e293b'
+                    color: '#1e293b',
+                    letterSpacing: '-0.025em',
+                    lineHeight: '1.4'
                   }}>
                     {result.title}
                   </h3>
@@ -2527,42 +2657,82 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                     fontSize: '18px', 
                     fontWeight: '700', 
                     color: '#0f172a',
-                    marginBottom: '10px'
+                    marginBottom: '4px'
                   }}>
                     ${result.price} {result.shipping > 0 && (
-                      <span style={{ fontSize: '14px', color: '#64748b' }}>
+                      <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
                         + ${result.shipping} shipping
                       </span>
                     )}
                   </div>
 
-                  {/* Tags */}
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                    <span style={{
-                      backgroundColor: result.availability === 'In Stock' ? '#10b981' : '#f59e0b',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '16px',
-                      fontSize: '12px',
-                      fontWeight: '500'
-                    }}>
-                      {result.availability}
-                    </span>
-                    <span style={{
-                      backgroundColor: '#e2e8f0',
-                      color: '#475569',
-                      padding: '4px 12px',
-                      borderRadius: '16px',
-                      fontSize: '12px'
-                    }}>
-                      📦 {result.deliveryDate}
-                    </span>
-                  </div>
+
+                  
+                  {/* Color Variants */}
+                  {result.colorVariants && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        fontWeight: '600', 
+                        marginBottom: '12px',
+                        color: '#374151'
+                      }}>
+                        Available Colors:
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {result.colorVariants.map((variant, variantIndex) => {
+                          const isSelected = selectedVariants[index]?.color === variant.color;
+                          return (
+                            <div 
+                              key={variantIndex} 
+                              onClick={() => {
+                                setSelectedVariants(prev => ({
+                                  ...prev,
+                                  [index]: variant
+                                }));
+                              }}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                padding: '8px',
+                                border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                backgroundColor: isSelected ? '#eff6ff' : '#f9fafb',
+                                minWidth: '60px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <img 
+                                src={variant.image} 
+                                alt={`${result.title} - ${variant.color}`}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  objectFit: 'contain',
+                                  borderRadius: '4px',
+                                  marginBottom: '4px'
+                                }}
+                              />
+                              <span style={{
+                                fontSize: '10px',
+                                color: isSelected ? '#3b82f6' : '#6b7280',
+                                textAlign: 'center',
+                                fontWeight: isSelected ? '600' : '400'
+                              }}>
+                                {variant.color}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Buy Button */}
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     onClose(); // Close web view first
@@ -2572,35 +2742,188 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                   }}
                   style={{
                     width: '100%',
-                    padding: '14px 20px',
-                    background: '#1a1a1a',
+                    padding: '12px 20px',
+                    background: '#1e293b',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '16px',
+                    borderRadius: '8px',
+                    fontSize: '15px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                    letterSpacing: '0.5px',
+                    letterSpacing: '-0.025em',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
+                    justifyContent: 'space-between'
                   }}
                 >
-                  I want this
+                  <span>I want this</span>
                   <span style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    padding: '3px 8px',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    fontWeight: '500'
+                    fontSize: '15px',
+                    fontWeight: '700'
                   }}>
                     ${result.price + (result.shipping || 0)}
                   </span>
                 </motion.button>
               </motion.div>
-            ))}
+                  ))}
+                  
+                  {/* Divider and Secondary Options */}
+                  {secondaryProducts.length > 0 && (
+                    <>
+                      <div style={{
+                        margin: '20px 0 16px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        <div style={{
+                          flex: 1,
+                          height: '1px',
+                          background: 'linear-gradient(to right, transparent, #e2e8f0, transparent)'
+                        }}></div>
+                        <span style={{
+                          fontSize: '13px',
+                          color: '#64748b',
+                          fontWeight: '500',
+                          padding: '0 8px',
+                          backgroundColor: '#f8fafc',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          Secondary options
+                        </span>
+                        <div style={{
+                          flex: 1,
+                          height: '1px',
+                          background: 'linear-gradient(to right, transparent, #e2e8f0, transparent)'
+                        }}></div>
+                      </div>
+                      
+                      {/* Secondary Options */}
+                      {secondaryProducts.map((result, index) => (
+                        <motion.div
+                          key={`secondary-${index}`}
+                          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ 
+                            delay: (primaryProducts.length + index) * 0.15,
+                            duration: 0.6,
+                            ease: [0.25, 0.46, 0.45, 0.94]
+                          }}
+                          style={{
+                            background: '#ffffff',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            border: '1px solid #e2e8f0',
+                            opacity: 0.95
+                          }}
+                        >
+                          {/* Product Image */}
+                          {result.image && (result.image.startsWith('http') || result.image.includes('PUBLIC_URL') || result.image.startsWith('/')) ? (
+                            <img 
+                              src={result.image} 
+                              alt={result.title}
+                              style={{
+                                width: '100%',
+                                height: '140px',
+                                objectFit: 'contain',
+                                borderRadius: '8px',
+                                marginBottom: '12px',
+                                backgroundColor: '#fafbfc'
+                              }}
+                            />
+                          ) : (
+                            <div style={{ 
+                              fontSize: '48px', 
+                              textAlign: 'center', 
+                              marginBottom: '12px',
+                              height: '150px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              {result.image}
+                            </div>
+                          )}
+
+                          {/* Product Info */}
+                          <div style={{ marginBottom: '16px' }}>
+                            <h3 style={{ 
+                              fontSize: '16px', 
+                              fontWeight: '600', 
+                              marginBottom: '6px',
+                              color: '#1e293b',
+                              letterSpacing: '-0.025em',
+                              lineHeight: '1.4'
+                            }}>
+                              {result.title}
+                            </h3>
+                            
+                            <div style={{ 
+                              fontSize: '18px', 
+                              fontWeight: '700', 
+                              color: '#0f172a',
+                              marginBottom: '4px'
+                            }}>
+                              ${result.usedPrice || result.price} {result.shipping > 0 && (
+                                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
+                                  + ${result.shipping} shipping
+                                </span>
+                              )}
+                            </div>
+                            
+                            {result.condition && (
+                              <div style={{
+                                fontSize: '12px',
+                                color: '#f59e0b',
+                                fontWeight: '500',
+                                marginTop: '4px'
+                              }}>
+                                {result.condition}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Buy Button */}
+                          <motion.button
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              onClose(); // Close web view first
+                              setTimeout(() => {
+                                onPurchaseIntent(result); // Then trigger purchase intent in chat
+                              }, 300);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '12px 20px',
+                              background: '#64748b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              letterSpacing: '-0.025em',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <span>I want this</span>
+                            <span style={{
+                              fontSize: '15px',
+                              fontWeight: '700'
+                            }}>
+                              ${result.usedPrice || result.price}
+                            </span>
+                          </motion.button>
+                        </motion.div>
+                      ))}
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -3287,7 +3610,7 @@ const TypingIndicator = () => (
 
 const OnboardingInput = ({ onSubmit, onboardingStep }) => {
   const [value, setValue] = useState('');
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
   const fileInputRef = useRef(null);
 
   const handleSubmit = (e) => {
@@ -3330,14 +3653,7 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
     }
   };
 
-  const handleVoiceToggle = () => {
-    setIsVoiceActive(true);
-    // Simulate voice note about Star Wars Lego collectibles
-    setTimeout(() => {
-      onSubmit("I'm looking for some Star Wars Lego collectibles");
-      setIsVoiceActive(false);
-    }, 1500); // Simulate recording time
-  };
+
 
   return (
     <div className="onboarding-input">
@@ -3401,30 +3717,7 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
             </svg>
           </button>
           
-          <button 
-            type="button"
-            onClick={handleVoiceToggle}
-            className="voice-btn"
-            style={{
-              background: isVoiceActive ? '#ff4444' : 'transparent',
-              color: isVoiceActive ? 'white' : '#999',
-              border: 'none',
-              borderRadius: '6px',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            title="Voice message"
-          >
-            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
-              <path fillRule="evenodd" clipRule="evenodd" d="M8.50098 1.5H7.50098C6.67255 1.5 6.00098 2.17157 6.00098 3V7C6.00098 7.82843 6.67255 8.5 7.50098 8.5H8.50098C9.32941 8.5 10.001 7.82843 10.001 7V3C10.001 2.17157 9.32941 1.5 8.50098 1.5ZM7.50098 0C5.84412 0 4.50098 1.34315 4.50098 3V7C4.50098 8.65685 5.84412 10 7.50098 10H8.50098C10.1578 10 11.501 8.65685 11.501 7V3C11.501 1.34315 10.1578 0 8.50098 0H7.50098ZM7.25098 13.2088V15.25V16H8.75098V15.25V13.2088C11.5607 12.8983 13.8494 10.8635 14.5383 8.18694L14.7252 7.46062L13.2726 7.08673L13.0856 7.81306C12.5028 10.0776 10.4462 11.75 8.00098 11.75C5.55572 11.75 3.49918 10.0776 2.91633 7.81306L2.72939 7.08673L1.27673 7.46062L1.46368 8.18694C2.15258 10.8635 4.44128 12.8983 7.25098 13.2088Z" fill="currentColor"/>
-            </svg>
-          </button>
-          
+
           <button 
             type="submit" 
             className="send-btn"
@@ -3453,7 +3746,7 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
 
 const ChatInput = ({ onSubmit }) => {
   const [value, setValue] = useState('');
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
   const fileInputRef = useRef(null);
 
   const handleSubmit = (e) => {
@@ -3464,14 +3757,7 @@ const ChatInput = ({ onSubmit }) => {
     }
   };
 
-  const handleVoiceToggle = () => {
-    setIsVoiceActive(true);
-    // Simulate voice note about Star Wars Lego collectibles
-    setTimeout(() => {
-      onSubmit("I'm looking for some Star Wars Lego collectibles");
-      setIsVoiceActive(false);
-    }, 1500); // Simulate recording time
-  };
+
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -3558,30 +3844,7 @@ const ChatInput = ({ onSubmit }) => {
             </svg>
           </button>
           
-          <button 
-            type="button"
-            onClick={handleVoiceToggle}
-            className="voice-btn"
-            style={{
-              background: isVoiceActive ? '#ff4444' : 'transparent',
-              color: isVoiceActive ? 'white' : '#999',
-              border: 'none',
-              borderRadius: '6px',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            title="Voice message"
-          >
-            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
-              <path fillRule="evenodd" clipRule="evenodd" d="M8.50098 1.5H7.50098C6.67255 1.5 6.00098 2.17157 6.00098 3V7C6.00098 7.82843 6.67255 8.5 7.50098 8.5H8.50098C9.32941 8.5 10.001 7.82843 10.001 7V3C10.001 2.17157 9.32941 1.5 8.50098 1.5ZM7.50098 0C5.84412 0 4.50098 1.34315 4.50098 3V7C4.50098 8.65685 5.84412 10 7.50098 10H8.50098C10.1578 10 11.501 8.65685 11.501 7V3C11.501 1.34315 10.1578 0 8.50098 0H7.50098ZM7.25098 13.2088V15.25V16H8.75098V15.25V13.2088C11.5607 12.8983 13.8494 10.8635 14.5383 8.18694L14.7252 7.46062L13.2726 7.08673L13.0856 7.81306C12.5028 10.0776 10.4462 11.75 8.00098 11.75C5.55572 11.75 3.49918 10.0776 2.91633 7.81306L2.72939 7.08673L1.27673 7.46062L1.46368 8.18694C2.15258 10.8635 4.44128 12.8983 7.25098 13.2088Z" fill="currentColor"/>
-            </svg>
-          </button>
-          
+
           <button 
             type="submit" 
             className="send-btn"
