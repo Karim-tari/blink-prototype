@@ -1333,7 +1333,7 @@ const AutobotApp = () => {
           color: '#1a1a1a',
           margin: '0 0 6px 0'
         }}>
-          Blink - Prototype v1.2
+          Blink - Prototype v1.1
         </h1>
         <div style={{
           fontSize: '14px',
