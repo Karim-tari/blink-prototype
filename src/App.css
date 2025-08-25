@@ -54,8 +54,7 @@ body {
 }
 
 .autobot-avatar {
-  font-size: 24px;
-  background: linear-gradient(135deg, #6b46c1, #8b5cf6);
+  background: #000000;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -294,6 +293,8 @@ body {
   font-weight: 600;
   color: #111827;
 }
+
+
 
 .cart-icon {
   color: #6b46c1;

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, MoreVertical, MapPin, Clock } from 'lucide-react';
+import Lottie from 'lottie-react';
 import './App.css';
+
+
 
 // Suppress MetaMask errors and prevent them from blocking the app
 if (typeof window !== 'undefined') {
@@ -1045,12 +1048,7 @@ const AutobotApp = () => {
     }
   };
 
-  const fastForward = () => {
-    addAutobotMessage("⏰ *Fast forwarding 20 minutes*\n\nFound some options for you!");
-    setTimeout(() => {
-      triggerSearchResults(userProfile.currentRequest || 'general items', 'search');
-    }, 1500);
-  };
+
 
   const handleChatMessage = (message) => {
     // Check if message contains an image search
@@ -1362,71 +1360,77 @@ const AutobotApp = () => {
         />
         
         {/* Phone App Container */}
-    <div className="autobot-app" style={{ position: 'relative' }}>
-      {/* Fast Forward Button (Prototype Only) */}
-      {currentFlow === 'chat' && (
-        <div className="fast-forward-btn" onClick={fastForward}>
-          ⏭️ Fast Forward 20min
-        </div>
-      )}
-      
-      {/* Header */}
-      <div className="chat-header">
-        <div className="header-left">
-          <span className="back-arrow">←</span>
-          <div className="autobot-info">
-            <div className="autobot-avatar">👻</div>
-            <div className="autobot-details">
-              <div className="autobot-name">Blink</div>
-              <div className="autobot-status">online</div>
+    <div className="autobot-app" style={{ position: 'relative', overflow: 'hidden' }}>
+
+      {!webViewData ? (
+        // Chat Interface
+        <>
+          {/* Header */}
+          <div className="chat-header">
+            <div className="header-left">
+              <span className="back-arrow">←</span>
+              <div className="autobot-info">
+                <div className="autobot-avatar">
+                  <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
+                  </svg>
+                </div>
+                <div className="autobot-details">
+                  <div className="autobot-name">Blink</div>
+                  <div className="autobot-status">online</div>
+                </div>
+              </div>
+            </div>
+            <div className="header-right">
+              <Settings size={20} />
+              <MoreVertical size={20} />
             </div>
           </div>
-        </div>
-        <div className="header-right">
-          <Settings size={20} />
-          <MoreVertical size={20} />
-        </div>
-      </div>
 
-      {/* Chat Messages */}
-      <div className="chat-container" ref={chatContainerRef}>
-        <AnimatePresence>
-          {messages.map((message) => (
-            <ChatMessage 
-              key={message.id} 
-              message={message} 
-              onPurchaseIntent={handlePurchaseIntent}
-              onConfirmPurchase={confirmPurchase}
-              onUserResponse={handleUserResponse}
-              userProfile={userProfile}
-              onImageClick={(image, title) => setFullscreenImage({ image, title })}
-              onWebView={(data) => setWebViewData(data)}
-              onFunded={handleFundingComplete}
-            />
-          ))}
-        </AnimatePresence>
-        
-        {isTyping && <TypingIndicator />}
-      </div>
+          {/* Chat Messages */}
+          <div className="chat-container" ref={chatContainerRef}>
+            <AnimatePresence>
+              {messages.map((message) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  onPurchaseIntent={handlePurchaseIntent}
+                  onConfirmPurchase={confirmPurchase}
+                  onUserResponse={handleUserResponse}
+                  userProfile={userProfile}
+                  onImageClick={(image, title) => setFullscreenImage({ image, title })}
+                  onWebView={(data) => {
+                    // Switch to web view mode
+                    setWebViewData(data);
+                  }}
+                  onFunded={handleFundingComplete}
+                />
+              ))}
+            </AnimatePresence>
+            
+            {isTyping && <TypingIndicator />}
+          </div>
 
-      {/* Input Area */}
-      {currentFlow === 'onboarding' && (
-        <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
-      )}
-      
-      {currentFlow === 'chat' && (
-          <ChatInput onSubmit={handleChatMessage} />
-        )}
-      </div>
-      
-      {/* Web View - Inside the phone */}
-      {webViewData ? (
-        <AutobotWebView 
+          {/* Input Area */}
+          {currentFlow === 'onboarding' && (
+            <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
+          )}
+          
+          {currentFlow === 'chat' && (
+              <ChatInput onSubmit={handleChatMessage} />
+            )}
+        </>
+      ) : (
+        // Web View Interface
+        <WebViewInterface 
           data={webViewData} 
           onClose={() => setWebViewData(null)} 
           onPurchaseIntent={handlePurchaseIntent} 
         />
-      ) : null}
+      )}
+      </div>
+      
+
       
       {/* Fullscreen Image Viewer */}
       <AnimatePresence>
@@ -1586,17 +1590,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
   }, []);
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '60px',
-      left: 0,
-      right: 0,
-      bottom: '97px',
-      backgroundColor: '#ffffff',
-      overflow: 'hidden',
-      borderRadius: '0px',
-      zIndex: 100
-    }}>
+    <div className="autobot-webview">
       {isLoading ? (
         // Loading Screen
         <div style={{
@@ -1632,7 +1626,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
               textAlign: 'center'
             }}
           >
-            👻 Blink Store
+            Blink
           </motion.div>
           <motion.div
             initial={{ opacity: 0 }}
@@ -1682,7 +1676,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
                 ← Back
               </motion.button>
               <div>
-                <div style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '-0.3px' }}>👻 Blink Store</div>
+                <div style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '-0.3px' }}>Blink</div>
               </div>
             </div>
             <div style={{ 
@@ -1959,6 +1953,10 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           <SearchResultsCard data={message.data} onPurchaseIntent={onPurchaseIntent} onImageClick={onImageClick} onWebView={onWebView} />
         )}
         
+        {message.special === 'product-list' && (
+          <ProductListCard data={message.data} onPurchaseIntent={onPurchaseIntent} onImageClick={onImageClick} />
+        )}
+        
         {message.special === 'purchase-confirmation' && (
           <PurchaseConfirmationCard data={message.data} onConfirmPurchase={onConfirmPurchase} />
         )}
@@ -2201,12 +2199,412 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
             >
               {data.results[0].hasUsedOptions && !data.results[0].isUsed 
                 ? `Show me used options (${data.results[0].usedOptionsCount})` 
-                : `View (${data.results.length}) Options from secondary`}
+                : `View (${data.results.length}) more Options`}
           </motion.button>
           </div>
         )}
       </div>
     </motion.div>
+  );
+};
+
+const ProductListCard = ({ data, onPurchaseIntent, onImageClick }) => {
+  const products = data.results || [];
+  
+  return (
+    <motion.div 
+      className="product-list-card"
+      initial={{ scale: 0.95 }}
+      animate={{ scale: 1 }}
+      style={{ marginBottom: '8px' }}
+    >
+      <div className="products-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gap: '12px'
+      }}>
+        {products.map((product, index) => (
+          <SearchResultCard 
+            key={index}
+            data={product} 
+            onPurchaseIntent={onPurchaseIntent} 
+            onImageClick={onImageClick} 
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
+const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [animationComplete, setAnimationComplete] = useState(false);
+  const [lottieData, setLottieData] = useState(null);
+
+  useEffect(() => {
+    // Load Lottie animation data
+    const lottieUrl = `${process.env.PUBLIC_URL}/lottie/data.json`;
+    console.log('🎬 Loading Lottie animation from:', lottieUrl);
+    fetch(lottieUrl)
+      .then(response => {
+        console.log('🎬 Lottie fetch response:', response.status, response.url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('🎬 Lottie data loaded successfully:', data);
+        setLottieData(data);
+      })
+      .catch(error => {
+        console.error('❌ Error loading Lottie animation:', error);
+        // If loading fails, just complete the animation immediately
+        setAnimationComplete(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    // Wait for animation to complete before showing products
+    console.log('🎬 Animation complete state changed:', animationComplete);
+    if (animationComplete) {
+      console.log('🎬 Animation completed, hiding loading screen in 300ms');
+      const timer = setTimeout(() => {
+        console.log('🎬 Hiding loading screen now!');
+        setIsLoading(false);
+      }, 300); // Smoother transition
+      return () => clearTimeout(timer);
+    }
+  }, [animationComplete]);
+
+  const products = data.results || [];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Web View Header with Back Button */}
+      <div style={{
+        background: '#ffffff',
+        color: '#1a1a1a',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+        borderBottom: '1px solid #f3f4f6'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <motion.button
+            onClick={onClose}
+            whileHover={{ scale: 1.05, backgroundColor: '#f3f4f6' }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              color: '#6b7280',
+              fontSize: '14px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: '500'
+            }}
+          >
+            ← Back
+          </motion.button>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '-0.3px' }}>Blink</div>
+          </div>
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          background: '#f3f4f6',
+          padding: '4px 12px',
+          borderRadius: '12px'
+        }}>
+          <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '500' }}>
+            {products.length} items
+          </div>
+        </div>
+      </div>
+
+      {/* Products Content */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '20px',
+        background: '#fafafa'
+      }}>
+        {isLoading ? (
+          // Cool Lottie Loading Screen
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              zIndex: 1000
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
+              style={{
+                marginBottom: '24px'
+              }}
+            >
+              {lottieData ? (
+                <Lottie 
+                  animationData={lottieData}
+                  style={{ width: 120, height: 120 }}
+                  loop={false}
+                  autoplay={true}
+                  onComplete={() => {
+                    console.log('🎬 Lottie animation completed!');
+                    // Animation completed, trigger the next phase
+                    setTimeout(() => {
+                      console.log('🎬 Setting animation complete to true');
+                      setAnimationComplete(true);
+                    }, 200); // Smoother transition
+                  }}
+                  onLoopComplete={() => {
+                    console.log('🎬 Lottie loop completed (should not happen with loop=false)');
+                  }}
+                  onEnterFrame={(e) => {
+                    // Log every 10th frame to avoid spam
+                    if (e.currentTime % 10 === 0) {
+                      console.log('🎬 Lottie frame:', e.currentTime);
+                    }
+                  }}
+                />
+              ) : (
+                // Fallback loading spinner while Lottie data loads
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    border: '3px solid rgba(255, 255, 255, 0.3)',
+                    borderTop: '3px solid #ffffff',
+                    borderRadius: '50%'
+                  }}
+                />
+              )}
+            </motion.div>
+            
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                marginBottom: '8px',
+                textAlign: 'center'
+              }}
+            >
+              Blink
+            </motion.div>
+            
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              style={{
+                fontSize: '14px',
+                opacity: 0.8,
+                textAlign: 'center'
+              }}
+            >
+              What you want in a Blink
+            </motion.div>
+            
+            {/* Animated dots */}
+            <motion.div
+              style={{
+                display: 'flex',
+                gap: '4px',
+                marginTop: '16px'
+              }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.5, 1, 0.5]
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    delay: i * 0.2
+                  }}
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff'
+                  }}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            {products.map((result, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}
+              >
+                {/* Product Image */}
+                {result.image && (result.image.startsWith('http') || result.image.includes('PUBLIC_URL') || result.image.startsWith('/')) ? (
+                  <img 
+                    src={result.image} 
+                    alt={result.title}
+                    style={{
+                      width: '100%',
+                      height: '150px',
+                      objectFit: 'contain',
+                      borderRadius: '6px',
+                      marginBottom: '12px',
+                      backgroundColor: '#f9fafb'
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    fontSize: '48px', 
+                    textAlign: 'center', 
+                    marginBottom: '12px',
+                    height: '150px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {result.image}
+                  </div>
+                )}
+
+                {/* Product Info */}
+                <div style={{ marginBottom: '12px' }}>
+                  <h3 style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    marginBottom: '6px',
+                    color: '#1e293b'
+                  }}>
+                    {result.title}
+                  </h3>
+                  
+                  <div style={{ 
+                    fontSize: '18px', 
+                    fontWeight: '700', 
+                    color: '#0f172a',
+                    marginBottom: '10px'
+                  }}>
+                    ${result.price} {result.shipping > 0 && (
+                      <span style={{ fontSize: '14px', color: '#64748b' }}>
+                        + ${result.shipping} shipping
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    <span style={{
+                      backgroundColor: result.availability === 'In Stock' ? '#10b981' : '#f59e0b',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '16px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {result.availability}
+                    </span>
+                    <span style={{
+                      backgroundColor: '#e2e8f0',
+                      color: '#475569',
+                      padding: '4px 12px',
+                      borderRadius: '16px',
+                      fontSize: '12px'
+                    }}>
+                      📦 {result.deliveryDate}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Buy Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    onClose(); // Close web view first
+                    setTimeout(() => {
+                      onPurchaseIntent(result); // Then trigger purchase intent in chat
+                    }, 300);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '14px 20px',
+                    background: '#1a1a1a',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                    letterSpacing: '0.5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  I want this
+                  <span style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}>
+                    ${result.price + (result.shipping || 0)}
+                  </span>
+                </motion.button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -2998,8 +3396,8 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
             }}
             title="Upload image"
           >
-            <svg data-testid="geist-icon" height="16" stroke-linejoin="round" viewBox="0 0 16 16" width="16">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 2.5H1.5V9.18933L2.96966 7.71967L3.18933 7.5H3.49999H6.63001H6.93933L6.96966 7.46967L10.4697 3.96967L11.5303 3.96967L14.5 6.93934V2.5ZM8.00066 8.55999L9.53034 10.0897L10.0607 10.62L9.00001 11.6807L8.46968 11.1503L6.31935 9H3.81065L1.53032 11.2803L1.5 11.3106V12.5C1.5 13.0523 1.94772 13.5 2.5 13.5H13.5C14.0523 13.5 14.5 13.0523 14.5 12.5V9.06066L11 5.56066L8.03032 8.53033L8.00066 8.55999ZM4.05312e-06 10.8107V12.5C4.05312e-06 13.8807 1.11929 15 2.5 15H13.5C14.8807 15 16 13.8807 16 12.5V9.56066L16.5607 9L16.0303 8.46967L16 8.43934V2.5V1H14.5H1.5H4.05312e-06V2.5V10.6893L-0.0606689 10.75L4.05312e-06 10.8107Z" fill="currentColor"/>
+            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
+              <path fillRule="evenodd" clipRule="evenodd" d="M14.5 2.5H1.5V9.18933L2.96966 7.71967L3.18933 7.5H3.49999H6.63001H6.93933L6.96966 7.46967L10.4697 3.96967L11.5303 3.96967L14.5 6.93934V2.5ZM8.00066 8.55999L9.53034 10.0897L10.0607 10.62L9.00001 11.6807L8.46968 11.1503L6.31935 9H3.81065L1.53032 11.2803L1.5 11.3106V12.5C1.5 13.0523 1.94772 13.5 2.5 13.5H13.5C14.0523 13.5 14.5 13.0523 14.5 12.5V9.06066L11 5.56066L8.03032 8.53033L8.00066 8.55999ZM4.05312e-06 10.8107V12.5C4.05312e-06 13.8807 1.11929 15 2.5 15H13.5C14.8807 15 16 13.8807 16 12.5V9.56066L16.5607 9L16.0303 8.46967L16 8.43934V2.5V1H14.5H1.5H4.05312e-06V2.5V10.6893L-0.0606689 10.75L4.05312e-06 10.8107Z" fill="currentColor"/>
             </svg>
           </button>
           
@@ -3022,8 +3420,8 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
             }}
             title="Voice message"
           >
-            <svg data-testid="geist-icon" height="16" stroke-linejoin="round" viewBox="0 0 16 16" width="16">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M8.50098 1.5H7.50098C6.67255 1.5 6.00098 2.17157 6.00098 3V7C6.00098 7.82843 6.67255 8.5 7.50098 8.5H8.50098C9.32941 8.5 10.001 7.82843 10.001 7V3C10.001 2.17157 9.32941 1.5 8.50098 1.5ZM7.50098 0C5.84412 0 4.50098 1.34315 4.50098 3V7C4.50098 8.65685 5.84412 10 7.50098 10H8.50098C10.1578 10 11.501 8.65685 11.501 7V3C11.501 1.34315 10.1578 0 8.50098 0H7.50098ZM7.25098 13.2088V15.25V16H8.75098V15.25V13.2088C11.5607 12.8983 13.8494 10.8635 14.5383 8.18694L14.7252 7.46062L13.2726 7.08673L13.0856 7.81306C12.5028 10.0776 10.4462 11.75 8.00098 11.75C5.55572 11.75 3.49918 10.0776 2.91633 7.81306L2.72939 7.08673L1.27673 7.46062L1.46368 8.18694C2.15258 10.8635 4.44128 12.8983 7.25098 13.2088Z" fill="currentColor"/>
+            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
+              <path fillRule="evenodd" clipRule="evenodd" d="M8.50098 1.5H7.50098C6.67255 1.5 6.00098 2.17157 6.00098 3V7C6.00098 7.82843 6.67255 8.5 7.50098 8.5H8.50098C9.32941 8.5 10.001 7.82843 10.001 7V3C10.001 2.17157 9.32941 1.5 8.50098 1.5ZM7.50098 0C5.84412 0 4.50098 1.34315 4.50098 3V7C4.50098 8.65685 5.84412 10 7.50098 10H8.50098C10.1578 10 11.501 8.65685 11.501 7V3C11.501 1.34315 10.1578 0 8.50098 0H7.50098ZM7.25098 13.2088V15.25V16H8.75098V15.25V13.2088C11.5607 12.8983 13.8494 10.8635 14.5383 8.18694L14.7252 7.46062L13.2726 7.08673L13.0856 7.81306C12.5028 10.0776 10.4462 11.75 8.00098 11.75C5.55572 11.75 3.49918 10.0776 2.91633 7.81306L2.72939 7.08673L1.27673 7.46062L1.46368 8.18694C2.15258 10.8635 4.44128 12.8983 7.25098 13.2088Z" fill="currentColor"/>
             </svg>
           </button>
           
@@ -3155,8 +3553,8 @@ const ChatInput = ({ onSubmit }) => {
             }}
             title="Upload image"
           >
-            <svg data-testid="geist-icon" height="16" stroke-linejoin="round" viewBox="0 0 16 16" width="16">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 2.5H1.5V9.18933L2.96966 7.71967L3.18933 7.5H3.49999H6.63001H6.93933L6.96966 7.46967L10.4697 3.96967L11.5303 3.96967L14.5 6.93934V2.5ZM8.00066 8.55999L9.53034 10.0897L10.0607 10.62L9.00001 11.6807L8.46968 11.1503L6.31935 9H3.81065L1.53032 11.2803L1.5 11.3106V12.5C1.5 13.0523 1.94772 13.5 2.5 13.5H13.5C14.0523 13.5 14.5 13.0523 14.5 12.5V9.06066L11 5.56066L8.03032 8.53033L8.00066 8.55999ZM4.05312e-06 10.8107V12.5C4.05312e-06 13.8807 1.11929 15 2.5 15H13.5C14.8807 15 16 13.8807 16 12.5V9.56066L16.5607 9L16.0303 8.46967L16 8.43934V2.5V1H14.5H1.5H4.05312e-06V2.5V10.6893L-0.0606689 10.75L4.05312e-06 10.8107Z" fill="currentColor"/>
+            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
+              <path fillRule="evenodd" clipRule="evenodd" d="M14.5 2.5H1.5V9.18933L2.96966 7.71967L3.18933 7.5H3.49999H6.63001H6.93933L6.96966 7.46967L10.4697 3.96967L11.5303 3.96967L14.5 6.93934V2.5ZM8.00066 8.55999L9.53034 10.0897L10.0607 10.62L9.00001 11.6807L8.46968 11.1503L6.31935 9H3.81065L1.53032 11.2803L1.5 11.3106V12.5C1.5 13.0523 1.94772 13.5 2.5 13.5H13.5C14.0523 13.5 14.5 13.0523 14.5 12.5V9.06066L11 5.56066L8.03032 8.53033L8.00066 8.55999ZM4.05312e-06 10.8107V12.5C4.05312e-06 13.8807 1.11929 15 2.5 15H13.5C14.8807 15 16 13.8807 16 12.5V9.56066L16.5607 9L16.0303 8.46967L16 8.43934V2.5V1H14.5H1.5H4.05312e-06V2.5V10.6893L-0.0606689 10.75L4.05312e-06 10.8107Z" fill="currentColor"/>
             </svg>
           </button>
           
@@ -3179,8 +3577,8 @@ const ChatInput = ({ onSubmit }) => {
             }}
             title="Voice message"
           >
-            <svg data-testid="geist-icon" height="16" stroke-linejoin="round" viewBox="0 0 16 16" width="16">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M8.50098 1.5H7.50098C6.67255 1.5 6.00098 2.17157 6.00098 3V7C6.00098 7.82843 6.67255 8.5 7.50098 8.5H8.50098C9.32941 8.5 10.001 7.82843 10.001 7V3C10.001 2.17157 9.32941 1.5 8.50098 1.5ZM7.50098 0C5.84412 0 4.50098 1.34315 4.50098 3V7C4.50098 8.65685 5.84412 10 7.50098 10H8.50098C10.1578 10 11.501 8.65685 11.501 7V3C11.501 1.34315 10.1578 0 8.50098 0H7.50098ZM7.25098 13.2088V15.25V16H8.75098V15.25V13.2088C11.5607 12.8983 13.8494 10.8635 14.5383 8.18694L14.7252 7.46062L13.2726 7.08673L13.0856 7.81306C12.5028 10.0776 10.4462 11.75 8.00098 11.75C5.55572 11.75 3.49918 10.0776 2.91633 7.81306L2.72939 7.08673L1.27673 7.46062L1.46368 8.18694C2.15258 10.8635 4.44128 12.8983 7.25098 13.2088Z" fill="currentColor"/>
+            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
+              <path fillRule="evenodd" clipRule="evenodd" d="M8.50098 1.5H7.50098C6.67255 1.5 6.00098 2.17157 6.00098 3V7C6.00098 7.82843 6.67255 8.5 7.50098 8.5H8.50098C9.32941 8.5 10.001 7.82843 10.001 7V3C10.001 2.17157 9.32941 1.5 8.50098 1.5ZM7.50098 0C5.84412 0 4.50098 1.34315 4.50098 3V7C4.50098 8.65685 5.84412 10 7.50098 10H8.50098C10.1578 10 11.501 8.65685 11.501 7V3C11.501 1.34315 10.1578 0 8.50098 0H7.50098ZM7.25098 13.2088V15.25V16H8.75098V15.25V13.2088C11.5607 12.8983 13.8494 10.8635 14.5383 8.18694L14.7252 7.46062L13.2726 7.08673L13.0856 7.81306C12.5028 10.0776 10.4462 11.75 8.00098 11.75C5.55572 11.75 3.49918 10.0776 2.91633 7.81306L2.72939 7.08673L1.27673 7.46062L1.46368 8.18694C2.15258 10.8635 4.44128 12.8983 7.25098 13.2088Z" fill="currentColor"/>
             </svg>
           </button>
           
