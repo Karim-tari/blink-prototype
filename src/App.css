@@ -6,22 +6,24 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Roboto', sans-serif;
-  background: #f8fafc;
+  background: #f2f2f7; /* iOS light gray background */
   height: 100vh;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 .autobot-app {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  max-width: 375px;
-  width: 375px;
-  margin: 0 auto;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  width: 100vw;
+  max-width: 100vw;
+  margin: 0;
+  border: none;
+  background: #f2f2f7; /* iOS light gray background */
   position: relative;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 /* Header */
@@ -30,8 +32,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
+  background: #f2f2f7; /* iOS light gray background */
+  border-bottom: 1px solid #e5e5ea; /* Subtle iOS border */
   min-height: 60px; 
 }
 
@@ -44,7 +46,7 @@ body {
 .back-arrow {
   font-size: 18px;
   cursor: pointer;
-  color: #6b7280;
+  color: #007aff; /* iOS blue */
 }
 
 .autobot-info {
@@ -72,18 +74,23 @@ body {
 .autobot-name {
   font-weight: 600;
   font-size: 16px;
-  color: #111827;
+  color: #000000; /* Black text for iOS header */
 }
 
 .autobot-status {
   font-size: 12px;
-  color: #10b981;
+  color: #8e8e93; /* iOS gray for status */
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.header-right svg {
+  color: #007aff; /* iOS blue icons */
+  cursor: pointer;
 }
 
 .credits-badge {
@@ -103,7 +110,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #ffffff;
+  background: #f2f2f7; /* iOS light gray background */
 }
 
 /* Messages */
@@ -128,15 +135,17 @@ body {
 }
 
 .autobot-message .message-bubble {
-  background: #f3f4f6;
+  background: #ffffff; /* White for received messages */
   border-bottom-left-radius: 4px;
   color: #111827;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
 }
 
 .user-message .message-bubble {
-  background: #6b46c1;
-  color: white;
+  background: #dcf8c6; /* WhatsApp green for sent messages */
+  color: #111827; /* Dark text on light green */
   border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
 }
 
 .message-text {
@@ -149,6 +158,7 @@ body {
   font-size: 11px;
   margin-top: 4px;
   opacity: 0.6;
+  color: #667781; /* WhatsApp timestamp color */
 }
 
 /* Fast Forward Button */
@@ -460,23 +470,139 @@ body {
 
 /* Remove the circular dot styles to use text dots instead */
 
-/* Input Areas */
-.onboarding-input, .chat-input {
-  padding: 16px;
-  border-top: 1px solid #e5e7eb;
-  background: #ffffff;
+/* iOS Input Styles */
+.whatsapp-input-container {
+  padding: 8px 16px 8px 8px;
+  background: #f2f2f7; /* iOS light gray background */
+  border-top: 1px solid #e5e5ea; /* iOS border color */
 }
 
-/* Removed quick response buttons for authentic Telegram experience */
-
-.input-form {
+.whatsapp-input-wrapper {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
+}
+
+.whatsapp-plus-btn {
+  background: transparent;
+  border: none;
+  color: #8e8e93; /* iOS gray */
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.whatsapp-plus-btn:hover {
+  background: rgba(142, 142, 147, 0.1);
+}
+
+.whatsapp-input-form {
+  flex: 1;
+  display: flex;
+}
+
+.whatsapp-message-input {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #e5e5ea; /* iOS border */
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 15px;
+  outline: none;
+  color: #000000; /* iOS black text */
+  font-family: inherit;
+}
+
+.whatsapp-message-input::placeholder {
+  color: #8e8e93; /* iOS gray placeholder */
+}
+
+.whatsapp-message-input:focus {
+  border-color: #007aff; /* iOS blue focus */
+}
+
+.whatsapp-right-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.whatsapp-icon-btn {
+  background: transparent;
+  border: none;
+  color: #8e8e93; /* iOS gray */
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.whatsapp-icon-btn:hover {
+  background: rgba(142, 142, 147, 0.1);
+}
+
+/* WhatsApp-style menu buttons */
+.whatsapp-menu-container {
+  background: #ffffff;
+  border-radius: 12px;
+  margin-top: 8px;
+  margin-left: 0;
+  margin-right: 0;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+  overflow: hidden;
+  max-width: 85%;
   width: 100%;
 }
 
-.chat-input {
+.whatsapp-menu-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.whatsapp-menu-btn:last-child {
+  border-bottom: none;
+}
+
+.whatsapp-menu-btn:hover {
+  background: #f0f0f0;
+}
+
+.whatsapp-menu-icon {
+  color: #007aff;
+  flex-shrink: 0;
+}
+
+.whatsapp-menu-text {
+  color: #007aff;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  flex: 1;
+}
+
+/* Legacy input styles for onboarding */
+.onboarding-input {
+  padding: 16px;
+  border-top: none;
+  background: #f0f0f0;
+}
+
+.input-form {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -486,20 +612,21 @@ body {
 .message-input {
   flex: 1;
   width: 100%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #d1d7db;
   padding: 12px 16px;
   border-radius: 24px;
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
+  background: #ffffff;
 }
 
 .message-input:focus {
-  border-color: #6b46c1;
+  border-color: #075e54;
 }
 
 .send-btn {
-  background: #6b46c1;
+  background: #075e54;
   color: white;
   border: none;
   width: 40px;
@@ -512,22 +639,17 @@ body {
   justify-content: center;
 }
 
-/* Demo Controls */
-.demo-controls {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
-}
+
 
 /* Mobile Responsiveness */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .autobot-app {
     height: 100vh;
     width: 100vw;
     max-width: 100vw;
     border: none;
     box-shadow: none;
+    border-radius: 0;
   }
   
   .items-grid {
@@ -540,26 +662,45 @@ body {
     max-width: 90%;
   }
   
+  .whatsapp-menu-container {
+    max-width: 90%;
+  }
+  
   /* Hide demo controls on mobile */
   .demo-controls {
     display: none;
   }
+  
+  body {
+    background: #f2f2f7; /* iOS light gray background */
+    padding: 0;
+    margin: 0;
+  }
 }
 
-/* Larger screens - keep phone-like appearance */
-@media (min-width: 481px) {
+/* Tablet and larger screens - still fullscreen */
+@media (min-width: 769px) {
   body {
-    background: #f0f0f0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 0;
+    background: #f2f2f7; /* iOS light gray background */
+    padding: 0;
+    margin: 0;
   }
   
   .autobot-app {
-    height: 667px; /* iPhone-like height */
-    border-radius: 20px;
-    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    max-width: 100vw;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  
+  .message-bubble {
+    max-width: 85%;
+  }
+  
+  .whatsapp-menu-container {
+    max-width: 85%;
   }
 }
 
@@ -576,6 +717,29 @@ body {
 
 .snipe-btn:hover {
   animation: glow 1s ease-in-out infinite;
+}
+
+/* Safari Bottom Bar */
+.safari-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  z-index: 1000;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+}
+
+.safari-bottom-bar img {
+  width: 100vw;
+  height: auto;
+  display: block;
+  max-height: 100px;
+  object-fit: cover;
+  margin: 0;
+  padding: 0;
 }
 
 /* Scrollbar */

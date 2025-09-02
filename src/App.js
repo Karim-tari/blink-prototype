@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, MoreVertical, MapPin, Clock } from 'lucide-react';
+import { Settings, MoreVertical, MapPin, Clock, Plus, Camera, Mic, ExternalLink, Phone, List, DollarSign } from 'lucide-react';
 import Lottie from 'lottie-react';
 import './App.css';
 
@@ -318,6 +318,11 @@ const AutobotApp = () => {
         `Nice! What kind of gaming gear are you looking for?`,
         `Gaming time! Let me find some awesome options for you.`
       ],
+      'kith-jaws': [
+        `Kith x Jaws drop! 🦈 This collaboration is fire - let me show you what's available.`,
+        `The Kith x Jaws collection! Such a cool collab. Finding the best pieces for you.`,
+        `Kith x Jaws! 🦈 This drop has some amazing pieces. Let me pull up the collection.`
+      ],
       lego: [
         `LEGO time! 🧱 What kind of sets are you looking for?`,
         `Nice choice! Star Wars, architecture, or something else?`,
@@ -408,6 +413,115 @@ const AutobotApp = () => {
               shipping: 3,
               location: 'Chicago, IL',
               isSecondHand: true
+            }
+          ]
+        };
+      } else if (request.includes('kith jaws') || request.includes('kif jaws') || (request.includes('kith') && request.includes('jaws'))) {
+        return {
+          category: 'kith-jaws',
+          emoji: '🦈',
+          products: [
+            { 
+              name: 'Kith x Jaws Vintage Tee', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintage tee.webp`
+            },
+            { 
+              name: 'Kith x Jaws Crewneck', 
+              basePrice: 165, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/Crewneck.webp`
+            },
+            { 
+              name: 'Kith x Jaws Cap', 
+              basePrice: 65, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/cap.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 2', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee2.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 3', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee3.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 4', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee4.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 5', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee5.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 6', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee6.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 7', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee7.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 8', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee8.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 9', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee9.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 10', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee10.webp`
+            },
+            { 
+              name: 'Kith x Jaws Vintage Tee 11', 
+              basePrice: 85, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/vintane tee11.webp`
+            },
+            { 
+              name: 'Kith x Jaws Cap 2', 
+              basePrice: 65, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/cap2.webp`
+            },
+            { 
+              name: 'Kith x Jaws Cap 3', 
+              basePrice: 65, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/cap3.webp`
+            },
+            { 
+              name: 'Kith x Jaws Poster', 
+              basePrice: 45, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/poster.webp`
+            },
+            { 
+              name: 'Kith x Jaws Poster 2', 
+              basePrice: 45, 
+              brand: 'Kith',
+              image: `${process.env.PUBLIC_URL}/Kith Jaws/poster2.webp`
             }
           ]
         };
@@ -1316,6 +1430,7 @@ const AutobotApp = () => {
 
   const getProductCategoryName = (request) => {
     if (request.includes('half-life') || request.includes('half life') || (request.includes('half') && request.includes('life'))) return 'half-life';
+    if (request.includes('kith jaws') || request.includes('kif jaws') || (request.includes('kith') && request.includes('jaws'))) return 'kith-jaws';
     if (request.includes('lego') || request.includes('star wars') || request.includes('blocks')) return 'lego';
     if (request.includes('monitor') || request.includes('display') || request.includes('screen')) return 'monitor';
     if (request.includes('shoes') || request.includes('sneaker') || request.includes('jordan') || request.includes('nike')) return 'shoes';
@@ -1383,82 +1498,6 @@ const AutobotApp = () => {
   };
 
   return (
-    <div style={{ 
-      position: 'relative',
-      minHeight: '100vh'
-    }}>
-      {/* Join the Waitlist - Fixed at top right */}
-      <motion.a
-        href="https://karim-tari.github.io/Blink-Lander/"
-        target="_blank"
-        rel="noopener noreferrer"
-        whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
-        whileTap={{ scale: 0.95 }}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 1001,
-          padding: '8px 16px',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          color: '#3b82f6',
-          textDecoration: 'none',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: '600',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-          letterSpacing: '0.025em'
-        }}
-      >
-        Join the Waitlist
-      </motion.a>
-      
-      {/* Header - Fixed at top center */}
-      <div style={{
-        position: 'fixed',
-        top: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        textAlign: 'center',
-        zIndex: 1000
-      }}>
-        <h1 style={{
-          fontSize: '18px',
-          fontWeight: '600',
-          color: '#1a1a1a',
-          margin: '0 0 6px 0'
-        }}>
-          Blink - Prototype v1.1
-        </h1>
-        <div style={{
-          fontSize: '14px',
-          fontWeight: '500',
-          color: '#666',
-          letterSpacing: '0.3px'
-        }}>
-          <TypingText text="BUY ANYTHING YOU WANT IN A BLINK" delay={100} />
-        </div>
-      </div>
-
-      {/* Main content - Centered */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '20px'
-      }}>
-        {/* Demo Controls - Outside the phone */}
-        <DemoControls 
-          onNewUser={initializeNewUser}
-          onReturningUser={initializeReturningUser}
-          currentUserType={userType}
-        />
-        
-        {/* Phone App Container */}
     <div className="autobot-app" style={{ position: 'relative', overflow: 'hidden' }}>
 
       {!webViewData ? (
@@ -1527,10 +1566,7 @@ const AutobotApp = () => {
           onPurchaseIntent={handlePurchaseIntent} 
         />
       )}
-      </div>
-      
 
-      
       {/* Fullscreen Image Viewer */}
       <AnimatePresence>
         {fullscreenImage && (
@@ -1541,7 +1577,6 @@ const AutobotApp = () => {
           />
         )}
       </AnimatePresence>
-      </div>
     </div>
   );
 };
@@ -2057,7 +2092,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
     >
       <div className="message-bubble">
         {message.special === 'search-result' && (
-          <SearchResultCard data={message.data} onPurchaseIntent={onPurchaseIntent} onImageClick={onImageClick} />
+          <SearchResultCard data={message.data} onImageClick={onImageClick} showButtons={false} />
         )}
         
         {message.special === 'search-results' && (
@@ -2129,24 +2164,64 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
+      
+      {/* WhatsApp-style menu buttons outside message bubble */}
+      {message.special === 'search-result' && message.data && (
+        <div className="whatsapp-menu-container">
+          <motion.button
+            whileHover={{ backgroundColor: '#f0f0f0' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onPurchaseIntent && onPurchaseIntent(message.data)}
+            className="whatsapp-menu-btn"
+          >
+            <DollarSign size={20} className="whatsapp-menu-icon" />
+            <span className="whatsapp-menu-text">I want this - ${message.data.price + (message.data.shipping || 0)}</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ backgroundColor: '#f0f0f0' }}
+            whileTap={{ scale: 0.98 }}
+            className="whatsapp-menu-btn"
+            onClick={() => console.log('View more options clicked')}
+          >
+            <ExternalLink size={20} className="whatsapp-menu-icon" />
+            <span className="whatsapp-menu-text">View (4) more Options</span>
+          </motion.button>
+        </div>
+      )}
+      
+      {/* WhatsApp-style menu buttons for search results (multiple items) */}
+      {message.special === 'search-results' && message.data && message.data.results && message.data.results.length > 0 && (
+        <div className="whatsapp-menu-container">
+          <motion.button
+            whileHover={{ backgroundColor: '#f0f0f0' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onPurchaseIntent && onPurchaseIntent(message.data.results[0])}
+            className="whatsapp-menu-btn"
+          >
+            <DollarSign size={20} className="whatsapp-menu-icon" />
+            <span className="whatsapp-menu-text">I want this - ${message.data.results[0].price + (message.data.results[0].shipping || 0)}</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ backgroundColor: '#f0f0f0' }}
+            whileTap={{ scale: 0.98 }}
+            className="whatsapp-menu-btn"
+            onClick={() => onWebView && onWebView(message.data)}
+          >
+            <ExternalLink size={20} className="whatsapp-menu-icon" />
+            <span className="whatsapp-menu-text">View ({message.data.results.length}) more Options</span>
+          </motion.button>
+        </div>
+      )}
     </motion.div>
   );
 };
 
-const SearchResultCard = ({ data, onPurchaseIntent, onImageClick, onViewDetails }) => {
+const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
   return (
-    <motion.div 
-      className="search-result-card"
-      initial={{ scale: 0.95 }}
-      animate={{ scale: 1 }}
-      style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '12px',
-        marginBottom: '8px',
-        border: '1px solid #e1e5e9'
-      }}
-    >
+    <div style={{
+      padding: '0',
+      margin: '0'
+    }}>
       <div className="result-content">
         {/* Use actual image if available, otherwise show placeholder */}
         {data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
@@ -2155,10 +2230,10 @@ const SearchResultCard = ({ data, onPurchaseIntent, onImageClick, onViewDetails 
             alt={data.title}
             style={{ 
               width: '100%', 
-              height: '200px', 
+              height: '180px', 
               objectFit: 'contain', 
               borderRadius: '8px',
-              marginBottom: '16px',
+              marginBottom: '12px',
               backgroundColor: '#f9fafb',
               cursor: 'pointer'
             }}
@@ -2167,51 +2242,50 @@ const SearchResultCard = ({ data, onPurchaseIntent, onImageClick, onViewDetails 
         ) : (
           <div style={{ 
             width: '100%', 
-            height: '200px', 
+            height: '180px', 
             backgroundColor: '#f9fafb',
             borderRadius: '8px',
-            marginBottom: '16px',
+            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            border: '2px dashed #e0e0e0'
+            justifyContent: 'center'
           }}>
             <div style={{ 
               fontSize: '14px', 
               color: '#999', 
-              textAlign: 'center',
-              padding: '20px'
+              textAlign: 'center'
             }}>
               Product Image
             </div>
           </div>
         )}
         
-        <div className="result-info">
-          {/* Make product title the biggest headline */}
-          <div className="result-title" style={{ 
-            fontWeight: '700', 
-            fontSize: '22px', 
-            marginBottom: '8px',
-            color: '#1a1a1a',
-            lineHeight: '1.2'
+        <div>
+          <div style={{ 
+            fontWeight: '600', 
+            fontSize: '16px', 
+            marginBottom: '4px',
+            color: '#000000',
+            lineHeight: '1.3'
           }}>
             {data.title}
           </div>
           
-          {/* Simple delivery text instead of pill */}
           <div style={{ 
             fontSize: '14px', 
-            color: '#666'
+            color: '#8e8e93',
+            marginBottom: '4px'
           }}>
             Get this {data.deliveryDate.toLowerCase()}
           </div>
           
           {data.isSecondHand && (
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ color: '#e4a853', fontSize: '13px', fontWeight: '500' }}>
-                📍 {data.location} • {data.condition}
-              </div>
+            <div style={{ 
+              color: '#8e8e93', 
+              fontSize: '13px',
+              marginBottom: '4px'
+            }}>
+              📍 {data.location} • {data.condition}
             </div>
           )}
         </div>
@@ -2234,42 +2308,7 @@ const SearchResultCard = ({ data, onPurchaseIntent, onImageClick, onViewDetails 
         </div>
       )}
 
-      {/* Make "I want this" the biggest, most prominent button */}
-      <div style={{ marginTop: '16px' }}>
-        <motion.button
-          whileHover={{ backgroundColor: '#006ba6' }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => onPurchaseIntent(data)}
-          style={{
-            width: '100%',
-            padding: '16px 20px',
-            backgroundColor: '#0088cc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            marginBottom: '8px'
-          }}
-        >
-          I want this
-          <span style={{
-            background: 'rgba(255, 255, 255, 0.25)',
-            padding: '4px 8px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}>
-            ${data.price + (data.shipping || 0)}
-          </span>
-        </motion.button>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -2286,46 +2325,10 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
 
         
         <div className="top-result">
-          <SearchResultCard data={data.results[0]} onPurchaseIntent={onPurchaseIntent} onImageClick={onImageClick} />
+          <SearchResultCard data={data.results[0]} onImageClick={onImageClick} showButtons={false} />
         </div>
         
-        {data.results.length > 1 && (
-          <div style={{ marginTop: '8px', textAlign: 'center' }}>
-          <motion.button
-              whileHover={{ backgroundColor: '#f8f9fa' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              if (onWebView) {
-                // If the main product has color variants, show only those variants
-                if (data.results[0].colorVariants && !data.results[0].isUsed) {
-                  const colorVariantResults = generateColorVariantOptions(data.results[0]);
-                  onWebView({ ...data, results: colorVariantResults });
-                } else {
-                  onWebView(data);
-                }
-              }
-            }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'transparent',
-                color: '#666',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: '400',
-                cursor: 'pointer',
-                textAlign: 'center',
-                textDecoration: 'underline'
-              }}
-            >
-              {data.results[0].colorVariants && !data.results[0].isUsed
-                ? `Show me other colors (${data.results[0].colorVariants.length - 1})`
-                : data.results[0].hasUsedOptions && !data.results[0].isUsed 
-                ? `Show me more options (${data.results[0].usedOptionsCount})` 
-                : `View (${data.results.length}) more Options`}
-          </motion.button>
-          </div>
-        )}
+
       </div>
     </motion.div>
   );
@@ -2350,8 +2353,8 @@ const ProductListCard = ({ data, onPurchaseIntent, onImageClick }) => {
           <SearchResultCard 
             key={index}
             data={product} 
-            onPurchaseIntent={onPurchaseIntent} 
             onImageClick={onImageClick} 
+            showButtons={false}
           />
         ))}
       </div>
@@ -2454,7 +2457,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '0 20px 24px',
+        padding: '0 20px 120px', // Extra bottom padding for Safari bar
         background: 'transparent'
       }}>
         {/* Logo Section - Now inside scrollable content */}
@@ -2926,6 +2929,14 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
             })()}
           </div>
         )}
+      </div>
+
+      {/* Safari Bottom Navigation Bar - Fixed Position */}
+      <div className="safari-bottom-bar">
+        <img 
+          src={`${process.env.PUBLIC_URL}/safari-bottom.png`}
+          alt="Safari navigation bar"
+        />
       </div>
     </div>
   );
@@ -3573,15 +3584,31 @@ const TypingIndicator = () => (
       marginBottom: '8px'
     }}
   >
-    <div style={{ fontSize: '24px' }}>👻</div>
+    {/* Blink Avatar - same as header */}
+    <div style={{
+      background: '#1e293b',
+      borderRadius: '50%',
+      width: '32px',
+      height: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '6px',
+      flexShrink: 0
+    }}>
+      <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
+      </svg>
+    </div>
     <div style={{ 
       display: 'flex', 
       gap: '2px',
       alignItems: 'center',
-      background: '#f3f4f6',
+      background: '#ffffff',
       padding: '8px 12px',
       borderRadius: '18px',
-      borderBottomLeftRadius: '4px'
+      borderBottomLeftRadius: '4px',
+      boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)'
     }}>
       <motion.span 
         animate={{ opacity: [0.3, 1, 0.3] }} 
@@ -3792,82 +3819,58 @@ const ChatInput = ({ onSubmit }) => {
   };
 
   return (
-    <div className="chat-input">
-      <form onSubmit={handleSubmit} className="input-form">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onPaste={handlePaste}
-        placeholder="What do you want?"
-        className="message-input"
-          style={{ 
-            flex: 1, 
-            fontSize: '16px',
-            fontWeight: '500'
-          }}
-        />
+    <div className="whatsapp-input-container">
+      <div className="whatsapp-input-wrapper">
+        {/* Plus button */}
+        <button 
+          type="button"
+          className="whatsapp-plus-btn"
+        >
+          <Plus size={24} />
+        </button>
         
-        {/* Hidden file input */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleImageUpload}
-          accept="image/*"
-          style={{ display: 'none' }}
-        />
+        {/* Input field */}
+        <form onSubmit={handleSubmit} className="whatsapp-input-form">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onPaste={handlePaste}
+            placeholder="Message"
+            className="whatsapp-message-input"
+          />
+          
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+        </form>
         
-        {/* Compact action buttons */}
-        <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-          {/* Image upload button */}
+        {/* Right side buttons */}
+        <div className="whatsapp-right-buttons">
+          {/* Camera button */}
           <button 
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="image-btn"
-            style={{
-              background: 'transparent',
-              color: '#999',
-              border: 'none',
-              borderRadius: '6px',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            title="Upload image"
+            className="whatsapp-icon-btn"
           >
-            <svg data-testid="geist-icon" height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
-              <path fillRule="evenodd" clipRule="evenodd" d="M14.5 2.5H1.5V9.18933L2.96966 7.71967L3.18933 7.5H3.49999H6.63001H6.93933L6.96966 7.46967L10.4697 3.96967L11.5303 3.96967L14.5 6.93934V2.5ZM8.00066 8.55999L9.53034 10.0897L10.0607 10.62L9.00001 11.6807L8.46968 11.1503L6.31935 9H3.81065L1.53032 11.2803L1.5 11.3106V12.5C1.5 13.0523 1.94772 13.5 2.5 13.5H13.5C14.0523 13.5 14.5 13.0523 14.5 12.5V9.06066L11 5.56066L8.03032 8.53033L8.00066 8.55999ZM4.05312e-06 10.8107V12.5C4.05312e-06 13.8807 1.11929 15 2.5 15H13.5C14.8807 15 16 13.8807 16 12.5V9.56066L16.5607 9L16.0303 8.46967L16 8.43934V2.5V1H14.5H1.5H4.05312e-06V2.5V10.6893L-0.0606689 10.75L4.05312e-06 10.8107Z" fill="currentColor"/>
-            </svg>
+            <Camera size={24} />
           </button>
           
-
+          {/* Microphone button */}
           <button 
-            type="submit" 
-            className="send-btn"
-            style={{
-              background: '#0088cc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
+            type="button"
+            className="whatsapp-icon-btn"
+            onClick={handleSubmit}
           >
-            →
+            <Mic size={24} />
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
