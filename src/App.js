@@ -77,6 +77,30 @@ const TypingText = ({ text, delay = 50, style = {}, startTyping = true }) => {
 
 const AutobotApp = () => {
   const [messages, setMessages] = useState([]);
+  
+  // Load FBS Machro fonts dynamically
+  useEffect(() => {
+    const loadFonts = () => {
+      // Create font face for regular
+      const fontFaceRegular = new FontFace('FBS Machro', `url(${process.env.PUBLIC_URL}/FBS-Machro-Regular.otf)`);
+      const fontFaceSlant = new FontFace('FBS Machro', `url(${process.env.PUBLIC_URL}/FBS-Machro-Slant.otf)`, { style: 'italic' });
+      
+      // Load fonts
+      fontFaceRegular.load().then((font) => {
+        document.fonts.add(font);
+      }).catch((error) => {
+        console.warn('Failed to load FBS Machro Regular font:', error);
+      });
+      
+      fontFaceSlant.load().then((font) => {
+        document.fonts.add(font);
+      }).catch((error) => {
+        console.warn('Failed to load FBS Machro Slant font:', error);
+      });
+    };
+    
+    loadFonts();
+  }, []);
   const [currentFlow, setCurrentFlow] = useState('chat');
   const [userType, setUserType] = useState('returning'); // 'new' or 'returning'
   const [balance, setBalance] = useState(150);
