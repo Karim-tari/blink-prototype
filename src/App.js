@@ -40,27 +40,27 @@ if (typeof window !== 'undefined') {
   });
 }
 
-const TypingText = ({ text, delay = 50 }) => {
+const TypingText = ({ text, delay = 50, style = {}, startTyping = true }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    if (currentIndex < text.length) {
+    if (startTyping && currentIndex < text.length) {
       const timeout = setTimeout(() => {
         setDisplayedText(prev => prev + text[currentIndex]);
         setCurrentIndex(prev => prev + 1);
       }, delay);
       return () => clearTimeout(timeout);
     }
-  }, [currentIndex, text, delay]);
+  }, [currentIndex, text, delay, startTyping]);
 
   useEffect(() => {
     setDisplayedText('');
     setCurrentIndex(0);
-  }, [text]);
+  }, [text, startTyping]);
 
   return (
-    <span>
+    <span style={style}>
       {displayedText}
       {currentIndex < text.length && (
         <motion.span
@@ -930,7 +930,7 @@ const AutobotApp = () => {
           availability: availabilityOptions[Math.floor(Math.random() * availabilityOptions.length)],
           authenticity: isUsed ? 'Certified Pre-Owned' : (Math.random() > 0.8 ? 'Certified Refurb' : 'Brand New'),
           description: `${isUsed ? 'Pre-owned' : 'Brand new'} ${product.name.toLowerCase()}`,
-          image: product.image || productInfo.emoji,
+          image: product.image || generatePlaceholderImage(product.name),
           deliveryDate: productInfo.category === 'kith-jaws' ? 'Tomorrow' : deliveryOptions[Math.floor(Math.random() * deliveryOptions.length)],
           isUsed: isUsed,
           condition: product.condition,
@@ -950,7 +950,7 @@ const AutobotApp = () => {
           availability: "Drops Friday 10AM EST",
           authenticity: "Retail",
           description: "Limited quantities, exclusive colorway",
-          image: productInfo.products[0].image || productInfo.emoji,
+          image: productInfo.products[0].image || generatePlaceholderImage(productInfo.products[0].name),
           deliveryDate: "1-2 weeks"
         }
       ],
@@ -962,7 +962,7 @@ const AutobotApp = () => {
           availability: "In Stock",
           authenticity: "Verified",
           description: "Same product, better deal found",
-          image: productInfo.products[0].image || productInfo.emoji,
+          image: productInfo.products[0].image || generatePlaceholderImage(productInfo.products[0].name),
           deliveryDate: "Tomorrow"
         }
       ]
@@ -989,7 +989,7 @@ const AutobotApp = () => {
         addAutobotMessage("Found it! Here's the best option:", 'search-result', results[0]);
       } else if (results.length <= 3) {
         // Show all results if 3 or fewer, no "View more" button needed
-        addAutobotMessage(`Found ${results.length} good options:`, 'search-results', { results, showViewMore: false });
+        addAutobotMessage(`Found ${results.length} good options:`, 'search-results', { results, showViewMore: false, searchTerm: userRequest });
       } else {
         // Show first 3 results with "View more" button for the rest
         const chatResults = results.slice(0, 3);
@@ -998,13 +998,49 @@ const AutobotApp = () => {
           results: chatResults, 
           showViewMore: true, 
           remainingCount: remainingCount,
-          allResults: results 
+          allResults: results,
+          searchTerm: userRequest 
         });
       }
     }, 1000);
   };
 
   const handlePurchaseIntent = (item) => {
+    // Handle group purchase from web view
+    if (item.type === 'group-purchase') {
+      const { items, totalPrice } = item;
+      const shippingTotal = items.reduce((sum, product) => sum + (product.shipping || 8), 0);
+      const taxTotal = items.reduce((sum, product) => sum + Math.round(product.price * 0.08), 0);
+      const grandTotal = totalPrice + taxTotal;
+      
+      // Create order summary message
+      let orderSummary = "🛍️ **Order Confirmation**\n\n";
+      
+      items.forEach((product, index) => {
+        orderSummary += `${index + 1}. ${product.title}\n`;
+        orderSummary += `   $${product.price} + $${product.shipping || 8} shipping\n\n`;
+      });
+      
+      orderSummary += `**Order Total:**\n`;
+      orderSummary += `Subtotal: $${items.reduce((sum, product) => sum + product.price, 0)}\n`;
+      orderSummary += `Shipping: $${shippingTotal}\n`;
+      orderSummary += `Tax: $${taxTotal}\n`;
+      orderSummary += `**Total: $${grandTotal}**\n\n`;
+      orderSummary += `Estimated delivery: Tomorrow\n`;
+      orderSummary += `You have 30 minutes to make changes.`;
+      
+      addAutobotMessage(orderSummary, 'group-order-summary', {
+        items,
+        subtotal: items.reduce((sum, product) => sum + product.price, 0),
+        shipping: shippingTotal,
+        tax: taxTotal,
+        total: grandTotal,
+        timeLimit: 30,
+        originalSearchResults: item.originalSearchResults || items
+      });
+      return;
+    }
+    
     const total = item.price + (item.shipping || 0);
     
     // For new users, first collect customer details, then check funding
@@ -1093,16 +1129,15 @@ const AutobotApp = () => {
     
     setBalance(prev => prev - finalTotal);
     setTimeout(() => {
-      let successMessage = `🎉 BOOM! You just ordered your ${orderData.item.title}!\n\n📦 **Expect it at your doorstep by Wednesday!**\n\n`;
+      // Create order success message with ORDERED styling
+      const productSize = orderData.item.size || 'Medium';
       
-      // Add coupon savings message if applicable
-      if (couponSavings) {
-        successMessage += `💰 **BTW I saved you ${couponSavings.percentage}% with a coupon code**\n\n`;
-      }
-      
-      successMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\n⏰ **Free cancellation until Tuesday 11:59 PM** - but honestly, you're going to want to keep this one!\n\nI'll ping you with tracking info within the hour so you can watch your new treasure make its way to you. Get excited! 🚀`;
-      
-      addAutobotMessage(successMessage);
+      addAutobotMessage('', 'order-success', {
+        item: orderData.item,
+        size: productSize,
+        couponSavings: couponSavings,
+        total: finalTotal
+      });
     }, 2000);
   };
 
@@ -1569,60 +1604,60 @@ const AutobotApp = () => {
           flexDirection: 'column'
         }}
       >
-        {/* Header */}
-        <div className="chat-header">
-          <div className="header-left">
-            <span className="back-arrow">←</span>
-            <div className="autobot-info">
-              <div className="autobot-avatar">
-                <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
-                </svg>
-              </div>
-              <div className="autobot-details">
-                <div className="autobot-name">Blink</div>
-                <div className="autobot-status">online</div>
+          {/* Header */}
+          <div className="chat-header">
+            <div className="header-left">
+              <span className="back-arrow">←</span>
+              <div className="autobot-info">
+                <div className="autobot-avatar">
+                  <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
+                  </svg>
+                </div>
+                <div className="autobot-details">
+                  <div className="autobot-name">Blink</div>
+                  <div className="autobot-status">online</div>
+                </div>
               </div>
             </div>
+            <div className="header-right">
+              <Settings size={20} />
+              <MoreVertical size={20} />
+            </div>
           </div>
-          <div className="header-right">
-            <Settings size={20} />
-            <MoreVertical size={20} />
-          </div>
-        </div>
 
-        {/* Chat Messages */}
-        <div className="chat-container" ref={chatContainerRef}>
-          <AnimatePresence>
-            {messages.map((message) => (
-              <ChatMessage 
-                key={message.id} 
-                message={message} 
-                onPurchaseIntent={handlePurchaseIntent}
-                onConfirmPurchase={confirmPurchase}
-                onUserResponse={handleUserResponse}
-                userProfile={userProfile}
-                onImageClick={(image, title) => setFullscreenImage({ image, title })}
-                onWebView={(data) => {
+          {/* Chat Messages */}
+          <div className="chat-container" ref={chatContainerRef}>
+            <AnimatePresence>
+              {messages.map((message) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  onPurchaseIntent={handlePurchaseIntent}
+                  onConfirmPurchase={confirmPurchase}
+                  onUserResponse={handleUserResponse}
+                  userProfile={userProfile}
+                  onImageClick={(image, title) => setFullscreenImage({ image, title })}
+                  onWebView={(data) => {
                   // Switch to web view mode with iOS-style animation
-                  setWebViewData(data);
-                }}
-                onFunded={handleFundingComplete}
-              />
-            ))}
-          </AnimatePresence>
-          
-          {isTyping && <TypingIndicator />}
-        </div>
+                    setWebViewData(data);
+                  }}
+                  onFunded={handleFundingComplete}
+                />
+              ))}
+            </AnimatePresence>
+            
+            {isTyping && <TypingIndicator />}
+          </div>
 
-        {/* Input Area */}
-        {currentFlow === 'onboarding' && (
-          <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
-        )}
-        
-        {currentFlow === 'chat' && (
-            <ChatInput onSubmit={handleChatMessage} />
+          {/* Input Area */}
+          {currentFlow === 'onboarding' && (
+            <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
           )}
+          
+          {currentFlow === 'chat' && (
+              <ChatInput onSubmit={handleChatMessage} />
+            )}
       </motion.div>
 
       {/* Web View - Slides in from right when opened */}
@@ -1647,15 +1682,15 @@ const AutobotApp = () => {
               zIndex: 10
             }}
           >
-            <WebViewInterface 
-              data={webViewData} 
-              onClose={() => setWebViewData(null)} 
-              onPurchaseIntent={handlePurchaseIntent} 
-            />
+        <WebViewInterface 
+          data={webViewData} 
+          onClose={() => setWebViewData(null)} 
+          onPurchaseIntent={handlePurchaseIntent} 
+        />
           </motion.div>
-        )}
+      )}
       </AnimatePresence>
-
+      
       {/* Fullscreen Image Viewer */}
       <AnimatePresence>
         {fullscreenImage && (
@@ -1800,6 +1835,73 @@ const generateColorVariantOptions = (mainResult) => {
   });
   
   return variantOptions;
+};
+
+const getContextualSearchText = (searchTerm) => {
+  const term = searchTerm.toLowerCase();
+  
+  if (term.includes('kith') && term.includes('jaws')) {
+    return "Hey, check out the Kith Jaws Drop";
+  } else if (term.includes('jordan')) {
+    return `Found some fresh ${searchTerm}`;
+  } else if (term.includes('nike') || term.includes('adidas') || term.includes('yeezy')) {
+    return `Here's what I found for ${searchTerm}`;
+  } else if (term.includes('drop')) {
+    return `Check out this ${searchTerm}`;
+  } else {
+    return `Found some options for ${searchTerm}`;
+  }
+};
+
+const generatePlaceholderImage = (productName) => {
+  const name = productName.toLowerCase();
+  
+  // Define image mappings for different product types
+  const imageMap = {
+    // Sneakers
+    'jordan': 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400&h=400&fit=crop',
+    'nike': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop',
+    'adidas': 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
+    'yeezy': 'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=400&fit=crop',
+    'sneaker': 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
+    'shoe': 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
+    
+    // Clothing
+    'hoodie': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop',
+    'sweatshirt': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop',
+    'crewneck': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop',
+    'shirt': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+    'tee': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+    'jacket': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop',
+    'pants': 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=400&fit=crop',
+    'jeans': 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=400&fit=crop',
+    
+    // Accessories
+    'watch': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
+    'bag': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
+    'backpack': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
+    'hat': 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
+    'cap': 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
+    'sunglasses': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop',
+    
+    // Electronics
+    'phone': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop',
+    'iphone': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop',
+    'laptop': 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop',
+    'macbook': 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop',
+    'headphones': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
+    'airpods': 'https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=400&h=400&fit=crop'
+  };
+  
+  // Check for matches in product name
+  for (const [keyword, imageUrl] of Object.entries(imageMap)) {
+    if (name.includes(keyword)) {
+      return imageUrl;
+    }
+  }
+  
+  // Default fallback image
+  return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop';
 };
 
 const generateUsedOptions = (mainResult) => {
@@ -2196,8 +2298,16 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           <PurchaseConfirmationCard data={message.data} onConfirmPurchase={onConfirmPurchase} />
         )}
         
+        {message.special === 'group-order-summary' && (
+          <GroupOrderSummaryCard data={message.data} onWebView={onWebView} />
+        )}
+        
         {message.special === 'purchase-success' && (
           <PurchaseSuccessCard data={message.data} />
+        )}
+        
+        {message.special === 'order-success' && (
+          <OrderSuccessCard data={message.data} />
         )}
         
         {message.special === 'credit-setup' && (
@@ -2264,7 +2374,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
             className="whatsapp-menu-btn"
           >
             <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">I want this - ${message.data.price + (message.data.shipping || 0)}</span>
+            <span className="whatsapp-menu-text">${message.data.price + (message.data.shipping || 0)} -</span>
           </motion.button>
           <motion.button
             whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -2292,7 +2402,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                 className="whatsapp-menu-btn"
               >
                 <DollarSign size={20} className="whatsapp-menu-icon" />
-                <span className="whatsapp-menu-text">I want this - ${result.price + (result.shipping || 0)} ({result.title})</span>
+                <span className="whatsapp-menu-text">${result.price + (result.shipping || 0)} - ({result.title})</span>
               </motion.button>
             ))}
           </div>
@@ -2339,7 +2449,6 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
             alt={data.title}
             style={{ 
               width: '100%', 
-              height: '240px', 
               objectFit: 'cover', 
               borderRadius: '12px',
               marginBottom: '12px',
@@ -2394,7 +2503,7 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
               fontSize: '13px',
               marginBottom: '4px'
             }}>
-              📍 {data.location} • {data.condition}
+                📍 {data.location} • {data.condition}
             </div>
           )}
         </div>
@@ -2417,7 +2526,7 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
         </div>
       )}
 
-    </div>
+      </div>
   );
 };
 
@@ -2435,7 +2544,7 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
         {data.results.map((result, index) => (
           <div key={index} className="result-item" style={{ marginBottom: index < data.results.length - 1 ? '12px' : '0' }}>
             <SearchResultCard data={result} onImageClick={onImageClick} showButtons={false} />
-          </div>
+        </div>
         ))}
       </div>
     </motion.div>
@@ -2474,7 +2583,9 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [animationComplete, setAnimationComplete] = useState(false);
   const [lottieData, setLottieData] = useState(null);
+  const [slidCardIndexes, setSlidCardIndexes] = useState([]);
   const [selectedVariants, setSelectedVariants] = useState({});
+  const [selectedItems, setSelectedItems] = useState([]);
 
   useEffect(() => {
     // Load Lottie animation data
@@ -2512,7 +2623,33 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
     }
   }, [animationComplete]);
 
-  const products = data.results || [];
+  useEffect(() => {
+    // Pre-select items when in modify mode
+    if (data.showModifyMode && data.results) {
+      setSelectedItems(data.results);
+      // Find the indexes of the ordered items in the full results list
+      if (data.originalSearchResults) {
+        const orderedIndexes = [];
+        data.results.forEach(orderedItem => {
+          const index = data.originalSearchResults.findIndex(item => 
+            item.title === orderedItem.title && item.price === orderedItem.price
+          );
+          if (index !== -1) {
+            orderedIndexes.push(index);
+          }
+        });
+        setSlidCardIndexes(orderedIndexes);
+      } else {
+        // Fallback if no original search results
+        const indexes = data.results.map((_, index) => index);
+        setSlidCardIndexes(indexes);
+      }
+    }
+  }, [data.showModifyMode, data.results, data.originalSearchResults]);
+
+  const products = (data.showModifyMode && data.originalSearchResults) 
+    ? data.originalSearchResults 
+    : (data.results || []);
 
   return (
     <div style={{ 
@@ -2522,79 +2659,6 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
       background: '#ffffff',
       color: '#1e293b'
     }}>
-      {/* Web View Header with Back Button */}
-      <div style={{
-        background: '#ffffff',
-        color: '#1e293b',
-        padding: '12px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid #e2e8f0'
-      }}>
-        <motion.button
-          onClick={onClose}
-          whileHover={{ color: '#64748b' }}
-          whileTap={{ scale: 0.98 }}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#1e293b',
-            fontSize: '15px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontWeight: '500',
-            padding: '4px 0'
-          }}
-        >
-          ← Back
-        </motion.button>
-        <div style={{ 
-          fontSize: '13px', 
-          color: '#64748b', 
-          fontWeight: '500',
-          letterSpacing: '0.025em'
-        }}>
-          {products.length} items
-        </div>
-      </div>
-
-      {/* Products Content */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '0 10px 140px', // Extra bottom padding for Safari bar
-        background: 'transparent'
-      }}>
-        {/* Logo Section - Now inside scrollable content */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '24px 0 32px'
-        }}>
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-          >
-            <img 
-              src={`${process.env.PUBLIC_URL}/logo.svg`}
-              alt="Blink Logo"
-              style={{
-                height: '32px',
-                filter: 'brightness(0)' // Make logo black
-              }}
-            />
-          </motion.div>
-        </div>
         {isLoading ? (
           // Cool Lottie Loading Screen
           <motion.div
@@ -2672,11 +2736,124 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
 
           </motion.div>
         ) : (
+          <>
+            {/* Web View Header */}
+            <div style={{
+              background: '#ffffff',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e5e7eb',
+              marginBottom: '10px'
+            }}>
+              {/* Top section with time and status icons */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  fontSize: '17px',
+                  fontWeight: '600',
+                  color: '#000'
+                }}>
+                  9:41
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="73" height="13" viewBox="0 0 73 13" fill="none">
+                    <path d="M67.2119 0.597328C68.6533 0.743706 69.7782 1.96107 69.7783 3.44108V9.87369L69.7637 10.1657C69.6269 11.5109 68.5572 12.5808 67.2119 12.7174L66.9199 12.7321H49.0527L48.7607 12.7174C47.4154 12.5808 46.3458 11.5109 46.209 10.1657L46.1943 9.87369V3.44108C46.1945 1.86249 47.4741 0.582825 49.0527 0.58268H66.9199L67.2119 0.597328ZM2.95312 8.08561C3.54517 8.08561 4.02539 8.56582 4.02539 9.15787V11.3014C4.02521 11.8933 3.54506 12.3737 2.95312 12.3737H1.88184C1.2899 12.3737 0.809749 11.8933 0.80957 11.3014V9.15787C0.80957 8.56582 1.28979 8.08561 1.88184 8.08561H2.95312ZM7.95508 5.94205C8.54713 5.94205 9.02734 6.42227 9.02734 7.01432V11.3024C9.02698 11.8941 8.5469 12.3737 7.95508 12.3737H6.88379C6.29197 12.3737 5.81189 11.8941 5.81152 11.3024V7.01432C5.81152 6.42227 6.29174 5.94205 6.88379 5.94205H7.95508ZM12.96 3.4401C13.552 3.4401 14.0322 3.92032 14.0322 4.51237V11.3014C14.032 11.8933 13.5519 12.3737 12.96 12.3737H11.8887C11.2967 12.3737 10.8166 11.8933 10.8164 11.3014V4.51237C10.8164 3.92032 11.2966 3.4401 11.8887 3.4401H12.96ZM17.9619 0.939125C18.554 0.939125 19.0342 1.41934 19.0342 2.01139V11.3014C19.034 11.8933 18.5539 12.3737 17.9619 12.3737H16.8906C16.2987 12.3737 15.8185 11.8933 15.8184 11.3014V2.01139C15.8184 1.41934 16.2986 0.939125 16.8906 0.939125H17.9619ZM30.2422 9.58365C31.6096 8.42737 33.6122 8.42726 34.9795 9.58365C35.0482 9.64586 35.088 9.73416 35.0898 9.82682C35.0916 9.9194 35.0554 10.009 34.9893 10.0739L32.8486 12.235C32.7859 12.2984 32.6995 12.3337 32.6104 12.3337C32.5214 12.3336 32.4357 12.2982 32.373 12.235L30.2314 10.0739C30.1654 10.009 30.129 9.91936 30.1309 9.82682C30.1328 9.73416 30.1734 9.64581 30.2422 9.58365ZM49.0527 1.65495C48.0662 1.65509 47.2667 2.45454 47.2666 3.44108V9.87369C47.267 10.86 48.0663 11.6597 49.0527 11.6598H66.9199C67.9063 11.6597 68.7057 10.86 68.7061 9.87369V3.44108C68.7059 2.45454 67.9065 1.65508 66.9199 1.65495H49.0527ZM66.2041 2.72721C66.9934 2.72721 67.6336 3.36666 67.6338 4.15592V9.15885C67.6338 9.94825 66.9935 10.5885 66.2041 10.5885H49.7676C48.9782 10.5885 48.3379 9.94825 48.3379 9.15885V4.15592C48.338 3.36666 48.9783 2.72721 49.7676 2.72721H66.2041ZM70.8506 4.51334C71.7132 4.87652 72.2744 5.72099 72.2744 6.6569C72.2744 7.5929 71.7133 8.43826 70.8506 8.80143V4.51334ZM27.3848 6.70182C30.3308 3.96139 34.8928 3.96142 37.8389 6.70182C37.9053 6.76607 37.9434 6.85454 37.9443 6.94694C37.9451 7.03914 37.9088 7.12859 37.8438 7.19401L36.6064 8.44401C36.4789 8.5715 36.2724 8.57399 36.1416 8.44987C35.1742 7.57403 33.9153 7.08943 32.6104 7.08951C31.3063 7.09015 30.0487 7.5746 29.082 8.44987C28.9512 8.57398 28.7447 8.5715 28.6172 8.44401L27.3799 7.19401C27.3147 7.12866 27.2786 7.03919 27.2793 6.94694C27.2802 6.85457 27.3184 6.76606 27.3848 6.70182ZM24.5264 3.82682C29.0449 -0.503492 36.1728 -0.50345 40.6914 3.82682C40.7566 3.89103 40.7943 3.97848 40.7949 4.06998C40.7954 4.16161 40.7589 4.25008 40.6943 4.3151L39.4551 5.56608C39.3275 5.69392 39.1208 5.69578 38.9912 5.56998C37.2697 3.93327 34.9848 3.0203 32.6094 3.02018C30.2337 3.02018 27.9484 3.93315 26.2266 5.56998C26.0971 5.69592 25.8901 5.69416 25.7627 5.56608L24.5225 4.3151C24.4582 4.25007 24.4223 4.16144 24.4229 4.06998C24.4236 3.97845 24.4611 3.891 24.5264 3.82682Z" fill="black"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Navigation section */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px'
+              }}>
+                <motion.button
+                  onClick={onClose}
+                  whileTap={{ scale: 0.95 }}
+              style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="16" viewBox="0 0 9 16" fill="none">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M7.12447 15.5755L6.46154 14.9125L0.432519 8.88354C-0.0556312 8.39539 -0.0556312 7.60393 0.432519 7.11578L6.46154 1.08674L7.12447 0.423828L8.45034 1.74965L7.78734 2.41257L2.20028 7.99965L7.78734 13.5868L8.45034 14.2497L7.12447 15.5755Z" fill="black"/>
+                  </svg>
+                </motion.button>
+                
+                <img 
+                  src={`${process.env.PUBLIC_URL}/logo.svg`}
+                  alt="Blink Logo"
+                  style={{
+                    height: '24px',
+                    filter: 'brightness(0)' // Make logo black
+                  }}
+                />
+                
           <div style={{
+                  cursor: 'pointer',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1.6875 7.3125C1.6875 4.2059 4.2059 1.6875 7.3125 1.6875C10.4191 1.6875 12.9375 4.2059 12.9375 7.3125C12.9375 10.4191 10.4191 12.9375 7.3125 12.9375C4.2059 12.9375 1.6875 10.4191 1.6875 7.3125ZM7.3125 0C3.27392 0 0 3.27392 0 7.3125C0 11.3511 3.27392 14.625 7.3125 14.625C9.02778 14.625 10.6051 14.0344 11.8522 13.0455L15.7159 16.9091L16.3125 17.5058L17.5058 16.3125L16.9091 15.7159L13.0455 11.8522C14.0344 10.6051 14.625 9.02778 14.625 7.3125C14.625 3.27392 11.3511 0 7.3125 0Z" fill="black"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Search term black box */}
+              <div style={{
+                background: '#000',
+                borderRadius: '20px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+            gap: '12px'
           }}>
+                <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
+                </svg>
+                
+                {/* Faded divider line */}
+                <div style={{
+                  width: '1px',
+                  height: '16px',
+                  background: 'rgba(255, 255, 255, 0.3)'
+                }}></div>
+                
+                <TypingText 
+                  text={getContextualSearchText(data.searchTerm || 'Air Jordan 40s')} 
+                  style={{ color: 'white' }}
+                  startTyping={!isLoading}
+                />
+              </div>
+            </div>
+
+            {/* Products Content */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '0 10px 140px', // Extra bottom padding for Safari bar
+              background: 'transparent'
+            }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
             {(() => {
               // Separate primary (new/color variants) and secondary (used) options
               const primaryProducts = products.filter(product => product.isUsed !== true);
@@ -2701,12 +2878,224 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                   ease: [0.25, 0.46, 0.45, 0.94]
                 }}
                 style={{
+                  position: 'relative',
                   background: 'transparent',
                   borderRadius: '20px',
                   padding: '0px',
-                  marginBottom: '0px'
+                  marginBottom: '0px',
+                  overflow: 'hidden'
                 }}
               >
+                {/* Typography Background - No black box, just text */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                  pointerEvents: slidCardIndexes.includes(index) ? 'auto' : 'none'
+                }}>
+                  {/* Item thumbnail */}
+                  {slidCardIndexes.includes(index) && (
+                    <motion.div
+                      initial={{ scale: 0.3, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      transition={{ 
+                        delay: 0.1, 
+                        duration: 0.5,
+                        ease: [0.175, 0.885, 0.32, 1]
+                      }}
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '12px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <img 
+                        src={result.image} 
+                        alt={result.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    </motion.div>
+                  )}
+
+                                    {/* ORDERED text */}
+                  {slidCardIndexes.includes(index) && (
+                    <motion.div
+                      initial={{ scale: 0.8, y: 30, opacity: 0 }}
+                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                      transition={{ 
+                        delay: 0.2, 
+                        duration: 0.4,
+                        ease: [0.4, 0, 0.2, 1]
+                      }}
+                      style={{
+                        color: '#111',
+                        textAlign: 'center',
+                        leadingTrim: 'both',
+                        textEdge: 'cap',
+                        fontFamily: '"FBS Machro"',
+                        fontSize: '60px',
+                        fontStyle: 'normal',
+                        fontWeight: '400',
+                        lineHeight: '85%',
+                        textTransform: 'uppercase',
+                        marginTop: '30px',
+                        marginBottom: '20px'
+                      }}
+                    >
+                      ORDERED
+                    </motion.div>
+                  )}
+                  
+                  {/* Product name */}
+                  {slidCardIndexes.includes(index) && (
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ 
+                        delay: 0.35, 
+                        duration: 0.3,
+                        ease: [0.4, 0, 0.2, 1]
+                      }}
+                      style={{
+                        color: '#111',
+                        textAlign: 'center',
+                        leadingTrim: 'both',
+                        textEdge: 'cap',
+                        fontFamily: 'Inter',
+                        fontSize: '20px',
+                        fontStyle: 'normal',
+                        fontWeight: '700',
+                        lineHeight: '85%',
+                        letterSpacing: '-1.4px',
+                        textTransform: 'uppercase',
+                        marginBottom: '12px'
+                      }}
+                    >
+                      <TypingText 
+                        text={`Got your ${result.title.toLowerCase()}`}
+                        delay={30}
+                        startTyping={true}
+                        style={{
+                          color: '#111',
+                          textAlign: 'center',
+                          fontFamily: 'Inter',
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          lineHeight: '85%',
+                          letterSpacing: '-1.4px',
+                          textTransform: 'uppercase'
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                  
+                  {/* Size */}
+                  {slidCardIndexes.includes(index) && (
+                    <motion.div
+                      initial={{ y: 15, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ 
+                        delay: 0.5, 
+                        duration: 0.25,
+                        ease: [0.4, 0, 0.2, 1]
+                      }}
+                      style={{
+                        color: '#111',
+                        textAlign: 'center',
+                        leadingTrim: 'both',
+                        textEdge: 'cap',
+                        fontFamily: 'Inter',
+                        fontSize: '9px',
+                        fontStyle: 'normal',
+                        fontWeight: '700',
+                        lineHeight: '85%',
+                        letterSpacing: '-0.63px',
+                        textTransform: 'uppercase',
+                        marginBottom: '30px'
+                      }}
+                    >
+                      {(result.size || 'MEDIUM').toUpperCase()}
+                    </motion.div>
+                  )}
+
+                  {/* Undo button */}
+                  {slidCardIndexes.includes(index) && (
+                    <motion.button
+                      initial={{ y: 30, opacity: 0, scale: 0.9 }}
+                      animate={{ y: 0, opacity: 1, scale: 1 }}
+                      transition={{ 
+                        delay: 0.65, 
+                        duration: 0.4,
+                        ease: [0.175, 0.885, 0.32, 1]
+                      }}
+                      whileHover={{ scale: 1.02, y: -1 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        // Remove from selected items and slide back
+                        setSlidCardIndexes(prev => prev.filter(i => i !== index));
+                        setSelectedItems(prev => prev.filter(item => item !== result));
+                      }}
+                      style={{
+                        display: 'flex',
+                        padding: '10px 20px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '10px',
+                        background: '#333',
+                        border: 'none',
+                        borderRadius: '25px',
+                        color: '#FFF',
+                        textAlign: 'center',
+                        leadingTrim: 'both',
+                        textEdge: 'cap',
+                        fontFamily: 'Inter',
+                        fontSize: '9px',
+                        fontStyle: 'normal',
+                        fontWeight: '700',
+                        lineHeight: '85%',
+                        letterSpacing: '-0.63px',
+                        textTransform: 'uppercase',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      UNDO
+                    </motion.button>
+                  )}
+                </div>
+
+                {/* Product Card - Slides off with rotation */}
+                <motion.div
+                  animate={{ 
+                    x: slidCardIndexes.includes(index) ? '120%' : '0%',
+                    rotate: slidCardIndexes.includes(index) ? 18 : 0
+                  }}
+                  transition={{
+                    duration: 0.4,
+                    ease: [0.25, 0.46, 0.45, 0.94] // Custom easing curve for smooth feel
+                  }}
+                  style={{
+                    position: 'relative',
+                    zIndex: 2,
+                  background: '#ffffff',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    boxShadow: slidCardIndexes.includes(index)
+                      ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
+                      : '0 4px 20px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
                 {/* Product Image Container */}
                 <div style={{ 
                   position: 'relative',
@@ -2714,34 +3103,34 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                   overflow: 'hidden'
                 }}>
                   {/* Product Image - Full Width */}
-                  {(() => {
-                    const selectedVariant = selectedVariants[index];
-                    const imageToShow = selectedVariant ? selectedVariant.image : result.image;
-                    return imageToShow && (imageToShow.startsWith('http') || imageToShow.includes('PUBLIC_URL') || imageToShow.startsWith('/')) ? (
-                      <img 
-                        src={imageToShow} 
-                        alt={selectedVariant ? `${result.title} - ${selectedVariant.color}` : result.title}
-                        style={{
-                          width: '100%',
+                {(() => {
+                  const selectedVariant = selectedVariants[index];
+                  const imageToShow = selectedVariant ? selectedVariant.image : result.image;
+                  return imageToShow && (imageToShow.startsWith('http') || imageToShow.includes('PUBLIC_URL') || imageToShow.startsWith('/')) ? (
+                    <img 
+                      src={imageToShow} 
+                      alt={selectedVariant ? `${result.title} - ${selectedVariant.color}` : result.title}
+                      style={{
+                        width: '100%',
                           height: '400px',
                           objectFit: 'cover',
                           backgroundColor: '#f8f9fa'
-                        }}
-                      />
-                    ) : (
-                      <div style={{ 
-                        fontSize: '48px', 
-                        textAlign: 'center', 
+                      }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      fontSize: '48px', 
+                      textAlign: 'center', 
                         height: '400px',
-                        display: 'flex',
-                        alignItems: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
                         justifyContent: 'center',
                         backgroundColor: '#f8f9fa'
-                      }}>
-                        {result.image}
-                      </div>
-                    );
-                  })()}
+                    }}>
+                      {result.image}
+                    </div>
+                  );
+                })()}
 
                   {/* Size Badge */}
                   <div style={{
@@ -2781,28 +3170,28 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                       alignItems: 'flex-start',
                       marginBottom: '2px'
                     }}>
-                      <h3 style={{ 
+                  <h3 style={{ 
                         fontSize: '15px', 
-                        fontWeight: '600', 
+                    fontWeight: '600', 
                         color: '#111',
                         lineHeight: 'normal',
                         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                         flex: 1,
                         marginRight: '12px'
-                      }}>
-                        {result.title}
-                      </h3>
-                      
-                      <div style={{ 
-                        fontSize: '18px', 
+                  }}>
+                    {result.title}
+                  </h3>
+                  
+                  <div style={{ 
+                    fontSize: '18px', 
                         fontWeight: '600', 
                         color: '#000',
                         lineHeight: '1.2'
                       }}>
                         ${result.price}
                       </div>
-                    </div>
-                    
+                  </div>
+
                     {/* Brand and Blink Certified Row */}
                     <div style={{
                       display: 'flex',
@@ -2824,35 +3213,39 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                         fontWeight: '400'
                       }}>
                         Est. shipping & taxes ${(result.shipping || 8) + Math.round(result.price * 0.08)}
-                      </div>
-                    </div>
+                            </div>
+                </div>
 
 
                   {/* I WANT THIS Button */}
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      onClose(); // Close web view first
-                      setTimeout(() => {
-                        onPurchaseIntent(result); // Then trigger purchase intent in chat
-                      }, 300);
-                    }}
-                    style={{
-                      width: '100%',
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                      setSlidCardIndexes(prev => {
+                        if (!prev.includes(index)) {
+                          // Add to selected items
+                          setSelectedItems(prevItems => [...prevItems, result]);
+                          return [...prev, index]; // Add to array if not already there
+                        }
+                        return prev; // Don't add duplicates
+                      });
+                  }}
+                  style={{
+                    width: '100%',
                       height: '53px',
-                      padding: '8px,0,0,0',
+                      paddingTop: '8px',
                       background: '#111',
                       color: '#FFF',
                       border: '1px solid rgba(255, 255, 255, 0.30)',
                       borderRadius: '155px',
                       fontSize: '25px',
                       fontWeight: '400',
-                      cursor: 'pointer',
+                    cursor: 'pointer',
                       letterSpacing: '1.5px',
                       textTransform: 'uppercase',
                       fontFamily: '"FBS Machro", system-ui, -apple-system, sans-serif',
-                      display: 'flex',
-                      alignItems: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
                       justifyContent: 'center',
                       boxShadow: '0 0 14px 0 rgba(255, 255, 255, 0.45) inset',
                       lineHeight: '1',
@@ -2860,9 +3253,10 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                     }}
                   >
                     I WANT THIS
-                  </motion.button>
+                </motion.button>
                   </div>
                 </div>
+                </motion.div>
               </motion.div>
                   ))}
                   
@@ -3024,8 +3418,86 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
               );
             })()}
           </div>
+            </div>
+          </>
         )}
-      </div>
+
+      {/* Checkout Button - Slides up when items are selected */}
+      <AnimatePresence>
+        {selectedItems.length > 0 && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: '0%' }}
+            exit={{ y: '100%' }}
+            transition={{
+              type: 'spring',
+              damping: 25,
+              stiffness: 300,
+              duration: 0.6
+            }}
+            style={{
+              position: 'fixed',
+              bottom: '160px', // Above Safari bar with more clearance
+              left: '20px',
+              right: '20px',
+              zIndex: 1002 // Higher than Safari bar
+            }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                // Go back to WhatsApp with group purchase
+                onClose();
+                setTimeout(() => {
+                  onPurchaseIntent({
+                    type: 'group-purchase',
+                    items: selectedItems,
+                    count: selectedItems.length,
+                    totalPrice: selectedItems.reduce((sum, item) => sum + item.price + (item.shipping || 0), 0),
+                    timeLimit: 30, // 30 minutes
+                    originalSearchResults: products // Pass the full product list
+                  });
+                }, 300);
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '30px',
+                padding: '18px 24px',
+                fontSize: '18px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                boxShadow: '0 12px 40px rgba(255, 107, 53, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>Back to Blink</span>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                color: '#ff6b35',
+                borderRadius: '50%',
+                width: '28px',
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: '700',
+                backdropFilter: 'blur(10px)'
+              }}>
+                {selectedItems.length}
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Safari Bottom Navigation Bar - Fixed Position */}
       <div className="safari-bottom-bar">
@@ -3039,74 +3511,184 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
 };
 
 const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
+  const shippingAndTax = (data.item.shipping || 8) + Math.round(data.item.price * 0.08);
+  const totalWithShippingTax = data.item.price + shippingAndTax;
+  
   return (
-    <motion.div 
-      className="purchase-confirmation-card"
-      initial={{ scale: 0.95 }}
-      animate={{ scale: 1 }}
+    <>
+      {/* Regular WhatsApp-style message content */}
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          ✨ Ready to Order
+        </div>
+        <div style={{ marginBottom: '8px' }}>
+          <strong>{data.item.title}</strong>
+        </div>
+        <div style={{ fontSize: '16px', fontWeight: '600', color: '#0088cc', marginBottom: '8px' }}>
+          ${totalWithShippingTax} total (inc. shipping & taxes)
+        </div>
+        <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+          📍 {String(data.name || '')}, {String(data.address || '')}
+        </div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          🕐 Arrives {String(data.item?.deliveryDate || '')}
+        </div>
+      </div>
+      
+      {/* Separate colored buttons */}
+      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <motion.button
+          whileHover={{ backgroundColor: '#0066cc' }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => onConfirmPurchase(data)}
       style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '8px',
-        border: '1px solid #e1e5e9'
-      }}
-    >
-      <div className="confirmation-content">
-        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', textAlign: 'center' }}>
-          ✨ Ready to order
+            width: '100%',
+            padding: '12px 16px',
+            backgroundColor: '#0088cc',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          Place Order
+        </motion.button>
+        <motion.button
+          whileHover={{ backgroundColor: '#cc0000' }}
+          whileTap={{ scale: 0.98 }}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          Cancel
+        </motion.button>
           </div>
-        <div className="order-details" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '8px' }}>{data.item.title}</div>
-          <div style={{ fontSize: '18px', fontWeight: '700', color: '#0088cc', marginBottom: '8px' }}>${data.total} total</div>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <MapPin size={14} /> {String(data.name || '')}, {String(data.address || '')}
+    </>
+  );
+};
+
+const GroupOrderSummaryCard = ({ data, onWebView }) => {
+  return (
+    <>
+      {/* Regular WhatsApp-style message content */}
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          🛍️ Order Confirmation
           </div>
-          <div style={{ fontSize: '14px', color: '#666', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={14} /> Arrives {String(data.item?.deliveryDate || '')}
+        
+        {/* Items list */}
+        <div style={{ marginBottom: '16px' }}>
+          {data.items.map((item, index) => (
+            <div key={index} style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: index < data.items.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+              <div style={{ fontWeight: '600', fontSize: '15px', marginBottom: '2px' }}>
+                {index + 1}. {item.title}
+          </div>
+              <div style={{ fontSize: '14px', color: '#666' }}>
+                ${item.price} + ${item.shipping || 8} shipping
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Order total breakdown */}
+        <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>Subtotal:</span>
+            <span style={{ fontSize: '14px', color: '#666' }}>${data.subtotal}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>Shipping:</span>
+            <span style={{ fontSize: '14px', color: '#666' }}>${data.shipping}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>Tax:</span>
+            <span style={{ fontSize: '14px', color: '#666' }}>${data.tax}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #dee2e6', paddingTop: '8px' }}>
+            <span style={{ fontSize: '16px', fontWeight: '600', color: '#000' }}>Total:</span>
+            <span style={{ fontSize: '16px', fontWeight: '600', color: '#0088cc' }}>${data.total}</span>
           </div>
         </div>
         
-        {/* Telegram-style inline keyboard buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+          🚚 Estimated delivery: Tomorrow
+        </div>
+        <div style={{ fontSize: '14px', color: '#ff6b35', fontWeight: '500' }}>
+          ⏰ You have 30 minutes to make changes
+        </div>
+      </div>
+      
+      {/* Action buttons */}
+      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <motion.button
-            whileHover={{ backgroundColor: '#006ba6' }}
+          whileHover={{ backgroundColor: '#0066cc' }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onConfirmPurchase(data)}
+          onClick={() => {
+            // Open web view with current items for modification
+            if (onWebView) {
+              onWebView({
+                results: data.items,
+                searchTerm: 'Your Order',
+                showModifyMode: true,
+                originalSearchResults: data.originalSearchResults || data.items
+              });
+            }
+          }}
             style={{
               width: '100%',
-              padding: '12px',
+            padding: '12px 16px',
               backgroundColor: '#0088cc',
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            🚀 Place Order
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          Modify Order
           </motion.button>
           <motion.button
-            whileHover={{ backgroundColor: '#f0f0f0' }}
+          whileHover={{ backgroundColor: '#cc0000' }}
             whileTap={{ scale: 0.98 }}
             style={{
               width: '100%',
-              padding: '12px',
-              backgroundColor: '#ffffff',
-              color: '#666',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            ❌ Cancel
+            padding: '12px 16px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          Cancel Order
           </motion.button>
         </div>
-      </div>
-    </motion.div>
+    </>
   );
 };
 
@@ -3668,6 +4250,112 @@ const PurchaseSuccessCard = ({ data }) => {
   );
 };
 
+const OrderSuccessCard = ({ data }) => {
+  return (
+    <motion.div 
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{
+        background: '#f8f9fa',
+        borderRadius: '16px',
+        padding: '24px',
+        margin: '16px 0',
+        textAlign: 'center',
+        border: '1px solid #e9ecef'
+      }}
+    >
+      {/* Product Image */}
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+        style={{
+          marginBottom: '20px'
+        }}
+      >
+        {data.item.image && (data.item.image.startsWith('http') || data.item.image.includes('PUBLIC_URL') || data.item.image.startsWith('/')) ? (
+          <img 
+            src={data.item.image} 
+            alt={data.item.title}
+            style={{ 
+              width: '120px', 
+              height: '120px',
+              objectFit: 'cover', 
+              borderRadius: '12px',
+              backgroundColor: '#f9fafb'
+            }}
+          />
+        ) : (
+          <div style={{ 
+            width: '120px', 
+            height: '120px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '48px'
+          }}>
+            {data.item.image || '📦'}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Main Message */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+        style={{
+          fontSize: '18px',
+          fontWeight: '600',
+          color: '#000',
+          marginBottom: '8px',
+          lineHeight: '1.4'
+        }}
+      >
+        I got you, your {data.item.title} is on its way.
+      </motion.div>
+
+      {/* Size Confirmation */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+        style={{
+          fontSize: '14px',
+          color: '#666',
+          marginBottom: '16px'
+        }}
+      >
+        Size: <strong>{data.size}</strong>
+      </motion.div>
+
+      {/* Undo Link */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <a 
+          href="#" 
+          onClick={(e) => e.preventDefault()}
+          style={{
+            color: '#6c757d',
+            textDecoration: 'underline',
+            fontSize: '14px',
+            cursor: 'pointer'
+          }}
+        >
+          undo
+        </a>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const TypingIndicator = () => (
   <motion.div 
     initial={{ opacity: 0 }}
@@ -3927,23 +4615,23 @@ const ChatInput = ({ onSubmit }) => {
         
         {/* Input field */}
         <form onSubmit={handleSubmit} className="whatsapp-input-form">
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onPaste={handlePaste}
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onPaste={handlePaste}
             placeholder="Message"
             className="whatsapp-message-input"
-          />
-          
-          {/* Hidden file input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            accept="image/*"
-            style={{ display: 'none' }}
-          />
+        />
+        
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          style={{ display: 'none' }}
+        />
         </form>
         
         {/* Right side buttons */}
