@@ -931,7 +931,7 @@ const AutobotApp = () => {
           authenticity: isUsed ? 'Certified Pre-Owned' : (Math.random() > 0.8 ? 'Certified Refurb' : 'Brand New'),
           description: `${isUsed ? 'Pre-owned' : 'Brand new'} ${product.name.toLowerCase()}`,
           image: product.image || productInfo.emoji,
-          deliveryDate: deliveryOptions[Math.floor(Math.random() * deliveryOptions.length)],
+          deliveryDate: productInfo.category === 'kith-jaws' ? 'Tomorrow' : deliveryOptions[Math.floor(Math.random() * deliveryOptions.length)],
           isUsed: isUsed,
           condition: product.condition,
           colorVariants: product.colorVariants,
@@ -2280,36 +2280,46 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
       
       {/* WhatsApp-style menu buttons for search results (multiple items) */}
       {message.special === 'search-results' && message.data && message.data.results && message.data.results.length > 0 && (
-        <div className="whatsapp-menu-container">
-          <motion.button
-            whileHover={{ backgroundColor: '#f0f0f0' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onPurchaseIntent && onPurchaseIntent(message.data.results[0])}
-            className="whatsapp-menu-btn"
-          >
-            <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">I want this - ${message.data.results[0].price + (message.data.results[0].shipping || 0)}</span>
-          </motion.button>
+        <>
+          {/* "I want this" buttons container */}
+          <div className="whatsapp-menu-container">
+            {message.data.results.map((result, index) => (
+              <motion.button
+                key={index}
+                whileHover={{ backgroundColor: '#f0f0f0' }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onPurchaseIntent && onPurchaseIntent(result)}
+                className="whatsapp-menu-btn"
+              >
+                <DollarSign size={20} className="whatsapp-menu-icon" />
+                <span className="whatsapp-menu-text">I want this - ${result.price + (result.shipping || 0)} ({result.title})</span>
+              </motion.button>
+            ))}
+          </div>
+          
+          {/* Separate "View more" button container */}
           {message.data.showViewMore && (
-            <motion.button
-              whileHover={{ backgroundColor: '#f0f0f0' }}
-              whileTap={{ scale: 0.98 }}
-              className="whatsapp-menu-btn"
-              onClick={() => {
-                // Switch to web view with all results
-                if (message.data.allResults) {
-                  onWebView && onWebView({
-                    ...message.data,
-                    results: message.data.allResults
-                  });
-                }
-              }}
-            >
-              <ExternalLink size={20} className="whatsapp-menu-icon" />
-              <span className="whatsapp-menu-text">View ({message.data.remainingCount}) more Options</span>
-            </motion.button>
+            <div className="whatsapp-menu-container" style={{ marginTop: '8px' }}>
+              <motion.button
+                whileHover={{ backgroundColor: '#f0f0f0' }}
+                whileTap={{ scale: 0.98 }}
+                className="whatsapp-menu-btn"
+                onClick={() => {
+                  // Switch to web view with all results
+                  if (message.data.allResults) {
+                    onWebView && onWebView({
+                      ...message.data,
+                      results: message.data.allResults
+                    });
+                  }
+                }}
+              >
+                <ExternalLink size={20} className="whatsapp-menu-icon" />
+                <span className="whatsapp-menu-text">View ({message.data.remainingCount}) more Options</span>
+              </motion.button>
+            </div>
           )}
-        </div>
+        </>
       )}
     </motion.div>
   );
@@ -2421,13 +2431,12 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
       style={{ marginBottom: '8px' }}
     >
       <div className="results-content">
-
-        
-        <div className="top-result">
-          <SearchResultCard data={data.results[0]} onImageClick={onImageClick} showButtons={false} />
-        </div>
-        
-
+        {/* Show all results (up to 3) */}
+        {data.results.map((result, index) => (
+          <div key={index} className="result-item" style={{ marginBottom: index < data.results.length - 1 ? '12px' : '0' }}>
+            <SearchResultCard data={result} onImageClick={onImageClick} showButtons={false} />
+          </div>
+        ))}
       </div>
     </motion.div>
   );
