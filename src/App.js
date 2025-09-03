@@ -2880,7 +2880,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px'
-              }}>
+          }}>
             {(() => {
               // Separate primary (new/color variants) and secondary (used) options
               const primaryProducts = products.filter(product => product.isUsed !== true);
@@ -2966,7 +2966,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                         duration: 0.4,
                         ease: [0.4, 0, 0.2, 1]
                       }}
-                      style={{
+                style={{
                         color: '#111',
                         textAlign: 'center',
                         leadingTrim: 'both',
@@ -3463,7 +3463,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
             }}
             style={{
               position: 'fixed',
-              bottom: '0px', // Flush to bottom
+              bottom: '143px', // Above Safari bar
               left: '0px',
               right: '0px',
               zIndex: 1002 // Higher than Safari bar
@@ -3553,7 +3553,13 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
         )}
       </AnimatePresence>
 
-
+      {/* Safari Bottom Navigation Bar - Fixed Position */}
+      <div className="safari-bottom-bar">
+        <img 
+          src={`${process.env.PUBLIC_URL}/safari-bottom.png`}
+          alt="Safari navigation bar"
+        />
+      </div>
     </div>
   );
 };
@@ -3686,9 +3692,9 @@ const GroupOrderSummaryCard = ({ data, onWebView }) => {
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Only show Modify Order button for multi-item orders from web view */}
           {!data.isSingleItemOrder && (
-            <motion.button
+          <motion.button
             whileHover={{ backgroundColor: '#0066cc' }}
-              whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => {
               // Open web view with current items for modification
               if (onWebView) {
@@ -3700,12 +3706,12 @@ const GroupOrderSummaryCard = ({ data, onWebView }) => {
                 });
               }
             }}
-              style={{
-                width: '100%',
+            style={{
+              width: '100%',
               padding: '12px 16px',
-                backgroundColor: '#0088cc',
-                color: 'white',
-                border: 'none',
+              backgroundColor: '#0088cc',
+              color: 'white',
+              border: 'none',
               borderRadius: '12px',
               fontSize: '16px',
               fontWeight: '600',
@@ -3716,7 +3722,7 @@ const GroupOrderSummaryCard = ({ data, onWebView }) => {
             }}
           >
             Modify Order
-            </motion.button>
+          </motion.button>
           )}
           <motion.button
           whileHover={{ backgroundColor: '#cc0000' }}
