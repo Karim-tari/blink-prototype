@@ -352,6 +352,14 @@ const AutobotApp = () => {
     // Parse user request to determine what they're looking for
     const request = userRequest.toLowerCase();
     
+    // Debug logging for all searches
+    console.log('🔍 Search Debug:', {
+      userRequest,
+      request,
+      type,
+      isKithJaws: request.includes('kith jaws') || request.includes('kif jaws') || (request.includes('kith') && request.includes('jaws'))
+    });
+    
     // Dynamic product generation based on user input
     const getProductCategory = () => {
       if (request.includes('half-life') || request.includes('half life') || (request.includes('half') && request.includes('life'))) {
@@ -849,6 +857,14 @@ const AutobotApp = () => {
     };
 
     const productInfo = getProductCategory();
+    
+    // Debug logging for product info
+    console.log('📦 Product Info Debug:', {
+      category: productInfo.category,
+      productsLength: productInfo.products.length,
+      firstProduct: productInfo.products[0]?.name
+    });
+    
     // Removed retailer names as requested
     const availabilityOptions = ['In Stock', 'Limited Stock', 'Back Ordered', '2-3 in stock'];
     const deliveryOptions = ['Tomorrow', 'Tomorrow', '2 days', 'Next week'];
@@ -856,6 +872,15 @@ const AutobotApp = () => {
     // Generate dynamic search results
     const searchResults = {
       search: productInfo.products.map((product, index) => {
+        // Debug logging for Kith products
+        if (product.name && product.name.includes('Kith')) {
+          console.log('🦈 Processing Kith product:', {
+            index,
+            name: product.name,
+            basePrice: product.basePrice,
+            image: product.image
+          });
+        }
         // For Half-Life collectibles, preserve second-hand properties
         if (product.isSecondHand) {
           return {
@@ -945,11 +970,36 @@ const AutobotApp = () => {
 
     const results = searchResults[type] || searchResults.search;
     
+    // Debug logging for Kith Jaws
+    if (userRequest.toLowerCase().includes('kith') || userRequest.toLowerCase().includes('jaws')) {
+      console.log('🦈 Kith Jaws Debug:', {
+        userRequest,
+        type,
+        productInfoCategory: productInfo.category,
+        productInfoProductsLength: productInfo.products.length,
+        searchResultsSearchLength: searchResults.search.length,
+        resultsLength: results.length,
+        firstFewResults: results.slice(0, 5).map(r => r.title),
+        allProductNames: productInfo.products.slice(0, 5).map(p => p.name)
+      });
+    }
+    
     setTimeout(() => {
       if (results.length === 1) {
         addAutobotMessage("Found it! Here's the best option:", 'search-result', results[0]);
+      } else if (results.length <= 3) {
+        // Show all results if 3 or fewer, no "View more" button needed
+        addAutobotMessage(`Found ${results.length} good options:`, 'search-results', { results, showViewMore: false });
       } else {
-        addAutobotMessage(`Found ${results.length} good options. Here are the best matches:`, 'search-results', { results });
+        // Show first 3 results with "View more" button for the rest
+        const chatResults = results.slice(0, 3);
+        const remainingCount = results.length - 3;
+        addAutobotMessage(`Found ${results.length} good options. Here are the top matches:`, 'search-results', { 
+          results: chatResults, 
+          showViewMore: true, 
+          remainingCount: remainingCount,
+          allResults: results 
+        });
       }
     }, 1000);
   };
@@ -1498,74 +1548,113 @@ const AutobotApp = () => {
   };
 
   return (
-    <div className="autobot-app" style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className="autobot-app" style={{ position: 'relative', overflow: 'hidden', height: '100vh' }}>
 
-      {!webViewData ? (
-        // Chat Interface
-        <>
-          {/* Header */}
-          <div className="chat-header">
-            <div className="header-left">
-              <span className="back-arrow">←</span>
-              <div className="autobot-info">
-                <div className="autobot-avatar">
-                  <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
-                  </svg>
-                </div>
-                <div className="autobot-details">
-                  <div className="autobot-name">Blink</div>
-                  <div className="autobot-status">online</div>
-                </div>
+      {/* Chat View - Always present, slides left when web view opens */}
+      <motion.div
+        animate={{
+          x: webViewData ? '-100%' : '0%'
+        }}
+        transition={{
+          type: 'spring',
+          damping: 30,
+          stiffness: 300,
+          duration: 0.4
+        }}
+        style={{
+          position: webViewData ? 'absolute' : 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Header */}
+        <div className="chat-header">
+          <div className="header-left">
+            <span className="back-arrow">←</span>
+            <div className="autobot-info">
+              <div className="autobot-avatar">
+                <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M29.7031 22.1211C30.0696 22.1211 30.3956 22.2532 30.6807 22.5176C30.9759 22.7922 31.123 23.1133 31.123 23.4795C31.1229 23.7134 30.9802 24.0383 30.6953 24.4551C29.2802 26.4689 27.0003 28.0971 23.8545 29.3379C21.0242 30.4465 18.2288 31 15.4697 31C7.80392 30.9999 2.76447 28.8443 0.351562 24.5322C0.117401 24.1152 -1.33374e-08 23.7534 0 23.4482C0.000101261 23.1026 0.127446 22.7975 0.381836 22.5332C0.626178 22.2688 0.916959 22.1367 1.25293 22.1367C1.71093 22.1369 2.17441 22.4318 2.64258 23.0215C3.00904 23.4893 3.37572 23.9625 3.74219 24.4404C6.15508 26.7795 9.94745 27.9492 15.1191 27.9492C17.1247 27.9492 19.1663 27.6697 21.2432 27.1104C23.6253 26.4594 25.4575 25.5738 26.7402 24.4551C27.2085 23.9873 27.6772 23.525 28.1455 23.0674C28.8276 22.4368 29.3468 22.1211 29.7031 22.1211ZM5.94336 8.41602C6.32755 8.41612 6.67578 8.59323 6.9873 8.94629C9.35547 11.5949 11.5003 13.4179 13.4219 14.415C14.0344 14.7266 14.3406 15.1263 14.3408 15.6143C14.3408 15.9881 14.1489 16.3572 13.7646 16.7207C11.2926 19.0162 8.70121 21.032 5.99023 22.7666C5.69943 22.9535 5.42372 23.0469 5.16406 23.0469C4.79016 23.0469 4.46305 22.9011 4.18262 22.6104C3.91255 22.3091 3.77734 21.9716 3.77734 21.5977C3.77735 21.1822 3.97969 20.8184 4.38477 20.5068L10.4307 15.8955C9.50628 15.2827 8.3635 14.3423 7.00293 13.0752C5.34099 11.5067 4.50977 10.4208 4.50977 9.81836C4.50984 9.44455 4.65553 9.11729 4.94629 8.83691C5.23705 8.55666 5.56956 8.41602 5.94336 8.41602ZM26.4707 9.41309C26.8446 9.41309 27.1727 9.55877 27.4531 9.84961C27.7438 10.13 27.8887 10.4625 27.8887 10.8467C27.8887 11.1998 27.7333 11.5322 27.4219 11.8438C26.4247 12.9032 24.8713 14.4148 22.7627 16.3779C23.3444 16.8038 24.0614 17.4632 24.9131 18.3564C25.9206 19.4055 26.6114 20.0911 26.9854 20.4131C27.3593 20.7351 27.5459 21.0884 27.5459 21.4727C27.5459 21.8569 27.4062 22.1946 27.126 22.4854C26.8455 22.7762 26.5175 22.9219 26.1436 22.9219C25.8529 22.9218 25.5621 22.8127 25.2715 22.5947C24.856 22.2935 23.9681 21.4308 22.6074 20.0078C21.5687 18.9172 20.5656 18.1855 19.5996 17.8115C18.8104 17.5207 18.416 17.0888 18.416 16.5176C18.4162 15.9984 18.7747 15.5673 19.4912 15.2246C20.4571 14.7572 21.5171 13.9163 22.6699 12.7012C24.2798 11.0186 25.2348 10.0521 25.5361 9.80273C25.8476 9.54317 26.1592 9.4132 26.4707 9.41309ZM15.6533 0.461914C23.3195 0.461944 28.3586 2.61828 30.7715 6.93066C31.0056 7.34762 31.123 7.70857 31.123 8.01367C31.123 8.35939 30.9957 8.66432 30.7412 8.92871C30.4969 9.19308 30.2069 9.32512 29.8711 9.3252C29.413 9.3252 28.9498 9.03034 28.4814 8.44043C28.1149 7.97258 27.7483 7.49951 27.3818 7.02148C24.969 4.68232 21.1765 3.51277 16.0049 3.5127C13.9994 3.5127 11.9576 3.79224 9.88086 4.35156C7.49852 5.00249 5.66561 5.88805 4.38281 7.00684C3.91454 7.47464 3.44581 7.9369 2.97754 8.39453C2.29542 9.02512 1.77625 9.34082 1.41992 9.34082C1.05354 9.34074 0.727367 9.2087 0.442383 8.94434C0.147353 8.66986 0.000103062 8.34932 0 7.9834C2.78938e-09 7.74949 0.142707 7.4238 0.427734 7.00684C1.84288 4.99302 4.12363 3.36584 7.26953 2.125C10.0998 1.01643 12.8944 0.461914 15.6533 0.461914Z" fill="white"/>
+                </svg>
+              </div>
+              <div className="autobot-details">
+                <div className="autobot-name">Blink</div>
+                <div className="autobot-status">online</div>
               </div>
             </div>
-            <div className="header-right">
-              <Settings size={20} />
-              <MoreVertical size={20} />
-            </div>
           </div>
-
-          {/* Chat Messages */}
-          <div className="chat-container" ref={chatContainerRef}>
-            <AnimatePresence>
-              {messages.map((message) => (
-                <ChatMessage 
-                  key={message.id} 
-                  message={message} 
-                  onPurchaseIntent={handlePurchaseIntent}
-                  onConfirmPurchase={confirmPurchase}
-                  onUserResponse={handleUserResponse}
-                  userProfile={userProfile}
-                  onImageClick={(image, title) => setFullscreenImage({ image, title })}
-                  onWebView={(data) => {
-                    // Switch to web view mode
-                    setWebViewData(data);
-                  }}
-                  onFunded={handleFundingComplete}
-                />
-              ))}
-            </AnimatePresence>
-            
-            {isTyping && <TypingIndicator />}
+          <div className="header-right">
+            <Settings size={20} />
+            <MoreVertical size={20} />
           </div>
+        </div>
 
-          {/* Input Area */}
-          {currentFlow === 'onboarding' && (
-            <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
-          )}
+        {/* Chat Messages */}
+        <div className="chat-container" ref={chatContainerRef}>
+          <AnimatePresence>
+            {messages.map((message) => (
+              <ChatMessage 
+                key={message.id} 
+                message={message} 
+                onPurchaseIntent={handlePurchaseIntent}
+                onConfirmPurchase={confirmPurchase}
+                onUserResponse={handleUserResponse}
+                userProfile={userProfile}
+                onImageClick={(image, title) => setFullscreenImage({ image, title })}
+                onWebView={(data) => {
+                  // Switch to web view mode with iOS-style animation
+                  setWebViewData(data);
+                }}
+                onFunded={handleFundingComplete}
+              />
+            ))}
+          </AnimatePresence>
           
-          {currentFlow === 'chat' && (
-              <ChatInput onSubmit={handleChatMessage} />
-            )}
-        </>
-      ) : (
-        // Web View Interface
-        <WebViewInterface 
-          data={webViewData} 
-          onClose={() => setWebViewData(null)} 
-          onPurchaseIntent={handlePurchaseIntent} 
-        />
-      )}
+          {isTyping && <TypingIndicator />}
+        </div>
+
+        {/* Input Area */}
+        {currentFlow === 'onboarding' && (
+          <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
+        )}
+        
+        {currentFlow === 'chat' && (
+            <ChatInput onSubmit={handleChatMessage} />
+          )}
+      </motion.div>
+
+      {/* Web View - Slides in from right when opened */}
+      <AnimatePresence>
+        {webViewData && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: '0%' }}
+            exit={{ x: '100%' }}
+            transition={{
+              type: 'spring',
+              damping: 30,
+              stiffness: 300,
+              duration: 0.4
+            }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 10
+            }}
+          >
+            <WebViewInterface 
+              data={webViewData} 
+              onClose={() => setWebViewData(null)} 
+              onPurchaseIntent={handlePurchaseIntent} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fullscreen Image Viewer */}
       <AnimatePresence>
@@ -2201,15 +2290,25 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
             <DollarSign size={20} className="whatsapp-menu-icon" />
             <span className="whatsapp-menu-text">I want this - ${message.data.results[0].price + (message.data.results[0].shipping || 0)}</span>
           </motion.button>
-          <motion.button
-            whileHover={{ backgroundColor: '#f0f0f0' }}
-            whileTap={{ scale: 0.98 }}
-            className="whatsapp-menu-btn"
-            onClick={() => onWebView && onWebView(message.data)}
-          >
-            <ExternalLink size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">View ({message.data.results.length}) more Options</span>
-          </motion.button>
+          {message.data.showViewMore && (
+            <motion.button
+              whileHover={{ backgroundColor: '#f0f0f0' }}
+              whileTap={{ scale: 0.98 }}
+              className="whatsapp-menu-btn"
+              onClick={() => {
+                // Switch to web view with all results
+                if (message.data.allResults) {
+                  onWebView && onWebView({
+                    ...message.data,
+                    results: message.data.allResults
+                  });
+                }
+              }}
+            >
+              <ExternalLink size={20} className="whatsapp-menu-icon" />
+              <span className="whatsapp-menu-text">View ({message.data.remainingCount}) more Options</span>
+            </motion.button>
+          )}
         </div>
       )}
     </motion.div>
@@ -2230,9 +2329,9 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
             alt={data.title}
             style={{ 
               width: '100%', 
-              height: '180px', 
-              objectFit: 'contain', 
-              borderRadius: '8px',
+              height: '240px', 
+              objectFit: 'cover', 
+              borderRadius: '12px',
               marginBottom: '12px',
               backgroundColor: '#f9fafb',
               cursor: 'pointer'
@@ -2242,9 +2341,9 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
         ) : (
           <div style={{ 
             width: '100%', 
-            height: '180px', 
+            height: '240px', 
             backgroundColor: '#f9fafb',
-            borderRadius: '8px',
+            borderRadius: '12px',
             marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
@@ -2411,7 +2510,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
       display: 'flex', 
       flexDirection: 'column', 
       height: '100%',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+      background: '#ffffff',
       color: '#1e293b'
     }}>
       {/* Web View Header with Back Button */}
@@ -2457,7 +2556,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '0 20px 120px', // Extra bottom padding for Safari bar
+        padding: '0 10px 140px', // Extra bottom padding for Safari bar
         background: 'transparent'
       }}>
         {/* Logo Section - Now inside scrollable content */}
@@ -2500,7 +2599,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+              background: '#ffffff',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -2559,18 +2658,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
             
             
             
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-              style={{
-                fontSize: '14px',
-                opacity: 0.8,
-                textAlign: 'center'
-              }}
-            >
-              Loading results...
-            </motion.div>
+
             
 
           </motion.div>
@@ -2578,7 +2666,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '10px'
           }}>
             {(() => {
               // Separate primary (new/color variants) and secondary (used) options
@@ -2603,170 +2691,169 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                   duration: 0.6,
                   ease: [0.25, 0.46, 0.45, 0.94]
                 }}
-
                 style={{
-                  background: '#ffffff',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  border: '1px solid #e2e8f0'
+                  background: 'transparent',
+                  borderRadius: '20px',
+                  padding: '0px',
+                  marginBottom: '0px'
                 }}
               >
-                {/* Product Image */}
-                {(() => {
-                  const selectedVariant = selectedVariants[index];
-                  const imageToShow = selectedVariant ? selectedVariant.image : result.image;
-                  return imageToShow && (imageToShow.startsWith('http') || imageToShow.includes('PUBLIC_URL') || imageToShow.startsWith('/')) ? (
-                    <img 
-                      src={imageToShow} 
-                      alt={selectedVariant ? `${result.title} - ${selectedVariant.color}` : result.title}
-                      style={{
-                        width: '100%',
-                        height: '140px',
-                        objectFit: 'contain',
-                        borderRadius: '8px',
-                        marginBottom: '12px',
-                        backgroundColor: '#fafbfc'
-                      }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      fontSize: '48px', 
-                      textAlign: 'center', 
-                      marginBottom: '12px',
-                      height: '150px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {result.image}
-                    </div>
-                  );
-                })()}
+                {/* Product Image Container */}
+                <div style={{ 
+                  position: 'relative',
+                  borderRadius: '20px',
+                  overflow: 'hidden'
+                }}>
+                  {/* Product Image - Full Width */}
+                  {(() => {
+                    const selectedVariant = selectedVariants[index];
+                    const imageToShow = selectedVariant ? selectedVariant.image : result.image;
+                    return imageToShow && (imageToShow.startsWith('http') || imageToShow.includes('PUBLIC_URL') || imageToShow.startsWith('/')) ? (
+                      <img 
+                        src={imageToShow} 
+                        alt={selectedVariant ? `${result.title} - ${selectedVariant.color}` : result.title}
+                        style={{
+                          width: '100%',
+                          height: '400px',
+                          objectFit: 'cover',
+                          backgroundColor: '#f8f9fa'
+                        }}
+                      />
+                    ) : (
+                      <div style={{ 
+                        fontSize: '48px', 
+                        textAlign: 'center', 
+                        height: '400px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f8f9fa'
+                      }}>
+                        {result.image}
+                      </div>
+                    );
+                  })()}
 
-                {/* Product Info */}
-                <div style={{ marginBottom: '16px' }}>
-                  <h3 style={{ 
-                    fontSize: '16px', 
-                    fontWeight: '600', 
-                    marginBottom: '6px',
-                    color: '#1e293b',
-                    letterSpacing: '-0.025em',
-                    lineHeight: '1.4'
+                  {/* Size Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    padding: '6px 12px',
+                    borderRadius: '155px',
+                    fontSize: '9px',
+                    fontWeight: '700',
+                    color: '#111',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                   }}>
-                    {result.title}
-                  </h3>
-                  
-                  <div style={{ 
-                    fontSize: '18px', 
-                    fontWeight: '700', 
-                    color: '#0f172a',
-                    marginBottom: '4px'
-                  }}>
-                    ${result.price} {result.shipping > 0 && (
-                      <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
-                        + ${result.shipping} shipping
-                      </span>
-                    )}
+                    MEDIUM
                   </div>
 
-
-                  
-                  {/* Color Variants */}
-                  {result.colorVariants && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ 
-                        fontSize: '14px', 
+                  {/* White Content Box Overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    left: '10px',
+                    right: '10px',
+                    background: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '16px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+                  }}>
+                    {/* Title and Price Row */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: '2px'
+                    }}>
+                      <h3 style={{ 
+                        fontSize: '15px', 
                         fontWeight: '600', 
-                        marginBottom: '12px',
-                        color: '#374151'
+                        color: '#111',
+                        lineHeight: 'normal',
+                        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                        flex: 1,
+                        marginRight: '12px'
                       }}>
-                        Available Colors:
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {result.colorVariants.map((variant, variantIndex) => {
-                          const isSelected = selectedVariants[index]?.color === variant.color;
-                          return (
-                            <div 
-                              key={variantIndex} 
-                              onClick={() => {
-                                setSelectedVariants(prev => ({
-                                  ...prev,
-                                  [index]: variant
-                                }));
-                              }}
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                padding: '8px',
-                                border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                                borderRadius: '12px',
-                                backgroundColor: isSelected ? '#eff6ff' : '#f9fafb',
-                                minWidth: '60px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <img 
-                                src={variant.image} 
-                                alt={`${result.title} - ${variant.color}`}
-                                style={{
-                                  width: '40px',
-                                  height: '40px',
-                                  objectFit: 'contain',
-                                  borderRadius: '4px',
-                                  marginBottom: '4px'
-                                }}
-                              />
-                              <span style={{
-                                fontSize: '10px',
-                                color: isSelected ? '#3b82f6' : '#6b7280',
-                                textAlign: 'center',
-                                fontWeight: isSelected ? '600' : '400'
-                              }}>
-                                {variant.color}
-                              </span>
-                            </div>
-                          );
-                        })}
+                        {result.title}
+                      </h3>
+                      
+                      <div style={{ 
+                        fontSize: '18px', 
+                        fontWeight: '600', 
+                        color: '#000',
+                        lineHeight: '1.2'
+                      }}>
+                        ${result.price}
                       </div>
                     </div>
-                  )}
-                </div>
+                    
+                    {/* Brand and Blink Certified Row */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#8e8e93',
+                        fontWeight: '500'
+                      }}>
+                        {result.brand || 'Kith'}
+                      </div>
+                      
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#8e8e93',
+                        fontWeight: '400'
+                      }}>
+                        Est. shipping & taxes ${(result.shipping || 8) + Math.round(result.price * 0.08)}
+                      </div>
+                    </div>
 
-                {/* Buy Button */}
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    onClose(); // Close web view first
-                    setTimeout(() => {
-                      onPurchaseIntent(result); // Then trigger purchase intent in chat
-                    }, 300);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px 20px',
-                    background: '#1e293b',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    letterSpacing: '-0.025em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>I want this</span>
-                  <span style={{
-                    fontSize: '15px',
-                    fontWeight: '700'
-                  }}>
-                    ${result.price + (result.shipping || 0)}
-                  </span>
-                </motion.button>
+
+                  {/* I WANT THIS Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      onClose(); // Close web view first
+                      setTimeout(() => {
+                        onPurchaseIntent(result); // Then trigger purchase intent in chat
+                      }, 300);
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '53px',
+                      padding: '8px,0,0,0',
+                      background: '#111',
+                      color: '#FFF',
+                      border: '1px solid rgba(255, 255, 255, 0.30)',
+                      borderRadius: '155px',
+                      fontSize: '25px',
+                      fontWeight: '400',
+                      cursor: 'pointer',
+                      letterSpacing: '1.5px',
+                      textTransform: 'uppercase',
+                      fontFamily: '"FBS Machro", system-ui, -apple-system, sans-serif',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 14px 0 rgba(255, 255, 255, 0.45) inset',
+                      lineHeight: '1',
+                      textAlign: 'center'
+                    }}
+                  >
+                    I WANT THIS
+                  </motion.button>
+                  </div>
+                </div>
               </motion.div>
                   ))}
                   
