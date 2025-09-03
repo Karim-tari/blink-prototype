@@ -1,6 +1,23 @@
 /* Import Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bebas+Neue&display=swap');
 
+/* FBS Machro Font */
+@font-face {
+  font-family: 'FBS Machro';
+  src: url('%PUBLIC_URL%/FBS-Machro-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FBS Machro';
+  src: url('%PUBLIC_URL%/FBS-Machro-Slant.otf') format('opentype');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
