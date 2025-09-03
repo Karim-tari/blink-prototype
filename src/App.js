@@ -3463,7 +3463,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
             }}
             style={{
               position: 'fixed',
-              bottom: '143px', // Above Safari bar
+              bottom: '0px', // Flush to bottom
               left: '0px',
               right: '0px',
               zIndex: 1002 // Higher than Safari bar
@@ -3553,13 +3553,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
         )}
       </AnimatePresence>
 
-      {/* Safari Bottom Navigation Bar - Fixed Position */}
-      <div className="safari-bottom-bar">
-        <img 
-          src={`${process.env.PUBLIC_URL}/safari-bottom.png`}
-          alt="Safari navigation bar"
-        />
-      </div>
+
     </div>
   );
 };
