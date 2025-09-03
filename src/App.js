@@ -237,7 +237,7 @@ const AutobotApp = () => {
         }, 1000);
       } else if (currentFlow === 'chat' && userType === 'returning') {
                 setTimeout(() => {
-          addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying that new Les Paul guitar you got yesterday! You got a great one there! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
+          addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying your new Les Paul guitar from yesterday! You picked a great one! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
           setHasInitializedMessages(true);
       }, 1000);
     }
