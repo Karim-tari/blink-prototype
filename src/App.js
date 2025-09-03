@@ -1014,7 +1014,7 @@ const AutobotApp = () => {
       const grandTotal = totalPrice + taxTotal;
       
       // Create order summary message
-      let orderSummary = "🛍️ **Order Confirmation**\n\n";
+      let orderSummary = "🛍️ **Your order is on its way.**\n\n";
       
       items.forEach((product, index) => {
         orderSummary += `${index + 1}. ${product.title}\n`;
@@ -1084,30 +1084,33 @@ const AutobotApp = () => {
       }
     }
     
-    // We have both name and address - show purchase confirmation
-    if (userType === 'returning') {
-      // For repeat purchases - offer to reuse previous info
-      const shippingMessage = `Perfect! I can ship this to ${userProfile.name} at ${userProfile.address} like last time.\n\n✨ Here's your order:\n\n${item.title}\n\nTotal: $${total} ($${item.price} + $${item.shipping || 0} shipping)\nDelivery: ${item.deliveryDate}\n\nUse same details as before?`;
-      
-      addAutobotMessage(shippingMessage, 'purchase-confirmation', {
-        item,
-        total,
-        address: userProfile.address,
-        name: userProfile.name,
-        isRepeatCustomer: true
-      });
-    } else {
-      // New customer with details collected
-      const shippingMessage = `✨ Here's your order:\n\n${item.title}\n\nTotal: $${total} ($${item.price} + $${item.shipping || 0} shipping)\nDelivery: ${item.deliveryDate}\nShipping to: ${userProfile.name}, ${userProfile.address}\n\nReady to place your order?`;
-      
-      addAutobotMessage(shippingMessage, 'purchase-confirmation', {
-        item,
-        total,
-        address: userProfile.address,
-        name: userProfile.name,
-        isRepeatCustomer: false
-      });
-    }
+    // We have both name and address - create the same detailed order summary as web view
+    const shippingTotal = item.shipping || 8;
+    const taxTotal = Math.round(item.price * 0.08);
+    const grandTotal = item.price + shippingTotal + taxTotal;
+    
+    // Create order summary message (same format as web view group purchase)
+    let orderSummary = "🛍️ **Your order is on its way.**\n\n";
+    orderSummary += `1. ${item.title}\n`;
+    orderSummary += `   $${item.price} + $${shippingTotal} shipping\n\n`;
+    orderSummary += `**Order Total:**\n`;
+    orderSummary += `Subtotal: $${item.price}\n`;
+    orderSummary += `Shipping: $${shippingTotal}\n`;
+    orderSummary += `Tax: $${taxTotal}\n`;
+    orderSummary += `**Total: $${grandTotal}**\n\n`;
+    orderSummary += `Estimated delivery: Tomorrow\n`;
+    orderSummary += `You have 30 minutes to make changes.`;
+
+    addAutobotMessage(orderSummary, 'group-order-summary', {
+      items: [item],
+      subtotal: item.price,
+      shipping: shippingTotal,
+      tax: taxTotal,
+      total: grandTotal,
+      timeLimit: 30,
+      originalSearchResults: [item], // Single item as original results
+      isSingleItemOrder: true // Flag to hide Modify Order button
+    });
   };
 
   const confirmPurchase = (orderData) => {
@@ -3589,7 +3592,7 @@ const GroupOrderSummaryCard = ({ data, onWebView }) => {
       {/* Regular WhatsApp-style message content */}
       <div className="message-text">
         <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
-          🛍️ Order Confirmation
+          🛍️ Your order is on its way.
           </div>
         
         {/* Items list */}
@@ -3636,37 +3639,40 @@ const GroupOrderSummaryCard = ({ data, onWebView }) => {
       
       {/* Action buttons */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <motion.button
-          whileHover={{ backgroundColor: '#0066cc' }}
-            whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            // Open web view with current items for modification
-            if (onWebView) {
-              onWebView({
-                results: data.items,
-                searchTerm: 'Your Order',
-                showModifyMode: true,
-                originalSearchResults: data.originalSearchResults || data.items
-              });
-            }
-          }}
-            style={{
-              width: '100%',
-            padding: '12px 16px',
-              backgroundColor: '#0088cc',
-              color: 'white',
-              border: 'none',
-            borderRadius: '12px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          Modify Order
-          </motion.button>
+          {/* Only show Modify Order button for multi-item orders from web view */}
+          {!data.isSingleItemOrder && (
+            <motion.button
+            whileHover={{ backgroundColor: '#0066cc' }}
+              whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              // Open web view with current items for modification
+              if (onWebView) {
+                onWebView({
+                  results: data.items,
+                  searchTerm: 'Your Order',
+                  showModifyMode: true,
+                  originalSearchResults: data.originalSearchResults || data.items
+                });
+              }
+            }}
+              style={{
+                width: '100%',
+              padding: '12px 16px',
+                backgroundColor: '#0088cc',
+                color: 'white',
+                border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Modify Order
+            </motion.button>
+          )}
           <motion.button
           whileHover={{ backgroundColor: '#cc0000' }}
             whileTap={{ scale: 0.98 }}
