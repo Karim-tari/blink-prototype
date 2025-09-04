@@ -3133,13 +3133,15 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                       >
                         <span>UNDO</span>
                         <span style={{
-                          background: 'rgba(255, 255, 255, 0.2)',
-                          padding: '2px 6px',
-                          borderRadius: '10px',
+                          background: 'white',
+                          color: 'black',
+                          padding: '4px 8px',
+                          borderRadius: '12px',
                           fontSize: '12px',
-                          fontWeight: '600',
-                          minWidth: '16px',
-                          textAlign: 'center'
+                          fontWeight: '700',
+                          minWidth: '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                         }}>
                           {timeLeft}
                         </span>
