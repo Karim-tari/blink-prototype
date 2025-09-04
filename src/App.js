@@ -134,6 +134,7 @@ const AutobotApp = () => {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [webViewData, setWebViewData] = useState(null);
+  const [activeOrder, setActiveOrder] = useState(null); // Track current order for modifications
   const chatContainerRef = useRef(null);
 
   // Simulate Autobot typing and responding
@@ -1033,9 +1034,11 @@ const AutobotApp = () => {
     // Handle group purchase from web view
     if (item.type === 'group-purchase') {
       const { items, totalPrice } = item;
+      const subtotalAmount = items.reduce((sum, product) => sum + product.price, 0);
       const shippingTotal = items.reduce((sum, product) => sum + (product.shipping || 8), 0);
       const taxTotal = items.reduce((sum, product) => sum + Math.round(product.price * 0.08), 0);
-      const grandTotal = totalPrice + taxTotal;
+      const silverFee = Math.round(subtotalAmount * 0.03); // 3% silver tier fee
+      const grandTotal = subtotalAmount + shippingTotal + taxTotal + silverFee;
       
       // Create order summary message
       let orderSummary = "🛍️ **Your order is on its way.**\n\n";
@@ -1046,28 +1049,37 @@ const AutobotApp = () => {
       });
       
       orderSummary += `**Order Total:**\n`;
-      orderSummary += `Subtotal: $${items.reduce((sum, product) => sum + product.price, 0)}\n`;
+      orderSummary += `Subtotal: $${subtotalAmount}\n`;
       orderSummary += `Shipping: $${shippingTotal}\n`;
       orderSummary += `Tax: $${taxTotal}\n`;
+      orderSummary += `Silver Tier Fee (3%): $${silverFee}\n`;
       orderSummary += `**Total: $${grandTotal}**\n\n`;
       orderSummary += `Estimated delivery: Tomorrow\n`;
       orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
       
-      addAutobotMessage(orderSummary, 'group-order-summary', {
+      const orderData = {
         items,
-        subtotal: items.reduce((sum, product) => sum + product.price, 0),
+        subtotal: subtotalAmount,
         shipping: shippingTotal,
         tax: taxTotal,
+        silverFee: silverFee,
         total: grandTotal,
         timeLimit: 30,
-        originalSearchResults: item.originalSearchResults || items
-      });
+        originalSearchResults: item.originalSearchResults || items,
+        timestamp: Date.now()
+      };
+
+      addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+
+      // Set active order for modifications
+      setActiveOrder(orderData);
 
       // Set 3-minute timer for final order confirmation
       setTimeout(() => {
         const itemNames = items.map(item => item.title).join(', ');
         const finalMessage = `🎯 **Order Confirmed!**\n\nYour order for ${itemNames} has been officially placed and is now being processed.\n\n📦 You'll receive tracking details shortly.\n💳 Payment has been processed successfully.\n\nThanks for shopping with Blink! 🚀`;
         addAutobotMessage(finalMessage);
+        setActiveOrder(null); // Clear active order after confirmation
       }, 3 * 60 * 1000); // 3 minutes in milliseconds
       
       return;
@@ -1119,7 +1131,8 @@ const AutobotApp = () => {
     // We have both name and address - create the same detailed order summary as web view
     const shippingTotal = item.shipping || 8;
     const taxTotal = Math.round(item.price * 0.08);
-    const grandTotal = item.price + shippingTotal + taxTotal;
+    const silverFee = Math.round(item.price * 0.03); // 3% silver tier fee
+    const grandTotal = item.price + shippingTotal + taxTotal + silverFee;
     
     // Create order summary message (same format as web view group purchase)
     let orderSummary = "🛍️ **Your order is on its way.**\n\n";
@@ -1129,25 +1142,34 @@ const AutobotApp = () => {
     orderSummary += `Subtotal: $${item.price}\n`;
     orderSummary += `Shipping: $${shippingTotal}\n`;
     orderSummary += `Tax: $${taxTotal}\n`;
+    orderSummary += `Silver Tier Fee (3%): $${silverFee}\n`;
     orderSummary += `**Total: $${grandTotal}**\n\n`;
     orderSummary += `Estimated delivery: Tomorrow\n`;
     orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
 
-    addAutobotMessage(orderSummary, 'group-order-summary', {
+    const orderData = {
       items: [item],
       subtotal: item.price,
       shipping: shippingTotal,
       tax: taxTotal,
+      silverFee: silverFee,
       total: grandTotal,
       timeLimit: 30,
       originalSearchResults: [item], // Single item as original results
-      isSingleItemOrder: true // Flag to hide Modify Order button
-    });
+      isSingleItemOrder: true, // Flag to hide Modify Order button
+      timestamp: Date.now()
+    };
+
+    addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+
+    // Set active order for modifications
+    setActiveOrder(orderData);
 
     // Set 3-minute timer for final order confirmation
     setTimeout(() => {
       const finalMessage = `🎯 **Order Confirmed!**\n\nYour order for ${item.title} has been officially placed and is now being processed.\n\n📦 You'll receive tracking details shortly.\n💳 Payment has been processed successfully.\n\nThanks for shopping with Blink! 🚀`;
       addAutobotMessage(finalMessage);
+      setActiveOrder(null); // Clear active order after confirmation
     }, 3 * 60 * 1000); // 3 minutes in milliseconds
   };
 
@@ -1361,6 +1383,162 @@ const AutobotApp = () => {
 
 
 
+  // Detect if user message is requesting order modifications
+  const detectOrderModification = (message, order) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Size change patterns
+    const sizeChangePatterns = [
+      /change.*size.*to\s+(\w+)/i,
+      /make.*size\s+(\w+)/i,
+      /switch.*size.*to\s+(\w+)/i,
+      /size\s+(\w+)\s+instead/i,
+      /can.*get.*size\s+(\w+)/i,
+      /want.*size\s+(\w+)/i,
+      /need.*size\s+(\w+)/i
+    ];
+    
+    for (const pattern of sizeChangePatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        return {
+          type: 'size_change',
+          newSize: match[1].toUpperCase(),
+          originalMessage: message
+        };
+      }
+    }
+    
+    // Remove item patterns
+    const removePatterns = [
+      /remove.*(\w+.*)/i,
+      /delete.*(\w+.*)/i,
+      /take.*out.*(\w+.*)/i,
+      /don't want.*(\w+.*)/i,
+      /cancel.*(\w+.*)/i,
+      /get rid of.*(\w+.*)/i
+    ];
+    
+    for (const pattern of removePatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        // Try to match item name from order
+        const itemToRemove = order.items.find(item => 
+          lowerMessage.includes(item.title.toLowerCase()) ||
+          item.title.toLowerCase().includes(match[1].toLowerCase().trim())
+        );
+        
+        if (itemToRemove) {
+          return {
+            type: 'remove_item',
+            item: itemToRemove,
+            originalMessage: message
+          };
+        }
+      }
+    }
+    
+    // General modification patterns
+    if (lowerMessage.includes('change') || lowerMessage.includes('modify') || 
+        lowerMessage.includes('update') || lowerMessage.includes('different')) {
+      return {
+        type: 'general_modification',
+        originalMessage: message
+      };
+    }
+    
+    return null;
+  };
+
+  // Handle order modifications
+  const handleOrderModification = (modification, currentOrder) => {
+    const { type, newSize, item: itemToRemove, originalMessage } = modification;
+    
+    if (type === 'size_change') {
+      // Update all items to new size (for simplicity, assuming single item orders mostly)
+      const updatedItems = currentOrder.items.map(item => ({
+        ...item,
+        size: newSize
+      }));
+      
+      const updatedOrder = {
+        ...currentOrder,
+        items: updatedItems,
+        timestamp: Date.now() // Reset timer
+      };
+      
+      setActiveOrder(updatedOrder);
+      
+      // Generate updated confirmation
+      generateUpdatedOrderConfirmation(updatedOrder, `Got it! I've changed the size to ${newSize}.`);
+      
+    } else if (type === 'remove_item') {
+      const updatedItems = currentOrder.items.filter(item => item !== itemToRemove);
+      
+      if (updatedItems.length === 0) {
+        // All items removed - cancel order
+        setActiveOrder(null);
+        addAutobotMessage("No problem! I've cancelled your order since you removed all items. Let me know if you want to search for something else! 😊");
+        return;
+      }
+      
+      // Recalculate totals
+      const subtotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
+      const shipping = updatedItems.length > 0 ? (updatedItems[0].shipping || 8) : 0;
+      const tax = Math.round(subtotal * 0.08);
+      const silverFee = Math.round(subtotal * 0.03); // 3% silver tier fee
+      const total = subtotal + shipping + tax + silverFee;
+      
+      const updatedOrder = {
+        ...currentOrder,
+        items: updatedItems,
+        subtotal,
+        shipping,
+        tax,
+        silverFee,
+        total,
+        timestamp: Date.now() // Reset timer
+      };
+      
+      setActiveOrder(updatedOrder);
+      
+      generateUpdatedOrderConfirmation(updatedOrder, `Perfect! I've removed ${itemToRemove.title} from your order.`);
+      
+    } else if (type === 'general_modification') {
+      addAutobotMessage("I'd be happy to help modify your order! Could you be more specific about what you'd like to change? For example:\n\n• \"Change the size to Large\"\n• \"Remove the [item name]\"\n• \"Cancel the order\"\n\nWhat would you like to do?");
+    }
+  };
+
+  // Generate updated order confirmation
+  const generateUpdatedOrderConfirmation = (updatedOrder, confirmationMessage) => {
+    let orderSummary = `${confirmationMessage}\n\n🛍️ **Updated Order:**\n\n`;
+    
+    updatedOrder.items.forEach((item, index) => {
+      orderSummary += `${index + 1}. ${item.title}`;
+      if (item.size) orderSummary += ` (Size: ${item.size})`;
+      orderSummary += `\n   $${item.price} + $${updatedOrder.shipping} shipping\n\n`;
+    });
+    
+    orderSummary += `**Order Total:**\n`;
+    orderSummary += `Subtotal: $${updatedOrder.subtotal}\n`;
+    orderSummary += `Shipping: $${updatedOrder.shipping}\n`;
+    orderSummary += `Tax: $${updatedOrder.tax}\n`;
+    orderSummary += `Silver Tier Fee (3%): $${updatedOrder.silverFee}\n`;
+    orderSummary += `**Total: $${updatedOrder.total}**\n\n`;
+    orderSummary += `Estimated delivery: Tomorrow\n`;
+    orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
+    
+    addAutobotMessage(orderSummary, 'group-order-summary', updatedOrder);
+    
+    // Clear any existing timer and set new one
+    setTimeout(() => {
+      const itemNames = updatedOrder.items.map(item => item.title).join(', ');
+      const finalMessage = `🎯 **Order Confirmed!**\n\nYour order for ${itemNames} has been officially placed and is now being processed.\n\n📦 You'll receive tracking details shortly.\n💳 Payment has been processed successfully.\n\nThanks for shopping with Blink! 🚀`;
+      addAutobotMessage(finalMessage);
+      setActiveOrder(null); // Clear active order after confirmation
+    }, 3 * 60 * 1000); // 3 minutes in milliseconds
+  };
+
   const handleChatMessage = (message) => {
     // Check if message contains an image search
     if (message.startsWith('[IMAGE_SEARCH]')) {
@@ -1370,6 +1548,15 @@ const AutobotApp = () => {
     }
     
     addUserMessage(message);
+    
+    // Check for order modifications if there's an active order within 3 minutes
+    if (activeOrder && (Date.now() - activeOrder.timestamp) < (3 * 60 * 1000)) {
+      const orderModification = detectOrderModification(message, activeOrder);
+      if (orderModification) {
+        handleOrderModification(orderModification, activeOrder);
+        return;
+      }
+    }
     
     // Check if message contains a URL - auto-buy feature
     const urlRegex = /(https?:\/\/[^\s]+)/gi;
@@ -3136,7 +3323,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                           background: 'white',
                           color: 'black',
                           padding: '4px 8px',
-                          borderRadius: '12px',
+                  borderRadius: '12px',
                           fontSize: '12px',
                           fontWeight: '700',
                           minWidth: '20px',
@@ -3646,10 +3833,10 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
       <div className="message-text">
         <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
           ✨ Ready to Order
-        </div>
+          </div>
         <div style={{ marginBottom: '8px' }}>
           <strong>{data.item.title}</strong>
-        </div>
+          </div>
         <div style={{ fontSize: '16px', fontWeight: '600', color: '#0088cc', marginBottom: '8px' }}>
           ${totalWithShippingTax} total (inc. shipping & taxes)
         </div>
@@ -3658,21 +3845,21 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
         </div>
         <div style={{ fontSize: '14px', color: '#666' }}>
           🕐 Arrives {String(data.item?.deliveryDate || '')}
+          </div>
         </div>
-      </div>
-      
+        
       {/* Separate colored buttons */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <motion.button
+          <motion.button
           whileHover={{ backgroundColor: '#0066cc' }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => onConfirmPurchase(data)}
-      style={{
-            width: '100%',
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onConfirmPurchase(data)}
+            style={{
+              width: '100%',
             padding: '12px 16px',
-            backgroundColor: '#0088cc',
-            color: 'white',
-            border: 'none',
+              backgroundColor: '#0088cc',
+              color: 'white',
+              border: 'none',
             borderRadius: '12px',
             fontSize: '16px',
             fontWeight: '600',
@@ -3683,12 +3870,12 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
           }}
         >
           Place Order
-        </motion.button>
-        <motion.button
+          </motion.button>
+          <motion.button
           whileHover={{ backgroundColor: '#cc0000' }}
-          whileTap={{ scale: 0.98 }}
-          style={{
-            width: '100%',
+            whileTap={{ scale: 0.98 }}
+            style={{
+              width: '100%',
             padding: '12px 16px',
             backgroundColor: '#dc3545',
             color: 'white',
@@ -3703,8 +3890,8 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
           }}
         >
           Cancel
-        </motion.button>
-          </div>
+          </motion.button>
+        </div>
     </>
   );
 };
@@ -3716,7 +3903,7 @@ const GroupOrderSummaryCard = ({ data, onWebView, onCancelOrder }) => {
       <div className="message-text">
         <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
           🛍️ Your order is on its way.
-          </div>
+      </div>
         
         {/* Items list */}
         <div style={{ marginBottom: '16px' }}>
@@ -3742,9 +3929,13 @@ const GroupOrderSummaryCard = ({ data, onWebView, onCancelOrder }) => {
             <span style={{ fontSize: '14px', color: '#666' }}>Shipping:</span>
             <span style={{ fontSize: '14px', color: '#666' }}>${data.shipping}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '14px', color: '#666' }}>Tax:</span>
             <span style={{ fontSize: '14px', color: '#666' }}>${data.tax}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>Silver Tier Fee (3%):</span>
+            <span style={{ fontSize: '14px', color: '#666' }}>${data.silverFee}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #dee2e6', paddingTop: '8px' }}>
             <span style={{ fontSize: '16px', fontWeight: '600', color: '#000' }}>Total:</span>
