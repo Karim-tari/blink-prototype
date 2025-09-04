@@ -1383,6 +1383,85 @@ const AutobotApp = () => {
 
 
 
+  // Find the best matching item from order based on user's description
+  const findBestMatchingItem = (requestedName, items) => {
+    const cleanRequested = requestedName.toLowerCase().trim();
+    
+    // Strategy 1: Exact match (case insensitive)
+    let match = items.find(item => 
+      item.title.toLowerCase() === cleanRequested
+    );
+    if (match) return match;
+    
+    // Strategy 2: Full title contains the requested name
+    match = items.find(item => 
+      item.title.toLowerCase().includes(cleanRequested)
+    );
+    if (match) return match;
+    
+    // Strategy 3: Requested name contains significant part of title
+    match = items.find(item => {
+      const titleWords = item.title.toLowerCase().split(/\s+/);
+      const requestedWords = cleanRequested.split(/\s+/);
+      
+      // Check if any significant word from title is in the request
+      return titleWords.some(titleWord => 
+        titleWord.length > 2 && requestedWords.some(reqWord => 
+          reqWord.includes(titleWord) || titleWord.includes(reqWord)
+        )
+      );
+    });
+    if (match) return match;
+    
+    // Strategy 4: Fuzzy matching for common item types
+    const itemTypeMatches = {
+      'cap': ['cap', 'hat', 'beanie'],
+      'shirt': ['shirt', 'tee', 't-shirt', 'tshirt', 'top'],
+      'shoes': ['shoes', 'sneakers', 'boots', 'jordans', 'nike', 'adidas'],
+      'pants': ['pants', 'jeans', 'trousers', 'shorts'],
+      'jacket': ['jacket', 'hoodie', 'sweater', 'coat'],
+      'bag': ['bag', 'backpack', 'purse', 'tote'],
+      'watch': ['watch', 'timepiece'],
+      'sunglasses': ['sunglasses', 'glasses', 'shades']
+    };
+    
+    for (const [category, keywords] of Object.entries(itemTypeMatches)) {
+      if (keywords.some(keyword => cleanRequested.includes(keyword))) {
+        match = items.find(item => 
+          keywords.some(keyword => item.title.toLowerCase().includes(keyword))
+        );
+        if (match) return match;
+      }
+    }
+    
+    // Strategy 5: Word-by-word partial matching with scoring
+    let bestMatch = null;
+    let bestScore = 0;
+    
+    items.forEach(item => {
+      const titleWords = item.title.toLowerCase().split(/\s+/);
+      const requestedWords = cleanRequested.split(/\s+/);
+      
+      let score = 0;
+      requestedWords.forEach(reqWord => {
+        if (reqWord.length > 2) { // Only consider meaningful words
+          titleWords.forEach(titleWord => {
+            if (titleWord.includes(reqWord) || reqWord.includes(titleWord)) {
+              score += reqWord.length; // Longer matches get higher scores
+            }
+          });
+        }
+      });
+      
+      if (score > bestScore && score > 2) { // Minimum threshold
+        bestScore = score;
+        bestMatch = item;
+      }
+    });
+    
+    return bestMatch;
+  };
+
   // Detect if user message is requesting order modifications
   const detectOrderModification = (message, order) => {
     const lowerMessage = message.toLowerCase();
@@ -1409,30 +1488,39 @@ const AutobotApp = () => {
       }
     }
     
-    // Remove item patterns
+    // Remove item patterns - more specific extraction
     const removePatterns = [
-      /remove.*(\w+.*)/i,
-      /delete.*(\w+.*)/i,
-      /take.*out.*(\w+.*)/i,
-      /don't want.*(\w+.*)/i,
-      /cancel.*(\w+.*)/i,
-      /get rid of.*(\w+.*)/i
+      /remove\s+(?:the\s+)?(.+?)(?:\s+from|$)/i,
+      /delete\s+(?:the\s+)?(.+?)(?:\s+from|$)/i,
+      /take\s+out\s+(?:the\s+)?(.+?)(?:\s+from|$)/i,
+      /don't\s+want\s+(?:the\s+)?(.+?)(?:\s+anymore|$)/i,
+      /cancel\s+(?:the\s+)?(.+?)(?:\s+from|$)/i,
+      /get\s+rid\s+of\s+(?:the\s+)?(.+?)(?:\s+from|$)/i,
+      /drop\s+(?:the\s+)?(.+?)(?:\s+from|$)/i
     ];
     
     for (const pattern of removePatterns) {
       const match = message.match(pattern);
       if (match) {
-        // Try to match item name from order
-        const itemToRemove = order.items.find(item => 
-          lowerMessage.includes(item.title.toLowerCase()) ||
-          item.title.toLowerCase().includes(match[1].toLowerCase().trim())
-        );
+        const requestedItemName = match[1].toLowerCase().trim();
+        
+        // Find the best matching item using multiple strategies
+        const itemToRemove = findBestMatchingItem(requestedItemName, order.items);
         
         if (itemToRemove) {
           return {
             type: 'remove_item',
             item: itemToRemove,
-            originalMessage: message
+            originalMessage: message,
+            requestedName: requestedItemName
+          };
+        } else {
+          // No matching item found, but user clearly wants to remove something
+          return {
+            type: 'remove_item_not_found',
+            originalMessage: message,
+            requestedName: requestedItemName,
+            availableItems: order.items.map(item => item.title)
           };
         }
       }
@@ -1452,7 +1540,7 @@ const AutobotApp = () => {
 
   // Handle order modifications
   const handleOrderModification = (modification, currentOrder) => {
-    const { type, newSize, item: itemToRemove, originalMessage } = modification;
+    const { type, newSize, item: itemToRemove, originalMessage, requestedName } = modification;
     
     if (type === 'size_change') {
       // Update all items to new size (for simplicity, assuming single item orders mostly)
@@ -1502,7 +1590,23 @@ const AutobotApp = () => {
       
       setActiveOrder(updatedOrder);
       
-      generateUpdatedOrderConfirmation(updatedOrder, `Perfect! I've removed ${itemToRemove.title} from your order.`);
+      generateUpdatedOrderConfirmation(updatedOrder, `Perfect! I've removed "${itemToRemove.title}" from your order.`);
+      
+    } else if (type === 'remove_item_not_found') {
+      const { requestedName, availableItems } = modification;
+      let errorMessage = `I couldn't find "${requestedName}" in your order. `;
+      
+      if (availableItems.length === 1) {
+        errorMessage += `Your order contains: ${availableItems[0]}`;
+      } else {
+        errorMessage += `Your order contains:\n`;
+        availableItems.forEach((item, index) => {
+          errorMessage += `${index + 1}. ${item}\n`;
+        });
+      }
+      
+      errorMessage += `\nPlease try again with the exact item name, or say "cancel order" to cancel everything.`;
+      addAutobotMessage(errorMessage);
       
     } else if (type === 'general_modification') {
       addAutobotMessage("I'd be happy to help modify your order! Could you be more specific about what you'd like to change? For example:\n\n• \"Change the size to Large\"\n• \"Remove the [item name]\"\n• \"Cancel the order\"\n\nWhat would you like to do?");
