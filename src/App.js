@@ -1051,7 +1051,7 @@ const AutobotApp = () => {
       orderSummary += `Tax: $${taxTotal}\n`;
       orderSummary += `**Total: $${grandTotal}**\n\n`;
       orderSummary += `Estimated delivery: Tomorrow\n`;
-      orderSummary += `You have 30 minutes to make changes.`;
+      orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
       
       addAutobotMessage(orderSummary, 'group-order-summary', {
         items,
@@ -1062,6 +1062,14 @@ const AutobotApp = () => {
         timeLimit: 30,
         originalSearchResults: item.originalSearchResults || items
       });
+
+      // Set 3-minute timer for final order confirmation
+      setTimeout(() => {
+        const itemNames = items.map(item => item.title).join(', ');
+        const finalMessage = `🎯 **Order Confirmed!**\n\nYour order for ${itemNames} has been officially placed and is now being processed.\n\n📦 You'll receive tracking details shortly.\n💳 Payment has been processed successfully.\n\nThanks for shopping with Blink! 🚀`;
+        addAutobotMessage(finalMessage);
+      }, 3 * 60 * 1000); // 3 minutes in milliseconds
+      
       return;
     }
     
@@ -1123,7 +1131,7 @@ const AutobotApp = () => {
     orderSummary += `Tax: $${taxTotal}\n`;
     orderSummary += `**Total: $${grandTotal}**\n\n`;
     orderSummary += `Estimated delivery: Tomorrow\n`;
-    orderSummary += `You have 30 minutes to make changes.`;
+    orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
 
     addAutobotMessage(orderSummary, 'group-order-summary', {
       items: [item],
@@ -1135,6 +1143,12 @@ const AutobotApp = () => {
       originalSearchResults: [item], // Single item as original results
       isSingleItemOrder: true // Flag to hide Modify Order button
     });
+
+    // Set 3-minute timer for final order confirmation
+    setTimeout(() => {
+      const finalMessage = `🎯 **Order Confirmed!**\n\nYour order for ${item.title} has been officially placed and is now being processed.\n\n📦 You'll receive tracking details shortly.\n💳 Payment has been processed successfully.\n\nThanks for shopping with Blink! 🚀`;
+      addAutobotMessage(finalMessage);
+    }, 3 * 60 * 1000); // 3 minutes in milliseconds
   };
 
   const confirmPurchase = (orderData) => {
@@ -1670,6 +1684,9 @@ const AutobotApp = () => {
                     setWebViewData(data);
                   }}
                   onFunded={handleFundingComplete}
+                  onCancelOrder={() => {
+                    addAutobotMessage("No worries, I cancelled your order. Let me know if you want something else! 😊");
+                  }}
                 />
               ))}
             </AnimatePresence>
@@ -2299,7 +2316,7 @@ const DemoControls = ({ onNewUser, onReturningUser, currentUserType }) => {
   );
 };
 
-const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded }) => {
+const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCancelOrder }) => {
   const isAutobot = message.type === 'autobot';
 
   return (
@@ -2326,7 +2343,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         )}
         
         {message.special === 'group-order-summary' && (
-          <GroupOrderSummaryCard data={message.data} onWebView={onWebView} />
+          <GroupOrderSummaryCard data={message.data} onWebView={onWebView} onCancelOrder={onCancelOrder} />
         )}
         
         {message.special === 'purchase-success' && (
@@ -2613,6 +2630,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
   const [slidCardIndexes, setSlidCardIndexes] = useState([]);
   const [selectedVariants, setSelectedVariants] = useState({});
   const [selectedItems, setSelectedItems] = useState([]);
+  const [undoTimers, setUndoTimers] = useState({}); // Track countdown timers for each item
 
   useEffect(() => {
     // Load Lottie animation data
@@ -3057,49 +3075,77 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                     </motion.div>
                   )}
 
-                  {/* Undo button */}
-                  {slidCardIndexes.includes(index) && (
-                    <motion.button
-                      initial={{ y: 30, opacity: 0, scale: 0.9 }}
-                      animate={{ y: 0, opacity: 1, scale: 1 }}
-                      transition={{ 
-                        delay: 0.65, 
-                        duration: 0.4,
-                        ease: [0.175, 0.885, 0.32, 1]
-                      }}
-                      whileHover={{ scale: 1.02, y: -1 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        // Remove from selected items and slide back
-                        setSlidCardIndexes(prev => prev.filter(i => i !== index));
-                        setSelectedItems(prev => prev.filter(item => item !== result));
-                      }}
-                      style={{
-                        display: 'flex',
-                        padding: '10px 20px',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '10px',
-                        background: '#333',
-                        border: 'none',
-                        borderRadius: '25px',
-                        color: '#FFF',
-                        textAlign: 'center',
-                        leadingTrim: 'both',
-                        textEdge: 'cap',
-                        fontFamily: 'Inter',
-                        fontSize: '9px',
-                        fontStyle: 'normal',
-                        fontWeight: '700',
-                        lineHeight: '85%',
-                        letterSpacing: '-0.63px',
-                        textTransform: 'uppercase',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      UNDO
-                    </motion.button>
-                  )}
+                  {/* Undo button with countdown timer */}
+                  {slidCardIndexes.includes(index) && (() => {
+                    const itemKey = `${result.title}-${index}`;
+                    const timeLeft = undoTimers[itemKey];
+                    const isExpired = !timeLeft || timeLeft <= 0;
+                    
+                    // Don't render the button at all if expired
+                    if (isExpired) {
+                      return null;
+                    }
+                    
+                    return (
+                      <motion.button
+                        initial={{ y: 30, opacity: 0, scale: 0.9 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 30, opacity: 0, scale: 0.9 }}
+                        transition={{ 
+                          delay: 0.65, 
+                          duration: 0.4,
+                          ease: [0.175, 0.885, 0.32, 1]
+                        }}
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          // Clear the timer
+                          setUndoTimers(prev => {
+                            const { [itemKey]: removed, ...rest } = prev;
+                            return rest;
+                          });
+                          // Remove from selected items and slide back
+                          setSlidCardIndexes(prev => prev.filter(i => i !== index));
+                          setSelectedItems(prev => prev.filter(item => item !== result));
+                        }}
+                        style={{
+                          display: 'flex',
+                          padding: '10px 20px',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          gap: '8px',
+                          background: '#333',
+                          border: 'none',
+                          borderRadius: '25px',
+                          color: '#FFF',
+                          textAlign: 'center',
+                          leadingTrim: 'both',
+                          textEdge: 'cap',
+                          fontFamily: 'Inter',
+                          fontSize: '9px',
+                          fontStyle: 'normal',
+                          fontWeight: '700',
+                          lineHeight: '85%',
+                          letterSpacing: '-0.63px',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <span>UNDO</span>
+                        <span style={{
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          padding: '2px 6px',
+                          borderRadius: '10px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          minWidth: '16px',
+                          textAlign: 'center'
+                        }}>
+                          {timeLeft}
+                        </span>
+                      </motion.button>
+                    );
+                  })()}
                 </div>
 
                 {/* Product Card - Slides off with rotation */}
@@ -3252,6 +3298,30 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                         if (!prev.includes(index)) {
                           // Add to selected items
                           setSelectedItems(prevItems => [...prevItems, result]);
+                          
+                          // Start 30-second countdown timer for this item
+                          const itemKey = `${result.title}-${index}`;
+                          setUndoTimers(prevTimers => ({
+                            ...prevTimers,
+                            [itemKey]: 30
+                          }));
+                          
+                          // Start countdown interval
+                          const interval = setInterval(() => {
+                            setUndoTimers(prevTimers => {
+                              const newTime = prevTimers[itemKey] - 1;
+                              if (newTime <= 0) {
+                                clearInterval(interval);
+                                const { [itemKey]: removed, ...rest } = prevTimers;
+                                return rest;
+                              }
+                              return {
+                                ...prevTimers,
+                                [itemKey]: newTime
+                              };
+                            });
+                          }, 1000);
+                          
                           return [...prev, index]; // Add to array if not already there
                         }
                         return prev; // Don't add duplicates
@@ -3637,7 +3707,7 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
   );
 };
 
-const GroupOrderSummaryCard = ({ data, onWebView }) => {
+const GroupOrderSummaryCard = ({ data, onWebView, onCancelOrder }) => {
   return (
     <>
       {/* Regular WhatsApp-style message content */}
@@ -3684,49 +3754,20 @@ const GroupOrderSummaryCard = ({ data, onWebView }) => {
           🚚 Estimated delivery: Tomorrow
         </div>
         <div style={{ fontSize: '14px', color: '#ff6b35', fontWeight: '500' }}>
-          ⏰ You have 30 minutes to make changes
+          💬 Just message me if you need to make any changes. You have 3 minutes until the order is placed.
         </div>
       </div>
       
       {/* Action buttons */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Only show Modify Order button for multi-item orders from web view */}
-          {!data.isSingleItemOrder && (
-          <motion.button
-            whileHover={{ backgroundColor: '#0066cc' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              // Open web view with current items for modification
-              if (onWebView) {
-                onWebView({
-                  results: data.items,
-                  searchTerm: 'Your Order',
-                  showModifyMode: true,
-                  originalSearchResults: data.originalSearchResults || data.items
-                });
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              backgroundColor: '#0088cc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            Modify Order
-          </motion.button>
-          )}
           <motion.button
           whileHover={{ backgroundColor: '#cc0000' }}
             whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (onCancelOrder) {
+                onCancelOrder();
+              }
+            }}
             style={{
               width: '100%',
             padding: '12px 16px',
@@ -4390,25 +4431,6 @@ const OrderSuccessCard = ({ data }) => {
         Size: <strong>{data.size}</strong>
       </motion.div>
 
-      {/* Undo Link */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <a 
-          href="#" 
-          onClick={(e) => e.preventDefault()}
-          style={{
-            color: '#6c757d',
-            textDecoration: 'underline',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}
-        >
-          undo
-        </a>
-      </motion.div>
     </motion.div>
   );
 };
