@@ -107,9 +107,12 @@ const AutobotApp = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [userProfile, setUserProfile] = useState({
     name: 'Karim',
+    email: 'karim@example.com',
+    phone: '+1 (555) 123-4567',
     interests: ['sneakers', 'tech', 'gaming'],
     shoeSize: '10.5',
     clothingSize: 'M',
+    pantsSize: '32x32',
     address: '2847 Oak Street, San Francisco, CA 94115',
     preferences: {
       prefersFastShipping: true,
@@ -123,7 +126,12 @@ const AutobotApp = () => {
     ],
     lastPurchasedShoes: 'Air Jordan 20 Black',
     lastPurchasedLaptop: 'MacBook Pro 14"',
-    preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony'],
+    preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony', 'Adidas', 'Jordan'],
+    favoriteBrands: {
+      sneakers: ['Nike', 'Jordan', 'Adidas'],
+      tech: ['Apple', 'Samsung', 'Sony'],
+      clothing: ['Nike', 'Uniqlo', 'Patagonia']
+    },
     totalSpent: 2458,
     memberSince: 'March 2024'
   });
@@ -134,6 +142,7 @@ const AutobotApp = () => {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [webViewData, setWebViewData] = useState(null);
+  const [creditCardFundingData, setCreditCardFundingData] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null); // Track current order for modifications
   const chatContainerRef = useRef(null);
 
@@ -1705,35 +1714,62 @@ const AutobotApp = () => {
     // Get recent orders from user profile (last 3)
     const recentOrders = userProfile.purchaseHistory ? userProfile.purchaseHistory.slice(-3).reverse() : [];
     
-    // Determine tier based on total spent
+    // Determine tier based on balance (updated to match new tiering system)
     let tier = 'Bronze';
     let tierColor = '#cd7f32';
-    let nextTierSpent = 1000;
+    let nextTierBalance = 501;
     let nextTier = 'Silver';
+    let blinkFee = '5%';
     
-    if (userProfile.totalSpent >= 5000) {
+    if (balance >= 2500) {
       tier = 'Gold';
       tierColor = '#ffd700';
-      nextTierSpent = null;
+      nextTierBalance = null;
       nextTier = null;
-    } else if (userProfile.totalSpent >= 1000) {
+      blinkFee = '0%';
+    } else if (balance >= 501) {
       tier = 'Silver';
       tierColor = '#c0c0c0';
-      nextTierSpent = 5000;
+      nextTierBalance = 2500;
       nextTier = 'Gold';
+      blinkFee = '3%';
     }
     
-    const infoMessage = `ℹ️ **Account Information**\n\nHere's your current account status:`;
+    const infoMessage = `ℹ️ **Account Information**\n\nHere's everything Blink knows about you:`;
     
     addAutobotMessage(infoMessage, 'account-info', {
+      // Account details
       balance: balance,
       tier: tier,
       tierColor: tierColor,
+      blinkFee: blinkFee,
       totalSpent: userProfile.totalSpent,
-      nextTierSpent: nextTierSpent,
+      nextTierBalance: nextTierBalance,
       nextTier: nextTier,
+      memberSince: userProfile.memberSince,
+      
+      // Personal information
+      name: userProfile.name,
+      email: userProfile.email,
+      phone: userProfile.phone,
+      address: userProfile.address,
+      
+      // Sizes
+      shoeSize: userProfile.shoeSize,
+      clothingSize: userProfile.clothingSize,
+      pantsSize: userProfile.pantsSize,
+      
+      // Preferences and brands
+      interests: userProfile.interests,
+      preferredBrands: userProfile.preferredBrands,
+      favoriteBrands: userProfile.favoriteBrands,
+      preferences: userProfile.preferences,
+      
+      // Purchase history
       recentOrders: recentOrders,
-      memberSince: userProfile.memberSince
+      
+      // Funding callback
+      onFunded: handleFundingComplete
     });
   };
 
@@ -2081,6 +2117,7 @@ const AutobotApp = () => {
                     setWebViewData(data);
                   }}
                   onFunded={handleFundingComplete}
+                  onCreditCardFunding={(data) => setCreditCardFundingData(data)}
                   onCancelOrder={() => {
                     addAutobotMessage("No worries, I cancelled your order. Let me know if you want something else! 😊");
                   }}
@@ -2127,6 +2164,40 @@ const AutobotApp = () => {
           data={webViewData} 
           onClose={() => setWebViewData(null)} 
           onPurchaseIntent={handlePurchaseIntent} 
+        />
+          </motion.div>
+      )}
+      </AnimatePresence>
+      
+      {/* Credit Card Funding Interface - Slides in from bottom */}
+      <AnimatePresence>
+        {creditCardFundingData && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: '0%' }}
+            exit={{ y: '100%' }}
+            transition={{
+              type: 'spring',
+              damping: 30,
+              stiffness: 300,
+              duration: 0.4
+            }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 15
+            }}
+          >
+        <CreditCardFundingInterface 
+          data={creditCardFundingData} 
+          onClose={() => setCreditCardFundingData(null)} 
+          onFundingComplete={(amount) => {
+            handleFundingComplete(amount);
+            setCreditCardFundingData(null);
+          }}
         />
           </motion.div>
       )}
@@ -2713,7 +2784,7 @@ const DemoControls = ({ onNewUser, onReturningUser, currentUserType }) => {
   );
 };
 
-const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCancelOrder }) => {
+const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder }) => {
   const isAutobot = message.type === 'autobot';
 
   return (
@@ -2748,7 +2819,12 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         )}
         
         {message.special === 'funding-method-selection' && (
-          <FundingMethodSelectionCard data={message.data} onFunded={onFunded} onWebView={onWebView} />
+          <FundingMethodSelectionCard 
+            data={message.data} 
+            onFunded={onFunded} 
+            onWebView={onWebView} 
+            onCreditCardFunding={onCreditCardFunding}
+          />
         )}
         
         {message.special === 'usdc-funding' && (
@@ -4133,45 +4209,57 @@ const AccountInfoCard = ({ data }) => {
   };
 
   const getProgressToNextTier = () => {
-    if (!data.nextTierSpent) return 100; // Gold tier (max)
-    return Math.min((data.totalSpent / data.nextTierSpent) * 100, 100);
+    if (!data.nextTierBalance) return 100; // Gold tier (max)
+    return Math.min((data.balance / data.nextTierBalance) * 100, 100);
   };
+
+  const InfoSection = ({ title, children, icon }) => (
+    <div style={{ 
+      backgroundColor: '#f8f9fa', 
+      padding: '16px', 
+      borderRadius: '12px', 
+      marginBottom: '16px',
+      border: '1px solid #e9ecef'
+    }}>
+      <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+        {icon} {title}
+      </div>
+      {children}
+    </div>
+  );
+
+  const InfoRow = ({ label, value }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+      <span style={{ fontSize: '14px', color: '#666' }}>{label}:</span>
+      <span style={{ fontSize: '14px', color: '#000', fontWeight: '500' }}>{value}</span>
+    </div>
+  );
 
   return (
     <>
       <div className="message-text">
         <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#000' }}>
-          ℹ️ Account Information
+          ℹ️ Everything Blink Knows About You
         </div>
         
-        {/* Balance Section */}
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '16px', 
-          borderRadius: '12px', 
-          marginBottom: '16px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-            Current Balance
-          </div>
-          <div style={{ 
-            fontSize: '24px', 
-            fontWeight: '700', 
-            color: '#0088cc'
-          }}>
-            ${data.balance}
-          </div>
-        </div>
+        {/* Personal Information */}
+        <InfoSection title="Personal Information" icon="👤">
+          <InfoRow label="Name" value={data.name} />
+          <InfoRow label="Email" value={data.email} />
+          <InfoRow label="Phone" value={data.phone} />
+          <InfoRow label="Address" value={data.address} />
+          <InfoRow label="Member Since" value={data.memberSince} />
+        </InfoSection>
 
-        {/* Tier Section */}
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '16px', 
-          borderRadius: '12px', 
-          marginBottom: '16px',
-          border: '1px solid #e9ecef'
-        }}>
+        {/* Account & Balance */}
+        <InfoSection title="Account & Balance" icon="💳">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>Current Balance:</span>
+            <span style={{ fontSize: '20px', fontWeight: '700', color: '#0088cc' }}>
+              ${data.balance}
+            </span>
+          </div>
+          
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
             <div style={{ 
               width: '12px', 
@@ -4180,26 +4268,28 @@ const AccountInfoCard = ({ data }) => {
               borderRadius: '50%', 
               marginRight: '8px' 
             }}></div>
-            <div style={{ fontSize: '16px', fontWeight: '600', color: '#000' }}>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>
               {data.tier} Tier
-            </div>
+            </span>
+            <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
+              ({data.blinkFee} fee)
+            </span>
           </div>
           
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-            Total Spent: ${data.totalSpent}
-          </div>
+          <InfoRow label="Total Spent" value={`$${data.totalSpent}`} />
           
           {data.nextTier && (
             <>
               <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
-                Progress to {data.nextTier}: ${data.totalSpent} / ${data.nextTierSpent}
+                Progress to {data.nextTier}: ${data.balance} / ${data.nextTierBalance}
               </div>
               <div style={{ 
                 width: '100%', 
                 height: '6px', 
                 backgroundColor: '#e9ecef', 
                 borderRadius: '3px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                marginBottom: '12px'
               }}>
                 <div style={{ 
                   width: `${getProgressToNextTier()}%`, 
@@ -4212,23 +4302,118 @@ const AccountInfoCard = ({ data }) => {
           )}
           
           {!data.nextTier && (
-            <div style={{ fontSize: '12px', color: '#666' }}>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
               🏆 Highest tier achieved!
             </div>
           )}
-        </div>
+          
+          {/* Add Funds Button */}
+          <motion.button
+            whileHover={{ backgroundColor: '#0056b3' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => data.onFunded && data.onFunded('show_funding_methods')}
+            style={{
+              width: '100%',
+              backgroundColor: '#0088cc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>💰</span>
+            Add Funds
+          </motion.button>
+        </InfoSection>
 
-        {/* Member Since */}
-        <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
-          👤 Member since {data.memberSince}
-        </div>
+        {/* Sizes */}
+        <InfoSection title="Your Sizes" icon="📏">
+          <InfoRow label="Shoe Size" value={data.shoeSize} />
+          <InfoRow label="Clothing Size" value={data.clothingSize} />
+          <InfoRow label="Pants Size" value={data.pantsSize} />
+        </InfoSection>
+
+        {/* Interests & Preferences */}
+        <InfoSection title="Interests & Preferences" icon="❤️">
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#666', marginBottom: '6px' }}>Interests:</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {data.interests?.map((interest, index) => (
+                <span key={index} style={{
+                  backgroundColor: '#e3f2fd',
+                  color: '#1976d2',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {interest}
+                </span>
+              ))}
+            </div>
+          </div>
+          
+          <InfoRow label="Prefers Fast Shipping" value={data.preferences?.prefersFastShipping ? 'Yes' : 'No'} />
+          <InfoRow label="Max Budget" value={`$${data.preferences?.maxBudget}`} />
+        </InfoSection>
+
+        {/* Favorite Brands */}
+        <InfoSection title="Favorite Brands" icon="🏷️">
+          {data.favoriteBrands && Object.entries(data.favoriteBrands).map(([category, brands]) => (
+            <div key={category} style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '6px', textTransform: 'capitalize' }}>
+                {category}:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {brands.map((brand, index) => (
+                  <span key={index} style={{
+                    backgroundColor: '#f3e5f5',
+                    color: '#7b1fa2',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}>
+                    {brand}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          
+          {data.preferences?.brandsToAvoid && data.preferences.brandsToAvoid.length > 0 && (
+            <div>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '6px' }}>
+                Brands to Avoid:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {data.preferences.brandsToAvoid.map((brand, index) => (
+                  <span key={index} style={{
+                    backgroundColor: '#ffebee',
+                    color: '#c62828',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}>
+                    {brand}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </InfoSection>
 
         {/* Recent Orders */}
         {data.recentOrders && data.recentOrders.length > 0 && (
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
-              Recent Orders
-            </div>
+          <InfoSection title="Recent Orders" icon="📦">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.recentOrders.map((order, index) => (
                 <motion.button
@@ -4236,7 +4421,6 @@ const AccountInfoCard = ({ data }) => {
                   whileHover={{ backgroundColor: '#f1f3f4' }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    // Could expand to show order details
                     console.log('Order clicked:', order);
                   }}
                   style={{
@@ -4267,7 +4451,7 @@ const AccountInfoCard = ({ data }) => {
                 </motion.button>
               ))}
             </div>
-          </div>
+          </InfoSection>
         )}
       </div>
     </>
@@ -4357,15 +4541,15 @@ const USDCFundingCard = ({ data }) => {
   );
 };
 
-const FundingMethodSelectionCard = ({ data, onFunded, onWebView }) => {
+const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFunding }) => {
   const handleCreditCardFunding = () => {
-    // Open credit card funding web view
+    // Open credit card funding interface
     const creditCardData = {
       type: 'credit-card-funding',
       maxAmount: 500,
       showWebView: true
     };
-    onWebView(creditCardData);
+    onCreditCardFunding && onCreditCardFunding(creditCardData);
   };
 
   const handleUSDCFunding = () => {
@@ -5554,6 +5738,307 @@ const ChatInput = ({ onSubmit }) => {
           </button>
         </div>
       </div>
+    </div>
+  );
+};
+
+const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
+  const [formData, setFormData] = useState({
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    name: '',
+    amount: ''
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const formatCardNumber = (value) => {
+    // Remove all non-digits
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    // Add spaces every 4 digits
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const formatExpiryDate = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 2) {
+      return v.substring(0, 2) + '/' + v.substring(2, 4);
+    }
+    return v;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    // Simulate processing delay
+    setTimeout(() => {
+      const amount = parseFloat(formData.amount);
+      if (amount > 0 && amount <= data.maxAmount) {
+        onFundingComplete(amount);
+      }
+      setIsProcessing(false);
+    }, 2000);
+  };
+
+  const quickAmounts = [50, 100, 250, 500];
+
+  return (
+    <div style={{
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#f8f9fa',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#0088cc',
+        color: 'white',
+        padding: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+          💳 Add Funds - Credit Card
+        </h2>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '4px'
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Content */}
+      <div style={{
+        flex: 1,
+        padding: '24px',
+        overflow: 'auto'
+      }}>
+        <form onSubmit={handleSubmit} style={{ maxWidth: '400px', margin: '0 auto' }}>
+          {/* Amount Selection */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+              Amount (Max $500)
+            </label>
+            <input
+              type="number"
+              value={formData.amount}
+              onChange={(e) => handleInputChange('amount', e.target.value)}
+              placeholder="Enter amount"
+              min="1"
+              max="500"
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: '16px',
+                marginBottom: '12px'
+              }}
+            />
+            
+            {/* Quick Amount Buttons */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {quickAmounts.map(amount => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => handleInputChange('amount', amount.toString())}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: formData.amount === amount.toString() ? '#0088cc' : 'white',
+                    color: formData.amount === amount.toString() ? 'white' : '#0088cc',
+                    border: '2px solid #0088cc',
+                    borderRadius: '20px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  ${amount}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Card Number */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+              Card Number
+            </label>
+            <input
+              type="text"
+              value={formData.cardNumber}
+              onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
+              placeholder="1234 5678 9012 3456"
+              maxLength="19"
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontFamily: 'monospace'
+              }}
+            />
+          </div>
+
+          {/* Expiry and CVV */}
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                Expiry Date
+              </label>
+              <input
+                type="text"
+                value={formData.expiryDate}
+                onChange={(e) => handleInputChange('expiryDate', formatExpiryDate(e.target.value))}
+                placeholder="MM/YY"
+                maxLength="5"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #e9ecef',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontFamily: 'monospace'
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                CVV
+              </label>
+              <input
+                type="text"
+                value={formData.cvv}
+                onChange={(e) => handleInputChange('cvv', e.target.value.replace(/\D/g, '').substring(0, 4))}
+                placeholder="123"
+                maxLength="4"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #e9ecef',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontFamily: 'monospace'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Cardholder Name */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+              Cardholder Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="John Doe"
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: '16px'
+              }}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isProcessing || !formData.amount || !formData.cardNumber || !formData.expiryDate || !formData.cvv || !formData.name}
+            style={{
+              width: '100%',
+              padding: '16px',
+              backgroundColor: isProcessing ? '#6c757d' : '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: isProcessing ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            {isProcessing ? (
+              <>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #ffffff40',
+                  borderTop: '2px solid white',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} />
+                Processing...
+              </>
+            ) : (
+              <>
+                💰 Add ${formData.amount || '0'} to Balance
+              </>
+            )}
+          </button>
+
+          {/* Security Notice */}
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#e3f2fd',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#1976d2',
+            textAlign: 'center'
+          }}>
+            🔒 Your payment information is secure and encrypted
+          </div>
+        </form>
+      </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
