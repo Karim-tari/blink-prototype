@@ -1370,7 +1370,37 @@ const AutobotApp = () => {
     
     // Handle actual funding completion
     if (typeof amount === 'number') {
+      const newBalance = balance + amount;
       setBalance(prev => prev + amount);
+      
+      // Show confirmation message for credit card funding
+      if (!isOptional) {
+        // Determine new tier based on updated balance
+        let tier = 'Bronze';
+        let tierColor = '#cd7f32';
+        let blinkFee = '5%';
+        
+        if (newBalance >= 2500) {
+          tier = 'Gold';
+          tierColor = '#ffd700';
+          blinkFee = '0%';
+        } else if (newBalance >= 501) {
+          tier = 'Silver';
+          tierColor = '#c0c0c0';
+          blinkFee = '3%';
+        }
+        
+        const confirmationMessage = `🎉 Awesome! Your funds have been added successfully.`;
+        addAutobotMessage(confirmationMessage, 'balance-inquiry', {
+          balance: newBalance,
+          fundingAmount: amount,
+          showAddFunds: false,
+          isConfirmation: true,
+          tier: tier,
+          tierColor: tierColor,
+          blinkFee: blinkFee
+        });
+      }
     }
     
     if (isOptional) {
@@ -4636,21 +4666,62 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
 };
 
 const BalanceInquiryCard = ({ data, onFunded }) => {
+  const isConfirmation = data.isConfirmation;
+  
   return (
     <>
       {/* Regular WhatsApp-style message content */}
       <div className="message-text">
         <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
-          💰 Your Current Balance
+          {isConfirmation ? '🎉 Funds Added Successfully!' : '💰 Your Current Balance'}
         </div>
+        
+        {/* Funding confirmation message */}
+        {isConfirmation && data.fundingAmount && (
+          <div style={{ 
+            backgroundColor: '#e8f5e8', 
+            padding: '12px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            border: '1px solid #4caf50'
+          }}>
+            <div style={{ fontSize: '14px', color: '#2e7d32', textAlign: 'center' }}>
+              ✅ Successfully added <strong>${data.fundingAmount}</strong> to your account
+            </div>
+          </div>
+        )}
+        
+        {/* Tier status for confirmation */}
+        {isConfirmation && data.tier && (
+          <div style={{ 
+            backgroundColor: '#f3e5f5', 
+            padding: '12px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            border: '1px solid #9c27b0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '12px', 
+                height: '12px', 
+                backgroundColor: data.tierColor, 
+                borderRadius: '50%'
+              }}></div>
+              <div style={{ fontSize: '14px', color: '#7b1fa2', textAlign: 'center' }}>
+                🎯 You're now <strong>{data.tier} Tier</strong> with <strong>{data.blinkFee}</strong> fees
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Balance display */}
         <div style={{ 
-          backgroundColor: '#f8f9fa', 
+          backgroundColor: isConfirmation ? '#e3f2fd' : '#f8f9fa', 
           padding: '16px', 
           borderRadius: '12px', 
           marginBottom: '16px',
-          textAlign: 'center'
+          textAlign: 'center',
+          border: isConfirmation ? '1px solid #2196f3' : 'none'
         }}>
           <div style={{ 
             fontSize: '32px', 
@@ -4658,15 +4729,18 @@ const BalanceInquiryCard = ({ data, onFunded }) => {
             color: '#0088cc',
             marginBottom: '4px'
           }}>
-            ${data.currentBalance}
+            ${data.balance || data.currentBalance}
           </div>
           <div style={{ fontSize: '14px', color: '#666' }}>
-            Available to spend
+            {isConfirmation ? 'Your new balance' : 'Available to spend'}
           </div>
         </div>
         
         <div style={{ fontSize: '15px', color: '#000', marginBottom: '16px' }}>
-          Your account is looking good! Need to add more funds for your next purchase?
+          {isConfirmation 
+            ? "Perfect! You're all set to continue shopping. What would you like to find next?" 
+            : "Your account is looking good! Need to add more funds for your next purchase?"
+          }
         </div>
       </div>
       
@@ -5751,12 +5825,64 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
     amount: ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    // Clear errors when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Amount validation
+    if (!formData.amount) {
+      newErrors.amount = 'Amount is required';
+    } else if (parseFloat(formData.amount) <= 0) {
+      newErrors.amount = 'Amount must be greater than $0';
+    } else if (parseFloat(formData.amount) > data.maxAmount) {
+      newErrors.amount = `Amount cannot exceed $${data.maxAmount}`;
+    }
+    
+    // Card number validation
+    if (!formData.cardNumber) {
+      newErrors.cardNumber = 'Card number is required';
+    } else if (formData.cardNumber.replace(/\s/g, '').length < 13) {
+      newErrors.cardNumber = 'Card number must be at least 13 digits';
+    }
+    
+    // Expiry date validation
+    if (!formData.expiryDate) {
+      newErrors.expiryDate = 'Expiry date is required';
+    } else if (!/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
+      newErrors.expiryDate = 'Invalid format (MM/YY)';
+    }
+    
+    // CVV validation
+    if (!formData.cvv) {
+      newErrors.cvv = 'CVV is required';
+    } else if (formData.cvv.length < 3) {
+      newErrors.cvv = 'CVV must be 3-4 digits';
+    }
+    
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Cardholder name is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const formatCardNumber = (value) => {
@@ -5786,6 +5912,13 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setShowErrors(true);
+    
+    if (!validateForm()) {
+      // Scroll to first error or show general error message
+      return;
+    }
+    
     setIsProcessing(true);
     
     // Simulate processing delay
@@ -5799,6 +5932,30 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
   };
 
   const quickAmounts = [50, 100, 250, 500];
+
+  const ErrorMessage = ({ error }) => {
+    if (!error || !showErrors) return null;
+    return (
+      <div style={{
+        color: '#d32f2f',
+        fontSize: '12px',
+        marginTop: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px'
+      }}>
+        <span>⚠️</span>
+        {error}
+      </div>
+    );
+  };
+
+  const getFieldStyle = (fieldName, baseStyle) => ({
+    ...baseStyle,
+    border: errors[fieldName] && showErrors 
+      ? '2px solid #d32f2f' 
+      : '2px solid #e9ecef'
+  });
 
   return (
     <div style={{
@@ -5855,15 +6012,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               min="1"
               max="500"
               required
-              style={{
+              style={getFieldStyle('amount', {
                 width: '100%',
                 padding: '12px',
-                border: '2px solid #e9ecef',
                 borderRadius: '8px',
                 fontSize: '16px',
-                marginBottom: '12px'
-              }}
+                marginBottom: '4px'
+              })}
             />
+            <ErrorMessage error={errors.amount} />
             
             {/* Quick Amount Buttons */}
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -5901,15 +6058,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               placeholder="1234 5678 9012 3456"
               maxLength="19"
               required
-              style={{
+              style={getFieldStyle('cardNumber', {
                 width: '100%',
                 padding: '12px',
-                border: '2px solid #e9ecef',
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontFamily: 'monospace'
-              }}
+              })}
             />
+            <ErrorMessage error={errors.cardNumber} />
           </div>
 
           {/* Expiry and CVV */}
@@ -5925,15 +6082,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="MM/YY"
                 maxLength="5"
                 required
-                style={{
+                style={getFieldStyle('expiryDate', {
                   width: '100%',
                   padding: '12px',
-                  border: '2px solid #e9ecef',
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontFamily: 'monospace'
-                }}
+                })}
               />
+              <ErrorMessage error={errors.expiryDate} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
@@ -5946,15 +6103,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="123"
                 maxLength="4"
                 required
-                style={{
+                style={getFieldStyle('cvv', {
                   width: '100%',
                   padding: '12px',
-                  border: '2px solid #e9ecef',
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontFamily: 'monospace'
-                }}
+                })}
               />
+              <ErrorMessage error={errors.cvv} />
             </div>
           </div>
 
@@ -5969,20 +6126,20 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="John Doe"
               required
-              style={{
+              style={getFieldStyle('name', {
                 width: '100%',
                 padding: '12px',
-                border: '2px solid #e9ecef',
                 borderRadius: '8px',
                 fontSize: '16px'
-              }}
+              })}
             />
+            <ErrorMessage error={errors.name} />
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isProcessing || !formData.amount || !formData.cardNumber || !formData.expiryDate || !formData.cvv || !formData.name}
+            disabled={isProcessing}
             style={{
               width: '100%',
               padding: '16px',
