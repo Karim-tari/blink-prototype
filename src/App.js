@@ -1340,11 +1340,35 @@ const AutobotApp = () => {
   };
 
   const handleFundingComplete = (amount, isOptional = false) => {
-    setBalance(prev => prev + amount);
+    // Handle funding method selection
+    if (amount === 'show_funding_methods') {
+      const fundingMessage = `💳 **Choose Your Funding Method**\n\nHow would you like to add funds to your account?`;
+      addAutobotMessage(fundingMessage, 'funding-method-selection', {
+        showMethods: true
+      });
+      return;
+    }
+    
+    // Handle USDC funding flow
+    if (amount === 'usdc_funding') {
+      const usdcMessage = `🪙 **Fund with USDC**\n\nSend any amount of USDC to this address and your balance will be updated automatically:`;
+      addAutobotMessage(usdcMessage, 'usdc-funding', {
+        walletAddress: '0x742d35Cc6644C45532F6c8C1B96d4d67C2bCcE4F',
+        showAddress: true
+      });
+      return;
+    }
+    
+    // Handle actual funding completion
+    if (typeof amount === 'number') {
+      setBalance(prev => prev + amount);
+    }
     
     if (isOptional) {
       // For optional funding, just acknowledge the addition
-      addAutobotMessage(`Perfect! Added $${amount} to your account. Your balance is now $${balance + amount}.`);
+      if (typeof amount === 'number') {
+        addAutobotMessage(`Perfect! Added $${amount} to your account. Your balance is now $${balance + amount}.`);
+      }
     } else {
       // First-time purchase flow - get the pending item details
       const pendingItem = userProfile.pendingPurchase;
@@ -1643,6 +1667,76 @@ const AutobotApp = () => {
     }, 3 * 60 * 1000); // 3 minutes in milliseconds
   };
 
+  // Check if message is asking about balance
+  const isBalanceInquiry = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    const balancePatterns = [
+      /show.*balance/i,
+      /what.*balance/i,
+      /check.*balance/i,
+      /my.*balance/i,
+      /current.*balance/i,
+      /account.*balance/i,
+      /how.*much.*money/i,
+      /how.*much.*do.*i.*have/i,
+      /wallet.*balance/i,
+      /available.*funds/i,
+      /credit.*balance/i,
+      /balance.*check/i,
+      /^balance$/i
+    ];
+    
+    return balancePatterns.some(pattern => pattern.test(lowerMessage));
+  };
+
+  // Handle balance inquiry
+  const handleBalanceInquiry = () => {
+    const balanceMessage = `💰 **Your Current Balance**\n\n$${balance}\n\nYour account is looking good! Need to add more funds for your next purchase?`;
+    
+    addAutobotMessage(balanceMessage, 'balance-inquiry', {
+      currentBalance: balance,
+      showAddFunds: true
+    });
+  };
+
+  // Handle /info command
+  const handleInfoCommand = () => {
+    // Get recent orders from user profile (last 3)
+    const recentOrders = userProfile.purchaseHistory ? userProfile.purchaseHistory.slice(-3).reverse() : [];
+    
+    // Determine tier based on total spent
+    let tier = 'Bronze';
+    let tierColor = '#cd7f32';
+    let nextTierSpent = 1000;
+    let nextTier = 'Silver';
+    
+    if (userProfile.totalSpent >= 5000) {
+      tier = 'Gold';
+      tierColor = '#ffd700';
+      nextTierSpent = null;
+      nextTier = null;
+    } else if (userProfile.totalSpent >= 1000) {
+      tier = 'Silver';
+      tierColor = '#c0c0c0';
+      nextTierSpent = 5000;
+      nextTier = 'Gold';
+    }
+    
+    const infoMessage = `ℹ️ **Account Information**\n\nHere's your current account status:`;
+    
+    addAutobotMessage(infoMessage, 'account-info', {
+      balance: balance,
+      tier: tier,
+      tierColor: tierColor,
+      totalSpent: userProfile.totalSpent,
+      nextTierSpent: nextTierSpent,
+      nextTier: nextTier,
+      recentOrders: recentOrders,
+      memberSince: userProfile.memberSince
+    });
+  };
+
   const handleChatMessage = (message) => {
     // Check if message contains an image search
     if (message.startsWith('[IMAGE_SEARCH]')) {
@@ -1660,6 +1754,18 @@ const AutobotApp = () => {
         handleOrderModification(orderModification, activeOrder);
         return;
       }
+    }
+    
+    // Check for balance inquiry
+    if (isBalanceInquiry(message)) {
+      handleBalanceInquiry();
+      return;
+    }
+    
+    // Check for /info command
+    if (message.toLowerCase().trim() === '/info') {
+      handleInfoCommand();
+      return;
     }
     
     // Check if message contains a URL - auto-buy feature
@@ -2635,6 +2741,22 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         
         {message.special === 'group-order-summary' && (
           <GroupOrderSummaryCard data={message.data} onWebView={onWebView} onCancelOrder={onCancelOrder} />
+        )}
+        
+        {message.special === 'balance-inquiry' && (
+          <BalanceInquiryCard data={message.data} onFunded={onFunded} />
+        )}
+        
+        {message.special === 'funding-method-selection' && (
+          <FundingMethodSelectionCard data={message.data} onFunded={onFunded} onWebView={onWebView} />
+        )}
+        
+        {message.special === 'usdc-funding' && (
+          <USDCFundingCard data={message.data} />
+        )}
+        
+        {message.special === 'account-info' && (
+          <AccountInfoCard data={message.data} />
         )}
         
         {message.special === 'purchase-success' && (
@@ -3996,6 +4118,407 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
           Cancel
           </motion.button>
         </div>
+    </>
+  );
+};
+
+const AccountInfoCard = ({ data }) => {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getProgressToNextTier = () => {
+    if (!data.nextTierSpent) return 100; // Gold tier (max)
+    return Math.min((data.totalSpent / data.nextTierSpent) * 100, 100);
+  };
+
+  return (
+    <>
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#000' }}>
+          ℹ️ Account Information
+        </div>
+        
+        {/* Balance Section */}
+        <div style={{ 
+          backgroundColor: '#f8f9fa', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          marginBottom: '16px',
+          border: '1px solid #e9ecef'
+        }}>
+          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+            Current Balance
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '700', 
+            color: '#0088cc'
+          }}>
+            ${data.balance}
+          </div>
+        </div>
+
+        {/* Tier Section */}
+        <div style={{ 
+          backgroundColor: '#f8f9fa', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          marginBottom: '16px',
+          border: '1px solid #e9ecef'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ 
+              width: '12px', 
+              height: '12px', 
+              backgroundColor: data.tierColor, 
+              borderRadius: '50%', 
+              marginRight: '8px' 
+            }}></div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#000' }}>
+              {data.tier} Tier
+            </div>
+          </div>
+          
+          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+            Total Spent: ${data.totalSpent}
+          </div>
+          
+          {data.nextTier && (
+            <>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
+                Progress to {data.nextTier}: ${data.totalSpent} / ${data.nextTierSpent}
+              </div>
+              <div style={{ 
+                width: '100%', 
+                height: '6px', 
+                backgroundColor: '#e9ecef', 
+                borderRadius: '3px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  width: `${getProgressToNextTier()}%`, 
+                  height: '100%', 
+                  backgroundColor: data.tierColor,
+                  transition: 'width 0.3s ease'
+                }}></div>
+              </div>
+            </>
+          )}
+          
+          {!data.nextTier && (
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              🏆 Highest tier achieved!
+            </div>
+          )}
+        </div>
+
+        {/* Member Since */}
+        <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+          👤 Member since {data.memberSince}
+        </div>
+
+        {/* Recent Orders */}
+        {data.recentOrders && data.recentOrders.length > 0 && (
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+              Recent Orders
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {data.recentOrders.map((order, index) => (
+                <motion.button
+                  key={index}
+                  whileHover={{ backgroundColor: '#f1f3f4' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    // Could expand to show order details
+                    console.log('Order clicked:', order);
+                  }}
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'white',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: '500', color: '#000', marginBottom: '2px' }}>
+                      {order.item}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {order.date}
+                    </div>
+                  </div>
+                  <div style={{ fontWeight: '600', color: '#0088cc' }}>
+                    ${order.price}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+const USDCFundingCard = ({ data }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(data.walletAddress).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <>
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          🪙 Fund with USDC
+        </div>
+        
+        <div style={{ fontSize: '15px', color: '#666', marginBottom: '16px' }}>
+          Send any amount of USDC to this address and your balance will be updated automatically:
+        </div>
+        
+        {/* Wallet Address */}
+        <div style={{ 
+          backgroundColor: '#f8f9fa', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          marginBottom: '16px',
+          border: '1px solid #e9ecef'
+        }}>
+          <div style={{ 
+            fontSize: '13px', 
+            fontFamily: 'monospace', 
+            backgroundColor: 'white',
+            padding: '12px',
+            borderRadius: '8px',
+            wordBreak: 'break-all',
+            border: '1px solid #e0e0e0',
+            color: '#495057',
+            marginBottom: '12px'
+          }}>
+            {data.walletAddress}
+          </div>
+          
+          <motion.button
+            whileHover={{ backgroundColor: '#6f42c1' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={copyToClipboard}
+            style={{
+              width: '100%',
+              backgroundColor: copied ? '#28a745' : '#7c3aed',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>{copied ? '✓' : '📋'}</span>
+            {copied ? 'Copied!' : 'Copy Address'}
+          </motion.button>
+        </div>
+        
+        <div style={{ 
+          fontSize: '14px', 
+          color: '#666', 
+          backgroundColor: '#e3f2fd', 
+          padding: '12px', 
+          borderRadius: '8px',
+          border: '1px solid #bbdefb'
+        }}>
+          💡 <strong>Note:</strong> Only send USDC on supported networks. Your balance will update within a few minutes after the transaction confirms.
+        </div>
+      </div>
+    </>
+  );
+};
+
+const FundingMethodSelectionCard = ({ data, onFunded, onWebView }) => {
+  const handleCreditCardFunding = () => {
+    // Open credit card funding web view
+    const creditCardData = {
+      type: 'credit-card-funding',
+      maxAmount: 500,
+      showWebView: true
+    };
+    onWebView(creditCardData);
+  };
+
+  const handleUSDCFunding = () => {
+    // Trigger USDC funding flow
+    onFunded('usdc_funding', true);
+  };
+
+  return (
+    <>
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#000' }}>
+          💳 Choose Your Funding Method
+        </div>
+        
+        <div style={{ fontSize: '15px', color: '#666', marginBottom: '20px' }}>
+          How would you like to add funds to your account?
+        </div>
+      </div>
+      
+      {/* Funding method buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Credit Card Option */}
+        <motion.button
+          whileHover={{ backgroundColor: '#0077b3' }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleCreditCardFunding}
+          style={{
+            width: '100%',
+            backgroundColor: '#0088cc',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '16px',
+            fontSize: '15px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '20px' }}>💳</span>
+            <div style={{ textAlign: 'left' }}>
+              <div>Credit Card</div>
+              <div style={{ fontSize: '12px', opacity: 0.8 }}>Up to $500 • Instant</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '18px' }}>→</span>
+        </motion.button>
+
+        {/* USDC Option */}
+        <motion.button
+          whileHover={{ backgroundColor: '#6f42c1' }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleUSDCFunding}
+          style={{
+            width: '100%',
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '16px',
+            fontSize: '15px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '20px' }}>🪙</span>
+            <div style={{ textAlign: 'left' }}>
+              <div>USDC</div>
+              <div style={{ fontSize: '12px', opacity: 0.8 }}>Any amount • Crypto wallet</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '18px' }}>→</span>
+        </motion.button>
+      </div>
+    </>
+  );
+};
+
+const BalanceInquiryCard = ({ data, onFunded }) => {
+  return (
+    <>
+      {/* Regular WhatsApp-style message content */}
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          💰 Your Current Balance
+        </div>
+        
+        {/* Balance display */}
+        <div style={{ 
+          backgroundColor: '#f8f9fa', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          marginBottom: '16px',
+          textAlign: 'center'
+        }}>
+          <div style={{ 
+            fontSize: '32px', 
+            fontWeight: '700', 
+            color: '#0088cc',
+            marginBottom: '4px'
+          }}>
+            ${data.currentBalance}
+          </div>
+          <div style={{ fontSize: '14px', color: '#666' }}>
+            Available to spend
+          </div>
+        </div>
+        
+        <div style={{ fontSize: '15px', color: '#000', marginBottom: '16px' }}>
+          Your account is looking good! Need to add more funds for your next purchase?
+        </div>
+      </div>
+      
+      {/* Add funds button */}
+      {data.showAddFunds && (
+        <div style={{ marginTop: '12px' }}>
+          <motion.button
+            whileHover={{ backgroundColor: '#0077b3' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (onFunded) {
+                // Show funding method selection
+                onFunded('show_funding_methods', true);
+              }
+            }}
+            style={{
+              width: '100%',
+              backgroundColor: '#0088cc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>💳</span>
+            Add More Funds
+          </motion.button>
+        </div>
+      )}
     </>
   );
 };
