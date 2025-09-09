@@ -1,15 +1,16 @@
 {
   "files": {
-    "main.css": "/blink-prototype/static/css/main.0cbc5950.css",
-    "main.js": "/blink-prototype/static/js/main.86fe0119.js",
+    "main.css": "/blink-prototype/static/css/main.528fa52e.css",
+    "main.js": "/blink-prototype/static/js/main.89065246.js",
     "static/js/453.701b879e.chunk.js": "/blink-prototype/static/js/453.701b879e.chunk.js",
+    "static/media/index.cjs": "/blink-prototype/static/media/index.40cca0bf69f6c7946875.cjs",
     "index.html": "/blink-prototype/index.html",
-    "main.0cbc5950.css.map": "/blink-prototype/static/css/main.0cbc5950.css.map",
-    "main.86fe0119.js.map": "/blink-prototype/static/js/main.86fe0119.js.map",
+    "main.528fa52e.css.map": "/blink-prototype/static/css/main.528fa52e.css.map",
+    "main.89065246.js.map": "/blink-prototype/static/js/main.89065246.js.map",
     "453.701b879e.chunk.js.map": "/blink-prototype/static/js/453.701b879e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.0cbc5950.css",
-    "static/js/main.86fe0119.js"
+    "static/css/main.528fa52e.css",
+    "static/js/main.89065246.js"
   ]
 }
