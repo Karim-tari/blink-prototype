@@ -144,7 +144,8 @@ body {
   border-bottom-left-radius: 4px;
   color: #111827;
   box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-  width:100%
+  width: 100%;
+  max-width: 95%; /* Allow more width for autobot messages */
 }
 
 .user-message .message-bubble {
@@ -158,6 +159,8 @@ body {
   line-height: 1.4;
   white-space: pre-wrap;
   font-size: 14px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .message-time {

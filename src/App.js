@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, MoreVertical, MapPin, Clock, Plus, Camera, Mic, ExternalLink, Phone, List, DollarSign } from 'lucide-react';
 import Lottie from 'lottie-react';
+import falAI from './services/falai';
 import './App.css';
 
 
@@ -78,6 +79,9 @@ const TypingText = ({ text, delay = 50, style = {}, startTyping = true }) => {
 const AutobotApp = () => {
   const [messages, setMessages] = useState([]);
   
+  // Check URL to determine if this is a new user
+  const isNewUserPath = window.location.pathname.includes('/new-user');
+  
   // Load FBS Machro fonts dynamically
   useEffect(() => {
     const loadFonts = () => {
@@ -102,39 +106,66 @@ const AutobotApp = () => {
     loadFonts();
   }, []);
   const [currentFlow, setCurrentFlow] = useState('chat');
-  const [userType, setUserType] = useState('returning'); // 'new' or 'returning'
-  const [balance, setBalance] = useState(150);
+  const [userType, setUserType] = useState(isNewUserPath ? 'new' : 'returning'); // 'new' or 'returning'
+  const [balance, setBalance] = useState(isNewUserPath ? 0 : 150);
   const [isTyping, setIsTyping] = useState(false);
-  const [userProfile, setUserProfile] = useState({
-    name: 'Karim',
-    email: 'karim@example.com',
-    phone: '+1 (555) 123-4567',
-    interests: ['sneakers', 'tech', 'gaming'],
-    shoeSize: '10.5',
-    clothingSize: 'M',
-    pantsSize: '32x32',
-    address: '2847 Oak Street, San Francisco, CA 94115',
-    preferences: {
-      prefersFastShipping: true,
-      maxBudget: 500,
-      brandsToAvoid: ['off-brand']
-    },
-    purchaseHistory: [
-      { item: 'Air Jordan 20 Black', date: '2 weeks ago', price: 190 },
-      { item: 'AirPods Pro 2nd Gen', date: '1 month ago', price: 249 },
-      { item: 'MacBook Pro 14"', date: '3 months ago', price: 1999 }
-    ],
-    lastPurchasedShoes: 'Air Jordan 20 Black',
-    lastPurchasedLaptop: 'MacBook Pro 14"',
-    preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony', 'Adidas', 'Jordan'],
-    favoriteBrands: {
-      sneakers: ['Nike', 'Jordan', 'Adidas'],
-      tech: ['Apple', 'Samsung', 'Sony'],
-      clothing: ['Nike', 'Uniqlo', 'Patagonia']
-    },
-    totalSpent: 2458,
-    memberSince: 'March 2024'
-  });
+  const [userProfile, setUserProfile] = useState(
+    isNewUserPath ? {
+      name: '',
+      email: '',
+      phone: '',
+      interests: [],
+      shoeSize: '',
+      clothingSize: '',
+      pantsSize: '',
+      address: '',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 500,
+        brandsToAvoid: []
+      },
+      purchaseHistory: [],
+      lastPurchasedShoes: '',
+      lastPurchasedLaptop: '',
+      preferredBrands: [],
+      favoriteBrands: {
+        sneakers: [],
+        tech: [],
+        clothing: []
+      },
+      totalSpent: 0,
+      memberSince: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    } : {
+      name: 'Karim',
+      email: 'karim@example.com',
+      phone: '+1 (555) 123-4567',
+      interests: ['sneakers', 'tech', 'gaming'],
+      shoeSize: '10.5',
+      clothingSize: 'M',
+      pantsSize: '32x32',
+      address: '2847 Oak Street, San Francisco, CA 94115',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 500,
+        brandsToAvoid: ['off-brand']
+      },
+      purchaseHistory: [
+        { item: 'Air Jordan 20 Black', date: '2 weeks ago', price: 190 },
+        { item: 'AirPods Pro 2nd Gen', date: '1 month ago', price: 249 },
+        { item: 'MacBook Pro 14"', date: '3 months ago', price: 1999 }
+      ],
+      lastPurchasedShoes: 'Air Jordan 20 Black',
+      lastPurchasedLaptop: 'MacBook Pro 14"',
+      preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony', 'Adidas', 'Jordan'],
+      favoriteBrands: {
+        sneakers: ['Nike', 'Jordan', 'Adidas'],
+        tech: ['Apple', 'Samsung', 'Sony'],
+        clothing: ['Nike', 'Uniqlo', 'Patagonia']
+      },
+      totalSpent: 2458,
+      memberSince: 'March 2024'
+    }
+  );
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [waitingForSizeConfirmation, setWaitingForSizeConfirmation] = useState(false);
   const [pendingShoeSearch, setPendingShoeSearch] = useState('');
@@ -143,6 +174,7 @@ const AutobotApp = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [webViewData, setWebViewData] = useState(null);
   const [creditCardFundingData, setCreditCardFundingData] = useState(null);
+  const [userImage, setUserImage] = useState(null); // Store user's image for virtual try-on
   const [activeOrder, setActiveOrder] = useState(null); // Track current order for modifications
   const chatContainerRef = useRef(null);
 
@@ -240,17 +272,18 @@ const AutobotApp = () => {
   // Welcome messages based on user type
   useEffect(() => {
     if (!hasInitializedMessages) {
-      if (currentFlow === 'onboarding' && onboardingStep === 0 && userType === 'new') {
-      setTimeout(() => {
-          addAutobotMessage("Hey there! Welcome to Blink… So tell me, what do you want to buy?");
+      if (userType === 'new') {
+        setTimeout(() => {
+          const newUserMessage = `Hey, I'm Blink, your AI personal shopper. I can buy anything for you on the internet. I am relentless so tell me about a drop you have your eyes on, or anything else and I'll make magic happen for you.\n\nI also have another super power: I can show you what you'll look like wearing anything. Send me a full body photo (clothed of course!) and I'll show you what I can do. Don't worry, I won't share your photo with anyone, ever.\n\nReady to get started? Send me a photo, description, or link to the item you want to buy and we'll get rolling!`;
+          addAutobotMessage(newUserMessage);
           setHasInitializedMessages(true);
         }, 1000);
       } else if (currentFlow === 'chat' && userType === 'returning') {
-                setTimeout(() => {
+        setTimeout(() => {
           addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying your new Les Paul guitar from yesterday! You picked a great one! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
           setHasInitializedMessages(true);
-      }, 1000);
-    }
+        }, 1000);
+      }
     }
   }, [currentFlow, onboardingStep, userType, hasInitializedMessages]);
 
@@ -1018,21 +1051,35 @@ const AutobotApp = () => {
       });
     }
     
-    setTimeout(() => {
-      if (results.length === 1) {
-        addAutobotMessage("Found it! Here's the best option:", 'search-result', results[0]);
-      } else if (results.length <= 3) {
+    setTimeout(async () => {
+      // Generate virtual try-on images if user has uploaded a photo
+      let finalResults = results;
+      if (userImage && results.length > 0) {
+        console.log("🎭 User image available, generating virtual try-ons...");
+        addAutobotMessage("Let me show you how these would look on you! 🎭", null, null);
+        finalResults = await generateVirtualTryOnImages(results, userImage);
+      }
+      
+      if (finalResults.length === 1) {
+        addAutobotMessage("Found it! Here's the best option:", 'search-result', finalResults[0]);
+      } else if (finalResults.length <= 3) {
         // Show all results if 3 or fewer, no "View more" button needed
-        addAutobotMessage(`Found ${results.length} good options:`, 'search-results', { results, showViewMore: false, searchTerm: userRequest });
+        const message = userImage ? 
+          `Found ${finalResults.length} good options with virtual try-on! 🎭` : 
+          `Found ${finalResults.length} good options:`;
+        addAutobotMessage(message, 'search-results', { results: finalResults, showViewMore: false, searchTerm: userRequest });
       } else {
         // Show first 3 results with "View more" button for the rest
-        const chatResults = results.slice(0, 3);
-        const remainingCount = results.length - 3;
-        addAutobotMessage(`Found ${results.length} good options. Here are the top matches:`, 'search-results', { 
+        const chatResults = finalResults.slice(0, 3);
+        const remainingCount = finalResults.length - 3;
+        const message = userImage ? 
+          `Found ${finalResults.length} good options. Here are the top matches with virtual try-on! 🎭` : 
+          `Found ${finalResults.length} good options. Here are the top matches:`;
+        addAutobotMessage(message, 'search-results', { 
           results: chatResults, 
           showViewMore: true, 
           remainingCount: remainingCount,
-          allResults: results,
+          allResults: finalResults,
           searchTerm: userRequest 
         });
       }
@@ -1231,43 +1278,6 @@ const AutobotApp = () => {
     };
   };
 
-  const handleImageSearch = (imageData, originalMessage) => {
-    // First, add the user's uploaded image to the chat
-    addUserMessage('', 'image', { imageData });
-    
-    // Simulate image recognition and product matching
-    const recognizedProduct = analyzeImageForProduct(imageData);
-    
-    setTimeout(() => {
-      addAutobotMessage(`Great! I can see the image you shared. Let me analyze it to find this product...`);
-      
-      setTimeout(() => {
-        addAutobotMessage(`Found it! Here's what I identified from your image:`, 'image-product', {
-          product: recognizedProduct,
-          originalImage: imageData,
-          originalMessage: originalMessage
-        });
-      }, 3000); // Longer delay to simulate image processing
-    }, 1000);
-  };
-
-  const analyzeImageForProduct = (imageData) => {
-    // Simulate AI image recognition - always recognize as Air Jordan 14
-    const recognizedProduct = { name: 'Air Jordan 14', category: 'shoes', price: 200, brand: 'Nike' };
-    
-    return {
-      title: 'Air Jordan 14',
-      price: recognizedProduct.price + Math.floor(Math.random() * 40) - 20, // Add some price variation
-      shipping: Math.random() > 0.6 ? Math.floor(Math.random() * 15) + 5 : 0,
-      brand: 'Nike',
-      category: 'shoes',
-      availability: 'In Stock',
-      authenticity: 'Brand New',
-      deliveryDate: ['Tomorrow', 'Tomorrow', '2 days'][Math.floor(Math.random() * 3)],
-      description: `Classic Nike Air Jordan 14 basketball shoes identified from your image`,
-      confidence: Math.floor(Math.random() * 15) + 85 // 85-99% confidence
-    };
-  };
 
   const handleUrlPurchase = (url, originalMessage) => {
     // Extract product info from URL
@@ -1801,6 +1811,101 @@ const AutobotApp = () => {
       // Funding callback
       onFunded: handleFundingComplete
     });
+  };
+
+  // Function to generate virtual try-on images for search results
+  const generateVirtualTryOnImages = async (results, userImageData) => {
+    if (!userImageData || !results || results.length === 0) return results;
+    
+    const updatedResults = [...results];
+    
+    // Generate try-on images for first 3 results
+    for (let i = 0; i < Math.min(3, results.length); i++) {
+      const result = results[i];
+      if (result.image) {
+        try {
+          console.log(`🎭 Generating virtual try-on for ${result.name || result.title}...`);
+          
+          // Determine clothing type based on product name
+          let clothingType = 'clothing';
+          const productName = (result.name || result.title || '').toLowerCase();
+          if (productName.includes('tee') || productName.includes('shirt') || productName.includes('crewneck')) {
+            clothingType = 'shirt';
+          } else if (productName.includes('cap') || productName.includes('hat')) {
+            clothingType = 'hat';
+          } else if (productName.includes('shoes') || productName.includes('sneaker')) {
+            clothingType = 'shoes';
+          } else if (productName.includes('jacket') || productName.includes('hoodie')) {
+            clothingType = 'jacket';
+          }
+          
+          const tryOnResult = await falAI.tryOnClothing(userImageData, result.image, clothingType);
+          
+          if (tryOnResult.success) {
+            updatedResults[i] = {
+              ...result,
+              tryOnImage: tryOnResult.image?.url || tryOnResult.image,
+              originalImage: result.image,
+              hasTryOn: true
+            };
+            console.log(`✅ Virtual try-on generated for ${result.name || result.title}`);
+          } else {
+            console.log(`❌ Virtual try-on failed for ${result.name || result.title}:`, tryOnResult.error);
+          }
+        } catch (error) {
+          console.error(`Error generating try-on for ${result.name || result.title}:`, error);
+        }
+      }
+    }
+    
+    return updatedResults;
+  };
+
+  const handleImageSearch = (imageData, originalMessage) => {
+    // Add the user's image message first
+    addUserMessage(originalMessage, 'image', { imageData });
+    
+    // Store the user's image for virtual try-on
+    setUserImage(imageData);
+    
+    // Check if this is a new user's first photo after onboarding
+    const isNewUser = userType === 'new';
+    const messageCount = messages.length;
+    const isFirstPhoto = isNewUser && messageCount <= 2; // Initial message + this photo
+    
+    if (isFirstPhoto) {
+      // Special response for new user's first photo
+      setTimeout(() => {
+        const photoResponse = `Perfect! That's an awesome photo! 📸\n\nI've saved this to help you try on clothes virtually. When you show me products you like, I'll be able to show you exactly how they'll look on you.\n\nNow, what can I help you find today? Send me a link, describe what you're looking for, or tell me about any drops you have your eye on!`;
+        addAutobotMessage(photoResponse);
+      }, 1000);
+    } else {
+      // Regular image search response
+      setTimeout(() => {
+        addAutobotMessage("Great photo! Let me search for similar items...");
+        
+        setTimeout(() => {
+          // Simulate image search results
+          const imageSearchResults = [
+            {
+              title: "Similar Style Found",
+              price: 89,
+              shipping: 8,
+              availability: "In Stock",
+              authenticity: "Verified",
+              description: "Based on your photo",
+              image: `${process.env.PUBLIC_URL}/lego-1.png`,
+              deliveryDate: "Tomorrow"
+            }
+          ];
+          
+          addAutobotMessage("Here's what I found based on your photo:", 'search-results', {
+            results: imageSearchResults,
+            showViewMore: false
+          });
+        }, 2000);
+      }, 1000);
+    }
   };
 
   const handleChatMessage = (message) => {
@@ -2918,7 +3023,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           </div>
         )}
         
-        {!message.special && message.content && (
+        {!message.special && message.content && message.messageType !== 'image' && (
           <div className="message-text">{String(message.content || '')}</div>
         )}
         
@@ -3005,8 +3110,34 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
       margin: '0'
     }}>
       <div className="result-content">
-        {/* Use actual image if available, otherwise show placeholder */}
-        {data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
+        {/* Show virtual try-on image if available, otherwise show original image */}
+        {data.hasTryOn && data.tryOnImage ? (
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
+            <img 
+              src={data.tryOnImage} 
+              alt={`Virtual try-on: ${data.title}`}
+              style={{ 
+                width: '100%', 
+                objectFit: 'cover', 
+                borderRadius: '12px',
+                backgroundColor: '#f9fafb',
+                cursor: 'pointer'
+              }}
+              onClick={() => onImageClick && onImageClick(data.tryOnImage, `Virtual Try-On: ${data.title}`)}
+              onError={(e) => {
+                console.error('Virtual try-on image failed to load:', data.tryOnImage);
+                console.error('Image error details:', e);
+                console.log('Falling back to original image:', data.originalImage || data.image);
+                // Fallback to original image if virtual try-on fails to load
+                e.target.src = data.originalImage || data.image;
+                e.target.style.border = '2px solid #ff6b6b';
+              }}
+              onLoad={() => {
+                console.log('Virtual try-on image loaded successfully:', data.tryOnImage);
+              }}
+            />
+          </div>
+        ) : data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
           <img 
             src={data.image} 
             alt={data.title}
@@ -5592,11 +5723,11 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('image/')) {
-      handleImageSearch(file);
+      handleImageSearchLocal(file);
     }
   };
 
-  const handleImageSearch = (imageFile) => {
+  const handleImageSearchLocal = (imageFile) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageDataUrl = e.target.result;
@@ -5613,7 +5744,7 @@ const OnboardingInput = ({ onSubmit, onboardingStep }) => {
           e.preventDefault();
           const file = item.getAsFile();
           if (file) {
-            handleImageSearch(file);
+            handleImageSearchLocal(file);
           }
           break;
         }
@@ -5730,11 +5861,11 @@ const ChatInput = ({ onSubmit }) => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('image/')) {
-      handleImageSearch(file);
+      handleImageSearchLocal(file);
     }
   };
 
-  const handleImageSearch = (imageFile) => {
+  const handleImageSearchLocal = (imageFile) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageDataUrl = e.target.result;
@@ -5751,7 +5882,7 @@ const ChatInput = ({ onSubmit }) => {
           e.preventDefault();
           const file = item.getAsFile();
           if (file) {
-            handleImageSearch(file);
+            handleImageSearchLocal(file);
           }
           break;
         }
