@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, MoreVertical, MapPin, Clock, Plus, Camera, Mic, ExternalLink, Phone, List, DollarSign } from 'lucide-react';
 import Lottie from 'lottie-react';
 import falAI from './services/falai';
+import PushNotificationFlow from './PushNotificationFlow';
+import LandingPage from './LandingPage';
 import './App.css';
 
 
@@ -79,8 +81,11 @@ const TypingText = ({ text, delay = 50, style = {}, startTyping = true }) => {
 const AutobotApp = () => {
   const [messages, setMessages] = useState([]);
   
-  // Check URL to determine if this is a new user
+  // Check URL to determine user flow
   const isNewUserPath = window.location.pathname.includes('/new-user');
+  const isPushNotificationPath = window.location.pathname.includes('/push-notifications');
+  const isReturningUserPath = window.location.pathname.includes('/returning-user');
+  const isLandingPage = window.location.pathname === '/' || window.location.pathname === '/blink-prototype' || window.location.pathname === '/blink-prototype/';
   
   // Load FBS Machro fonts dynamically
   useEffect(() => {
@@ -106,7 +111,14 @@ const AutobotApp = () => {
     loadFonts();
   }, []);
   const [currentFlow, setCurrentFlow] = useState('chat');
-  const [userType, setUserType] = useState(isNewUserPath ? 'new' : 'returning'); // 'new' or 'returning'
+  const [userType, setUserType] = useState(
+    isNewUserPath ? 'new' : 
+    isReturningUserPath ? 'returning' :
+    isPushNotificationPath ? 'returning' :
+    'landing' // Landing page doesn't need a user type
+  ); // 'new', 'returning', or 'landing'
+  const [showPushNotification, setShowPushNotification] = useState(isPushNotificationPath);
+  const [isFromPushNotification, setIsFromPushNotification] = useState(false);
   const [balance, setBalance] = useState(isNewUserPath ? 0 : 150);
   const [isTyping, setIsTyping] = useState(false);
   const [userProfile, setUserProfile] = useState(
@@ -280,12 +292,24 @@ const AutobotApp = () => {
         }, 1000);
       } else if (currentFlow === 'chat' && userType === 'returning') {
         setTimeout(() => {
-          addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying your new Les Paul guitar from yesterday! You picked a great one! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
-          setHasInitializedMessages(true);
+          if (isFromPushNotification) {
+            // Coming from push notification - show Ed Sheeran message and hoodies immediately
+            addAutobotMessage("Big news, Jessica! Ed Sheeran just dropped brand-new merch. We have them all in Medium - perfect for you! 🎵");
+            setHasInitializedMessages(true);
+            
+            // Automatically show EdSheeran hoodies after a short delay
+            setTimeout(() => {
+              triggerSearchResults("Ed Sheeran hoodies", "search");
+            }, 1000);
+          } else {
+            // Normal returning user flow
+            addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying your new Les Paul guitar from yesterday! You picked a great one! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
+            setHasInitializedMessages(true);
+          }
         }, 1000);
       }
     }
-  }, [currentFlow, onboardingStep, userType, hasInitializedMessages]);
+  }, [currentFlow, onboardingStep, userType, hasInitializedMessages, isFromPushNotification]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -293,6 +317,51 @@ const AutobotApp = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
+
+  const handlePushNotificationComplete = () => {
+    setShowPushNotification(false);
+    setCurrentFlow('chat');
+    setUserType('returning');
+    setIsFromPushNotification(true);
+    // Initialize returning user profile
+    setBalance(150);
+    setUserProfile({
+      name: 'Karim',
+      interests: ['sneakers', 'tech', 'gaming'],
+      shoeSize: '10.5',
+      clothingSize: 'M',
+      address: '2847 Oak Street, San Francisco, CA 94115',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 500,
+        brandsToAvoid: ['off-brand']
+      },
+      purchaseHistory: [
+        { item: 'Air Jordan 20 Black', date: '2 weeks ago', price: 190 },
+        { item: 'AirPods Pro 2nd Gen', date: '1 month ago', price: 249 },
+        { item: 'MacBook Pro 14"', date: '3 months ago', price: 1999 }
+      ],
+      lastPurchasedShoes: 'Air Jordan 20 Black',
+      lastPurchasedLaptop: 'MacBook Pro 14"',
+      preferredBrands: ['Nike', 'Apple', 'Samsung', 'Sony'],
+      totalSpent: 2458,
+      memberSince: 'March 2024'
+    });
+    
+    // Reset messages and let the welcome message logic handle the Ed Sheeran message
+    setMessages([]);
+    setHasInitializedMessages(false);
+  };
+
+  // Show landing page for root path
+  if (isLandingPage) {
+    return <LandingPage />;
+  }
+
+  // Show push notification flow if on that path
+  if (showPushNotification) {
+    return <PushNotificationFlow onComplete={handlePushNotificationComplete} />;
+  }
 
   const handleUserResponse = (response) => {
     addUserMessage(response);
@@ -390,6 +459,11 @@ const AutobotApp = () => {
         `The Kith x Jaws collection! Such a cool collab. Finding the best pieces for you.`,
         `Kith x Jaws! 🦈 This drop has some amazing pieces. Let me pull up the collection.`
       ],
+      'ed-sheeran': [
+        `Ed Sheeran hoodies! 🎵 These are some cozy pieces from his merch collection.`,
+        `Ed Sheeran gear! Love his music and his merch. Let me show you the hoodies.`,
+        `Ed Sheeran hoodies! 🎶 Perfect for concerts or just vibing to his music.`
+      ],
       lego: [
         `LEGO time! 🧱 What kind of sets are you looking for?`,
         `Nice choice! Star Wars, architecture, or something else?`,
@@ -424,7 +498,8 @@ const AutobotApp = () => {
       userRequest,
       request,
       type,
-      isKithJaws: request.includes('kith jaws') || request.includes('kif jaws') || (request.includes('kith') && request.includes('jaws'))
+      isKithJaws: request.includes('kith jaws') || request.includes('kif jaws') || (request.includes('kith') && request.includes('jaws')),
+      isEdSheeran: request.includes('ed sheeran') || request.includes('edsheeran') || (request.includes('ed') && request.includes('sheeran'))
     });
     
     // Dynamic product generation based on user input
@@ -600,6 +675,37 @@ const AutobotApp = () => {
             }
           ]
         };
+                } else if (request.includes('ed sheeran') || request.includes('edsheeran') || (request.includes('ed') && request.includes('sheeran')) || (request.includes('sheeran') && request.includes('hoodie'))) {
+                  return {
+                    category: 'ed-sheeran',
+                    emoji: '🎵',
+                    products: [
+                      {
+                        name: 'Tour Collection Tie-dye Hoodie',
+                        basePrice: 65, 
+                        brand: 'Ed Sheeran Official',
+                        image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/+-=÷× (TOUR COLLECTION) Tie-dye Hoodie.jpeg`,
+                        size: 'Medium',
+                        available: true
+                      },
+                      {
+                        name: 'Flower Head Longsleeve T-Shirt',
+                        basePrice: 75, 
+                        brand: 'Ed Sheeran Official',
+                        image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/Flower Head Longsleeve T-Shirt.jpeg`,
+                        size: 'Medium',
+                        available: true
+                      },
+                      {
+                        name: 'Orange Tee',
+                        basePrice: 55, 
+                        brand: 'Ed Sheeran Official',
+                        image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/OrangeTee.jpeg`,
+                        size: 'Medium',
+                        available: true
+                      }
+                    ]
+                  };
       } else if (request.includes('lego') || request.includes('star wars') || request.includes('blocks')) {
         return {
           category: 'lego',
@@ -1037,9 +1143,9 @@ const AutobotApp = () => {
 
     const results = searchResults[type] || searchResults.search;
     
-    // Debug logging for Kith Jaws
-    if (userRequest.toLowerCase().includes('kith') || userRequest.toLowerCase().includes('jaws')) {
-      console.log('🦈 Kith Jaws Debug:', {
+    // Debug logging for Kith Jaws and Ed Sheeran
+    if (userRequest.toLowerCase().includes('kith') || userRequest.toLowerCase().includes('jaws') || userRequest.toLowerCase().includes('ed') || userRequest.toLowerCase().includes('sheeran')) {
+      console.log('🦈🎵 Product Debug:', {
         userRequest,
         type,
         productInfoCategory: productInfo.category,
@@ -1052,12 +1158,16 @@ const AutobotApp = () => {
     }
     
     setTimeout(async () => {
-      // Generate virtual try-on images if user has uploaded a photo
+      // Generate virtual try-on images if user has uploaded a photo (skip EdSheeran for now)
       let finalResults = results;
-      if (userImage && results.length > 0) {
+      const isEdSheeranSearch = request.includes('ed sheeran') || request.includes('edsheeran') || (request.includes('ed') && request.includes('sheeran'));
+      
+      if (userImage && results.length > 0 && !isEdSheeranSearch) {
         console.log("🎭 User image available, generating virtual try-ons...");
         addAutobotMessage("Let me show you how these would look on you! 🎭", null, null);
         finalResults = await generateVirtualTryOnImages(results, userImage);
+      } else if (isEdSheeranSearch) {
+        console.log("🎵 EdSheeran search - showing direct images");
       }
       
       if (finalResults.length === 1) {
@@ -1835,11 +1945,13 @@ const AutobotApp = () => {
             clothingType = 'hat';
           } else if (productName.includes('shoes') || productName.includes('sneaker')) {
             clothingType = 'shoes';
-          } else if (productName.includes('jacket') || productName.includes('hoodie')) {
+          } else if (productName.includes('hoodie')) {
+            clothingType = 'hoodie';
+          } else if (productName.includes('jacket')) {
             clothingType = 'jacket';
           }
           
-          const tryOnResult = await falAI.tryOnClothing(userImageData, result.image, clothingType);
+          const tryOnResult = await falAI.tryOnClothing(userImageData, result.image, clothingType, result.name || result.title);
           
           if (tryOnResult.success) {
             updatedResults[i] = {
@@ -2251,6 +2363,7 @@ const AutobotApp = () => {
                   // Switch to web view mode with iOS-style animation
                     setWebViewData(data);
                   }}
+                  isFromPushNotification={isFromPushNotification}
                   onFunded={handleFundingComplete}
                   onCreditCardFunding={(data) => setCreditCardFundingData(data)}
                   onCancelOrder={() => {
@@ -2489,6 +2602,8 @@ const getContextualSearchText = (searchTerm) => {
   
   if (term.includes('kith') && term.includes('jaws')) {
     return "Hey, check out the Kith Jaws Drop";
+  } else if (term.includes('ed') && term.includes('sheeran')) {
+    return "Found some Ed Sheeran hoodies! 🎵";
   } else if (term.includes('jordan')) {
     return `Found some fresh ${searchTerm}`;
   } else if (term.includes('nike') || term.includes('adidas') || term.includes('yeezy')) {
@@ -2919,7 +3034,7 @@ const DemoControls = ({ onNewUser, onReturningUser, currentUserType }) => {
   );
 };
 
-const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder }) => {
+const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder, isFromPushNotification }) => {
   const isAutobot = message.type === 'autobot';
 
   return (
@@ -3097,6 +3212,93 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
               </motion.button>
             </div>
           )}
+
+          {/* Ed Sheeran Full Collection button - only for push notification flow */}
+          {isFromPushNotification && message.data.searchTerm && 
+           (message.data.searchTerm.toLowerCase().includes('ed sheeran') || 
+            message.data.searchTerm.toLowerCase().includes('edsheeran') || 
+            (message.data.searchTerm.toLowerCase().includes('ed') && message.data.searchTerm.toLowerCase().includes('sheeran'))) && (
+            <div className="whatsapp-menu-container" style={{ marginTop: '8px' }}>
+              <motion.button
+                whileHover={{ backgroundColor: '#f0f0f0' }}
+                whileTap={{ scale: 0.98 }}
+                className="whatsapp-menu-btn"
+                onClick={() => {
+                  // Create full collection data from EdSheeran-Jessica/full collection folder
+                  const fullCollectionResults = [
+                    {
+                      title: 'Green X Tee',
+                      price: 45,
+                      shipping: 5,
+                      availability: 'Available in your size (Medium)',
+                      authenticity: 'Brand New',
+                      description: 'Ed Sheeran Green X Tee',
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/green x tee.png`,
+                      deliveryDate: 'Tomorrow'
+                    },
+                    {
+                      title: 'Leopard Stamp Hoodie',
+                      price: 65,
+                      shipping: 5,
+                      availability: 'Available in your size (Medium)',
+                      authenticity: 'Brand New',
+                      description: 'Ed Sheeran Leopard Stamp Hoodie',
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Leopard Stamp Hoodie.webp`,
+                      deliveryDate: 'Tomorrow'
+                    },
+                    {
+                      title: 'Peace House Hoodie',
+                      price: 70,
+                      shipping: 5,
+                      availability: 'Available in your size (Medium)',
+                      authenticity: 'Brand New',
+                      description: 'Ed Sheeran Peace House Hoodie',
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/peace house hoodie.webp`,
+                      deliveryDate: 'Tomorrow'
+                    },
+                    {
+                      title: 'Play Pink Hoodie',
+                      price: 68,
+                      shipping: 5,
+                      availability: 'Available in your size (Medium)',
+                      authenticity: 'Brand New',
+                      description: 'Ed Sheeran Play Pink Hoodie',
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/play pink hoodie.webp`,
+                      deliveryDate: 'Tomorrow'
+                    },
+                    {
+                      title: 'Sun Dial Hoodie',
+                      price: 72,
+                      shipping: 5,
+                      availability: 'Available in your size (Medium)',
+                      authenticity: 'Brand New',
+                      description: 'Ed Sheeran Sun Dial Hoodie',
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Sun Dial Hoodie.png`,
+                      deliveryDate: 'Tomorrow'
+                    },
+                    {
+                      title: 'X (10th Anniversary Edition) Hoodie',
+                      price: 85,
+                      shipping: 5,
+                      availability: 'Available in your size (Medium)',
+                      authenticity: 'Brand New',
+                      description: 'Ed Sheeran X 10th Anniversary Edition Hoodie',
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/x (10th Anniversary Edition) Hoodie.webp`,
+                      deliveryDate: 'Tomorrow'
+                    }
+                  ];
+
+                  onWebView && onWebView({
+                    results: fullCollectionResults,
+                    searchTerm: 'Ed Sheeran Full Collection'
+                  });
+                }}
+              >
+                <ExternalLink size={20} className="whatsapp-menu-icon" />
+                <span className="whatsapp-menu-text">View Full Collection</span>
+              </motion.button>
+            </div>
+          )}
         </>
       )}
     </motion.div>
@@ -3183,12 +3385,12 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
             {data.title}
           </div>
           
-          <div style={{ 
+          <div style={{
             fontSize: '14px', 
             color: '#8e8e93',
             marginBottom: '4px'
           }}>
-            Get this {data.deliveryDate.toLowerCase()}
+            Available in your size (Medium)
           </div>
           
           {data.isSecondHand && (
@@ -5391,7 +5593,7 @@ const ImageProductCard = ({ data, onPurchaseIntent }) => {
           </div>
           
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-            Get this {product.deliveryDate.toLowerCase()}
+            Available in your size (Medium)
           </div>
         </div>
       </div>
@@ -6087,6 +6289,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       ? '2px solid #d32f2f' 
       : '2px solid #e9ecef'
   });
+
 
   return (
     <div style={{

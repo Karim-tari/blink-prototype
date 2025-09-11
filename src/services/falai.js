@@ -1,12 +1,16 @@
 import * as fal from "@fal-ai/serverless-client";
 
 // Configure fal.ai with your API key from environment variables
+const API_KEY = process.env.REACT_APP_FAL_KEY || "846fb603-554e-4442-a171-4bdd7f6de8fd:65a992538f86663387f9eead639eb293";
+
 if (!process.env.REACT_APP_FAL_KEY) {
-  console.error("❌ REACT_APP_FAL_KEY environment variable is not set. Please check your .env file.");
+  console.warn("⚠️ Using fallback API key. Environment variable not loaded from .env file.");
 }
 
+console.log("🔍 API Key being used:", API_KEY ? "EXISTS (length: " + API_KEY.length + ")" : "UNDEFINED");
+
 fal.config({
-  credentials: process.env.REACT_APP_FAL_KEY
+  credentials: API_KEY
 });
 
 /**
@@ -170,31 +174,77 @@ class FalAIService {
    */
   async createVirtualTryOn(personImageUrl, productImageUrl, prompt = "wearing the clothing item naturally") {
     try {
+      // Validate inputs
+      if (!personImageUrl || typeof personImageUrl !== 'string') {
+        throw new Error("Invalid personImageUrl: " + personImageUrl);
+      }
+      
+      if (!productImageUrl || typeof productImageUrl !== 'string') {
+        throw new Error("Invalid productImageUrl: " + productImageUrl);
+      }
+      
+      if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+        throw new Error("Invalid prompt: " + prompt);
+      }
+      
+      // Log image URLs for debugging
+      console.log("Person image URL:", personImageUrl.substring(0, 100) + "...");
+      console.log("Product image URL:", productImageUrl);
+      console.log("Person image type:", personImageUrl.startsWith('data:') ? 'base64' : 'URL');
+      console.log("Product image type:", productImageUrl.startsWith('data:') ? 'base64' : 'URL');
+      
+      // Clean the prompt of any problematic characters
+      const cleanPrompt = prompt.replace(/[""]/g, '"').replace(/[\n\r]/g, ' ').trim();
+      
       // Try nano-banana/edit for image-to-image editing
       console.log("Attempting nano-banana/edit virtual try-on...");
-      const result = await fal.subscribe("fal-ai/nano-banana/edit", {
-        input: {
-          image_urls: [personImageUrl],
-          prompt: `Keep the exact same person, face, and body from the original image. Only change the clothing: the person is now ${prompt}. Preserve all facial features, skin tone, hair, and body proportions exactly as they appear in the original image.`,
-          num_images: 1,
-          output_format: "jpeg",
-          sync_mode: true
-        },
-        logs: true,
-        onQueueUpdate: (update) => {
-          if (update.status === "IN_PROGRESS") {
-            console.log("Nano-banana virtual try-on in progress...");
-          }
-        },
+      console.log("Input parameters:", {
+        image_urls: [personImageUrl, productImageUrl],
+        prompt: cleanPrompt
       });
+      
+      // Try with both images first, fallback to person image only if it fails
+      let result;
+      try {
+        console.log("Trying with both person and product images...");
+        result = await fal.subscribe("fal-ai/nano-banana/edit", {
+          input: {
+            prompt: cleanPrompt,
+            image_urls: [personImageUrl, productImageUrl]
+          },
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === "IN_PROGRESS") {
+              console.log("Nano-banana processing with both images...");
+            }
+          }
+        });
+      } catch (bothImagesError) {
+        console.warn("Both images failed, trying with person image only:", bothImagesError.message);
+        result = await fal.subscribe("fal-ai/nano-banana/edit", {
+          input: {
+            prompt: cleanPrompt,
+            image_urls: [personImageUrl]
+          },
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === "IN_PROGRESS") {
+              console.log("Nano-banana processing with person image only...");
+            }
+          }
+        });
+      }
 
       console.log("Nano-banana result:", result);
       
-      // Handle nano-banana/edit response format: {images: [{url: "..."}], description: "..."}
+      // Handle nano-banana/edit response format
       let imageUrl;
-      if (result.images && Array.isArray(result.images) && result.images.length > 0) {
+      if (result.data && result.data.images && Array.isArray(result.data.images) && result.data.images.length > 0) {
+        imageUrl = result.data.images[0].url;
+      } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
         imageUrl = result.images[0].url;
       } else {
+        console.error("Unexpected result format:", result);
         throw new Error("No images returned from nano-banana/edit");
       }
       
@@ -209,34 +259,10 @@ class FalAIService {
     } catch (error) {
       console.error("FalAI Nano-Banana Error:", error);
       
-      // Fallback to flux/dev approach
-      try {
-        console.log("Falling back to flux/dev...");
-        const fallbackResult = await fal.subscribe("fal-ai/flux/dev", {
-          input: {
-            prompt: `The exact same person from the reference image, now ${prompt}, keep face and body identical, realistic, high quality, natural lighting`,
-            image_url: personImageUrl,
-            strength: 0.5, // Lower strength to preserve more of original person
-            num_inference_steps: 28,
-            guidance_scale: 3.5,
-            image_size: "landscape_4_3",
-            enable_safety_checker: true,
-          },
-          logs: true,
-        });
-
-        return {
-          success: true,
-          image: fallbackResult.images[0],
-          data: fallbackResult
-        };
-      } catch (fallbackError) {
-        console.error("FalAI Flux Fallback Error:", fallbackError);
-        return {
-          success: false,
-          error: `Both nano-banana and flux failed: ${error.message}, ${fallbackError.message}`
-        };
-      }
+      return {
+        success: false,
+        error: `Nano-banana/edit failed: ${error.message}`
+      };
     }
   }
 
@@ -247,19 +273,50 @@ class FalAIService {
    * @param {string} clothingType - Type of clothing (shirt, shoes, hat, etc.)
    * @returns {Promise<Object>} Virtual try-on result
    */
-  async tryOnClothing(personImageUrl, clothingImageUrl, clothingType = "clothing") {
-    const prompts = {
-      shirt: "wearing a Kith x Jaws vintage graphic t-shirt with shark movie design, white or gray cotton tee, casual streetwear style, relaxed fit, same person same face",
-      hat: "wearing a Kith x Jaws baseball cap with shark logo, adjustable snapback or fitted cap, streetwear style, same person same face",
-      jacket: "wearing a Kith x Jaws crewneck sweatshirt with movie graphics, pullover hoodie style, comfortable oversized fit, same person same face",
-      pants: "wearing Kith x Jaws sweatpants or joggers, casual streetwear bottoms with movie branding, relaxed fit, same person same face",
-      dress: "wearing a Kith x Jaws dress with movie graphics, casual streetwear style dress, comfortable fit, same person same face",
-      default: "wearing Kith x Jaws streetwear clothing with shark movie graphics and branding, casual urban style, same person same face"
-    };
-
-    const prompt = prompts[clothingType.toLowerCase()] || prompts.default;
+  async tryOnClothing(personImageUrl, clothingImageUrl, clothingType = "clothing", productName = "") {
+    // Create prompts that reference the clothing image for nano-banana/edit
+    let finalPrompt = "";
     
-    return this.createVirtualTryOn(personImageUrl, clothingImageUrl, prompt);
+    if (productName) {
+      const productLower = productName.toLowerCase();
+      if (productLower.includes('ed sheeran')) {
+        if (productLower.includes('custom hoodie')) {
+          finalPrompt = "put the exact Ed Sheeran custom hoodie from the reference image on this person, matching all text, graphics, and colors exactly";
+        } else if (productLower.includes('leopard stamp')) {
+          finalPrompt = "put the exact Ed Sheeran leopard stamp hoodie from the reference image on this person, matching the animal print design exactly";
+        } else if (productLower.includes('signwriter')) {
+          finalPrompt = "put the exact Ed Sheeran signwriter zip hoodie from the reference image on this person, matching all details exactly";
+        } else {
+          finalPrompt = "put the exact Ed Sheeran hoodie from the reference image on this person";
+        }
+      } else if (productLower.includes('kith')) {
+        if (productLower.includes('vintage tee')) {
+          finalPrompt = "put the exact Kith Jaws vintage t-shirt from the reference image on this person, matching all movie graphics exactly";
+        } else if (productLower.includes('crewneck')) {
+          finalPrompt = "put the exact Kith Jaws crewneck sweatshirt from the reference image on this person";
+        } else if (productLower.includes('cap')) {
+          finalPrompt = "put the exact Kith Jaws cap from the reference image on this person";
+        } else {
+          finalPrompt = "put the exact Kith Jaws item from the reference image on this person";
+        }
+      }
+    }
+    
+    // Fallback to clothing type prompts if no specific product match
+    if (!finalPrompt) {
+      const prompts = {
+        shirt: "put the exact t-shirt from the reference image on this person",
+        hat: "put the exact hat from the reference image on this person", 
+        jacket: "put the exact jacket from the reference image on this person",
+        hoodie: "put the exact hoodie from the reference image on this person",
+        pants: "put the exact pants from the reference image on this person",
+        dress: "put the exact dress from the reference image on this person",
+        default: "put the exact clothing item from the reference image on this person"
+      };
+      finalPrompt = prompts[clothingType.toLowerCase()] || prompts.default;
+    }
+    
+    return this.createVirtualTryOn(personImageUrl, clothingImageUrl, finalPrompt);
   }
 }
 
