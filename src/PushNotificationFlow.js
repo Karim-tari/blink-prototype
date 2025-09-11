@@ -47,8 +47,8 @@ const PushNotificationFlow = ({ onComplete }) => {
         ? 'translateX(-100%) scale(0.95)' 
         : 'translateX(0) scale(1)',
       transition: isOpening 
-        ? 'transform 0.65s cubic-bezier(0.32, 0.72, 0, 1)' 
-        : 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        ? 'transform 0.7s cubic-bezier(0.25, 0.1, 0.25, 1)' 
+        : 'transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
       transformOrigin: 'center center'
     }}>
       {/* iPhone screen with realistic power-on effect */}
@@ -87,12 +87,12 @@ const PushNotificationFlow = ({ onComplete }) => {
               maxWidth: '730px',
               height: 'auto',
               cursor: 'pointer',
-              animation: 'slideDownAndScale 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              animation: 'slideDownAndScale 0.6s cubic-bezier(0.25, 0.1, 0.25, 1)',
               boxShadow: notificationPressed 
                 ? '0 5px 15px rgba(0,0,0,0.4)' 
                 : '0 10px 30px rgba(0,0,0,0.3)',
               transform: notificationPressed ? 'scale(0.48)' : 'scale(0.5)',
-              transition: 'all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              transition: 'all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1)',
               position: 'relative',
               zIndex: 10,
               borderRadius: '16px'
