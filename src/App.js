@@ -1091,7 +1091,7 @@ const AutobotApp = () => {
         
         // Create temporary item to check for coupons
         const tempItem = { price: finalPrice };
-        const couponSavings = checkForCoupons(tempItem);
+        const couponSavings = checkForCoupons(tempItem, isFromPushNotification);
         
         const discountedPrice = couponSavings ? finalPrice - couponSavings.discount : finalPrice;
         
@@ -1341,7 +1341,7 @@ const AutobotApp = () => {
 
   const confirmPurchase = (orderData) => {
     // Check for automatic coupon application
-    const couponSavings = checkForCoupons(orderData.item);
+    const couponSavings = checkForCoupons(orderData.item, isFromPushNotification);
     const finalTotal = couponSavings ? orderData.total - couponSavings.discount : orderData.total;
     
     // For new users, check if they need funding first
@@ -1370,7 +1370,10 @@ const AutobotApp = () => {
     }, 2000);
   };
 
-  const checkForCoupons = (item) => {
+  const checkForCoupons = (item, disableCoupons = false) => {
+    // Don't apply coupons if disabled (e.g., for push notification flow)
+    if (disableCoupons) return null;
+    
     // Simulate finding coupon codes - 30% chance of finding a coupon
     const hasCoupon = Math.random() < 0.3;
     
@@ -1534,7 +1537,7 @@ const AutobotApp = () => {
       
       if (pendingItem) {
         // Check for automatic coupon application
-        const couponSavings = checkForCoupons(pendingItem);
+        const couponSavings = checkForCoupons(pendingItem, isFromPushNotification);
         
         // First message: Detailed purchase success like returning user
         let successMessage = `🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
@@ -3098,7 +3101,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         )}
         
         {message.special === 'funding-required' && (
-          <FundingRequiredCard data={message.data} onFunded={onFunded} />
+          <FundingRequiredCard data={message.data} onFunded={onFunded} onCreditCardFunding={onCreditCardFunding} />
         )}
         
         {message.special === 'optional-funding' && (
@@ -3171,26 +3174,10 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         </div>
       )}
       
-      {/* WhatsApp-style menu buttons for search results (multiple items) */}
+      {/* WhatsApp-style menu buttons for search results (multiple items) - only show additional buttons */}
       {message.special === 'search-results' && message.data && message.data.results && message.data.results.length > 0 && (
         <>
-          {/* "I want this" buttons container */}
-          <div className="whatsapp-menu-container">
-            {message.data.results.map((result, index) => (
-              <motion.button
-                key={index}
-                whileHover={{ backgroundColor: '#f0f0f0' }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onPurchaseIntent && onPurchaseIntent(result)}
-                className="whatsapp-menu-btn"
-              >
-                <DollarSign size={20} className="whatsapp-menu-icon" />
-                <span className="whatsapp-menu-text">${result.price + (result.shipping || 0)} - ({result.title})</span>
-              </motion.button>
-            ))}
-          </div>
-          
-          {/* Separate "View more" button container */}
+          {/* "View more" button container - only if there are more results */}
           {message.data.showViewMore && (
             <div className="whatsapp-menu-container" style={{ marginTop: '8px' }}>
               <motion.button
@@ -3233,7 +3220,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       availability: 'Available in your size (Medium)',
                       authenticity: 'Brand New',
                       description: 'Ed Sheeran Green X Tee',
-                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/green x tee.png`,
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/green-x.jpeg`,
+                      productShotImage: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/green x tee-product-shot.png`,
                       deliveryDate: 'Tomorrow'
                     },
                     {
@@ -3243,7 +3231,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       availability: 'Available in your size (Medium)',
                       authenticity: 'Brand New',
                       description: 'Ed Sheeran Leopard Stamp Hoodie',
-                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Leopard Stamp Hoodie.webp`,
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Leopard Stamp Hoodie.jpeg`,
+                      productShotImage: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Leopard Stamp Hoodie-product-shot.webp`,
                       deliveryDate: 'Tomorrow'
                     },
                     {
@@ -3253,7 +3242,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       availability: 'Available in your size (Medium)',
                       authenticity: 'Brand New',
                       description: 'Ed Sheeran Peace House Hoodie',
-                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/peace house hoodie.webp`,
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Peace House Hoodie.jpeg`,
+                      productShotImage: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Peace House Hoodie-product-shot.webp`,
                       deliveryDate: 'Tomorrow'
                     },
                     {
@@ -3263,7 +3253,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       availability: 'Available in your size (Medium)',
                       authenticity: 'Brand New',
                       description: 'Ed Sheeran Play Pink Hoodie',
-                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/play pink hoodie.webp`,
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Play Pink Hoodie.jpeg`,
+                      productShotImage: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Play Pink Hoodie-product-shot.webp`,
                       deliveryDate: 'Tomorrow'
                     },
                     {
@@ -3273,17 +3264,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       availability: 'Available in your size (Medium)',
                       authenticity: 'Brand New',
                       description: 'Ed Sheeran Sun Dial Hoodie',
-                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Sun Dial Hoodie.png`,
-                      deliveryDate: 'Tomorrow'
-                    },
-                    {
-                      title: 'X (10th Anniversary Edition) Hoodie',
-                      price: 85,
-                      shipping: 5,
-                      availability: 'Available in your size (Medium)',
-                      authenticity: 'Brand New',
-                      description: 'Ed Sheeran X 10th Anniversary Edition Hoodie',
-                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/x (10th Anniversary Edition) Hoodie.webp`,
+                      image: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/sun dial hoodie.jpeg`,
+                      productShotImage: `${process.env.PUBLIC_URL}/EdSheeran-Jessica/full collection/Sun Dial Hoodie-product-shot.png`,
                       deliveryDate: 'Tomorrow'
                     }
                   ];
@@ -3426,6 +3408,143 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
   );
 };
 
+const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, showButtons = true }) => {
+  return (
+    <div style={{
+      padding: '0',
+      margin: '0'
+    }}>
+      <div className="result-content">
+        {/* Show virtual try-on image if available, otherwise show original image */}
+        {data.hasTryOn && data.tryOnImage ? (
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
+            <img 
+              src={data.tryOnImage} 
+              alt={`Virtual try-on: ${data.title}`}
+              style={{ 
+                width: '100%', 
+                objectFit: 'cover', 
+                borderRadius: '12px',
+                backgroundColor: '#f9fafb',
+                cursor: 'pointer'
+              }}
+              onClick={() => onImageClick && onImageClick(data.tryOnImage, `Virtual Try-On: ${data.title}`)}
+              onError={(e) => {
+                console.error('Virtual try-on image failed to load:', data.tryOnImage);
+                console.error('Image error details:', e);
+                console.log('Falling back to original image:', data.originalImage || data.image);
+                // Fallback to original image if virtual try-on fails to load
+                e.target.src = data.originalImage || data.image;
+                e.target.style.border = '2px solid #ff6b6b';
+              }}
+              onLoad={() => {
+                console.log('Virtual try-on image loaded successfully:', data.tryOnImage);
+              }}
+            />
+          </div>
+        ) : data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
+          <img 
+            src={data.image} 
+            alt={data.title}
+            style={{ 
+              width: '100%', 
+              objectFit: 'cover', 
+              borderRadius: '12px',
+              marginBottom: '12px',
+              backgroundColor: '#f9fafb',
+              cursor: 'pointer'
+            }}
+            onClick={() => onImageClick && onImageClick(data.image, data.title)}
+          />
+        ) : (
+          <div style={{ 
+            width: '100%', 
+            height: '240px', 
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#999', 
+              textAlign: 'center'
+            }}>
+              Product Image
+            </div>
+          </div>
+        )}
+        
+        <div>
+          <div style={{ 
+            fontWeight: '600', 
+            fontSize: '16px', 
+            marginBottom: '4px',
+            color: '#000000',
+            lineHeight: '1.3'
+          }}>
+            {data.title}
+          </div>
+          
+          <div style={{
+            fontSize: '14px', 
+            color: '#8e8e93',
+            marginBottom: '12px'
+          }}>
+            Available in your size (Medium)
+          </div>
+          
+          {data.isSecondHand && (
+            <div style={{ 
+              color: '#8e8e93', 
+              fontSize: '13px',
+              marginBottom: '12px'
+            }}>
+                📍 {data.location} • {data.condition}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Show coupon savings if applied */}
+      {data.couponApplied && (
+        <div style={{ 
+          marginTop: '12px', 
+          marginBottom: '12px',
+          textAlign: 'center',
+          fontSize: '14px'
+        }}>
+          <div style={{ color: '#666', textDecoration: 'line-through' }}>
+            Was ${data.originalPrice + (data.shipping || 0)}
+          </div>
+          <div style={{ color: '#28a745', fontWeight: '600', fontSize: '12px' }}>
+            ✨ Coupon applied - saved {data.couponPercentage}%!
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp-style button at full width below description */}
+      {showButtons && onPurchaseIntent && (
+        <div className="whatsapp-menu-container" style={{ marginTop: '12px', marginBottom: '0' }}>
+          <motion.button
+            whileHover={{ backgroundColor: '#f0f0f0' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onPurchaseIntent(data)}
+            className="whatsapp-menu-btn"
+            style={{ width: '100%' }}
+          >
+            <DollarSign size={20} className="whatsapp-menu-icon" />
+            <span className="whatsapp-menu-text">Buy Now - ${data.price + (data.shipping || 0)} ({data.title})</span>
+          </motion.button>
+        </div>
+      )}
+
+      </div>
+  );
+};
+
 const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) => {
 
   return (
@@ -3436,10 +3555,15 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
       style={{ marginBottom: '8px' }}
     >
       <div className="results-content">
-        {/* Show all results (up to 3) */}
+        {/* Show all results (up to 3) with buttons integrated into each card */}
         {data.results.map((result, index) => (
           <div key={index} className="result-item" style={{ marginBottom: index < data.results.length - 1 ? '12px' : '0' }}>
-            <SearchResultCard data={result} onImageClick={onImageClick} showButtons={false} />
+            <SearchResultCardWithButton 
+              data={result} 
+              onImageClick={onImageClick} 
+              onPurchaseIntent={onPurchaseIntent}
+              showButtons={true} 
+            />
         </div>
         ))}
       </div>
@@ -3483,6 +3607,15 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [selectedItems, setSelectedItems] = useState([]);
   const [undoTimers, setUndoTimers] = useState({}); // Track countdown timers for each item
+  const [showProductShots, setShowProductShots] = useState({}); // Track which items are showing product shots
+
+  // Toggle between regular image and product shot
+  const toggleProductShot = (index) => {
+    setShowProductShots(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   useEffect(() => {
     // Load Lottie animation data
@@ -4032,7 +4165,18 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                   {/* Product Image - Full Width */}
                 {(() => {
                   const selectedVariant = selectedVariants[index];
-                  const imageToShow = selectedVariant ? selectedVariant.image : result.image;
+                  const isShowingProductShot = showProductShots[index];
+                  
+                  // Determine which image to show
+                  let imageToShow;
+                  if (selectedVariant) {
+                    imageToShow = selectedVariant.image;
+                  } else if (isShowingProductShot && result.productShotImage) {
+                    imageToShow = result.productShotImage;
+                  } else {
+                    imageToShow = result.image;
+                  }
+                  
                   return imageToShow && (imageToShow.startsWith('http') || imageToShow.includes('PUBLIC_URL') || imageToShow.startsWith('/')) ? (
                     <img 
                       src={imageToShow} 
@@ -4058,6 +4202,32 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                     </div>
                   );
                 })()}
+
+                  {/* Product Shot Toggle Tag - only show if productShotImage exists */}
+                  {result.productShotImage && (
+                    <div 
+                      onClick={() => toggleProductShot(index)}
+                      style={{
+                        position: 'absolute',
+                        top: '16px',
+                        left: '16px',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        backdropFilter: 'blur(10px)',
+                        color: '#333',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        border: '1px solid rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.2s ease',
+                        zIndex: 3,
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                      }}
+                    >
+                      View Product Shot
+                    </div>
+                  )}
 
                   {/* Size Badge */}
                   <div style={{
@@ -4131,7 +4301,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                         color: '#8e8e93',
                         fontWeight: '500'
                       }}>
-                        {result.brand || 'Kith'}
+                        {result.brand || 'Ed Sheeran'}
                       </div>
                       
                       <div style={{
@@ -4206,6 +4376,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                     I WANT THIS
                 </motion.button>
                   </div>
+
                 </div>
                 </motion.div>
               </motion.div>
@@ -5201,11 +5372,20 @@ const GroupOrderSummaryCard = ({ data, onWebView, onCancelOrder }) => {
   );
 };
 
-const FundingRequiredCard = ({ data, onFunded }) => {
-  const walletAddress = "0x742d35Cc6644C45532F6c8C1B96d4d67C2bCcE4F"; // USDC wallet address
-  
-  const handleFunding = () => {
-    onFunded(data.requiredAmount);
+const FundingRequiredCard = ({ data, onFunded, onCreditCardFunding }) => {
+  const handleCreditCardFunding = () => {
+    // Open credit card funding interface
+    const creditCardData = {
+      type: 'credit-card-funding',
+      maxAmount: 500,
+      showWebView: true
+    };
+    onCreditCardFunding && onCreditCardFunding(creditCardData);
+  };
+
+  const handleUSDCFunding = () => {
+    // Trigger USDC funding flow
+    onFunded('usdc_funding', true);
   };
 
   return (
@@ -5222,70 +5402,77 @@ const FundingRequiredCard = ({ data, onFunded }) => {
       }}
     >
       <div className="funding-content">
-        <div style={{ fontSize: '16px', fontWeight: '500', marginBottom: '12px' }}>
-          Send ${data.requiredAmount} to this USDC address in order to buy:
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: '#000' }}>
+          💳 Add Funds to Complete Purchase
         </div>
         
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '12px', 
-          borderRadius: '6px', 
-          marginBottom: '16px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ 
-            fontSize: '13px', 
-            fontFamily: 'monospace', 
-            backgroundColor: 'white',
-            padding: '10px',
-            borderRadius: '4px',
-            wordBreak: 'break-all',
-            border: '1px solid #e0e0e0',
-            color: '#495057'
-          }}>
-            {walletAddress}
-          </div>
+        <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+          You need ${data.requiredAmount} to complete this purchase. Choose your funding method:
         </div>
         
+        {/* Funding method buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Credit Card Option */}
           <motion.button
             whileHover={{ backgroundColor: '#0056b3' }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => console.log('Opening wallet app...')}
+            onClick={handleCreditCardFunding}
             style={{
-              padding: '12px 24px',
-              backgroundColor: '#007bff',
+              width: '100%',
+              backgroundColor: '#0088cc',
               color: 'white',
               border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
+              borderRadius: '8px',
+              padding: '16px',
+              fontSize: '15px',
+              fontWeight: '600',
               cursor: 'pointer',
-              width: '100%'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
             }}
           >
-            Open Wallet App
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '20px' }}>💳</span>
+              <div style={{ textAlign: 'left' }}>
+                <div>Credit Card</div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>Instant • $1-500</div>
+              </div>
+            </div>
+            <span style={{ fontSize: '18px' }}>→</span>
           </motion.button>
-          
+
+          {/* USDC Option */}
           <motion.button
-            whileHover={{ backgroundColor: '#0056b3' }}
+            whileHover={{ backgroundColor: '#6f42c1' }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleFunding}
+            onClick={handleUSDCFunding}
             style={{
-              padding: '12px 24px',
-              backgroundColor: '#10b981',
+              width: '100%',
+              backgroundColor: '#7c3aed',
               color: 'white',
               border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
+              borderRadius: '8px',
+              padding: '16px',
+              fontSize: '15px',
+              fontWeight: '600',
               cursor: 'pointer',
-              width: '100%'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
             }}
           >
-            I've Sent It
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '20px' }}>🪙</span>
+              <div style={{ textAlign: 'left' }}>
+                <div>USDC</div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>Any amount • Crypto wallet</div>
+              </div>
+            </div>
+            <span style={{ fontSize: '18px' }}>→</span>
           </motion.button>
           
+          {/* Cancel Option */}
           <motion.button
             whileHover={{ backgroundColor: '#f3f4f6' }}
             whileTap={{ scale: 0.98 }}
@@ -6151,15 +6338,20 @@ const ChatInput = ({ onSubmit }) => {
 
 const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
   const [formData, setFormData] = useState({
-    cardNumber: '',
-    expiryDate: '',
+    cardNumber: '0000 0000 0000 0000',
+    expiryMonth: '',
+    expiryYear: '',
     cvv: '',
-    name: '',
+    email: 'johndoe@gmail.com',
+    name: 'John Appleseed',
+    address: '123 Main St, New York, NY 10001',
     amount: ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [showErrors, setShowErrors] = useState(false);
+  const [useTestCard, setUseTestCard] = useState(true);
+  const [saveInfo, setSaveInfo] = useState(true);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -6195,11 +6387,9 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       newErrors.cardNumber = 'Card number must be at least 13 digits';
     }
     
-    // Expiry date validation
-    if (!formData.expiryDate) {
-      newErrors.expiryDate = 'Expiry date is required';
-    } else if (!/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
-      newErrors.expiryDate = 'Invalid format (MM/YY)';
+    // Expiry validation
+    if (!formData.expiryMonth || !formData.expiryYear) {
+      newErrors.expiry = 'Expiry date is required';
     }
     
     // CVV validation
@@ -6213,15 +6403,23 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
     if (!formData.name.trim()) {
       newErrors.name = 'Cardholder name is required';
     }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    }
+
+    // Address validation
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const formatCardNumber = (value) => {
-    // Remove all non-digits
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    // Add spaces every 4 digits
     const matches = v.match(/\d{4,16}/g);
     const match = matches && matches[0] || '';
     const parts = [];
@@ -6235,91 +6433,78 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
     }
   };
 
-  const formatExpiryDate = (value) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    if (v.length >= 2) {
-      return v.substring(0, 2) + '/' + v.substring(2, 4);
-    }
-    return v;
-  };
+  const quickAmounts = [10, 25, 50];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setShowErrors(true);
     
     if (!validateForm()) {
-      // Scroll to first error or show general error message
+      setShowErrors(true);
       return;
     }
-    
+
     setIsProcessing(true);
     
     // Simulate processing delay
-    setTimeout(() => {
-      const amount = parseFloat(formData.amount);
-      if (amount > 0 && amount <= data.maxAmount) {
-        onFundingComplete(amount);
-      }
-      setIsProcessing(false);
-    }, 2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Complete the funding
+    onFundingComplete(parseFloat(formData.amount));
+    setIsProcessing(false);
   };
 
-  const quickAmounts = [50, 100, 250, 500];
+  const getFieldStyle = (fieldName, baseStyle) => ({
+    ...baseStyle,
+    border: errors[fieldName] ? '2px solid #ff4444' : '1px solid #e1e5e9',
+    borderColor: errors[fieldName] ? '#ff4444' : '#e1e5e9'
+  });
 
   const ErrorMessage = ({ error }) => {
     if (!error || !showErrors) return null;
     return (
-      <div style={{
-        color: '#d32f2f',
-        fontSize: '12px',
-        marginTop: '4px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px'
-      }}>
-        <span>⚠️</span>
+      <div style={{ color: '#ff4444', fontSize: '12px', marginTop: '4px' }}>
         {error}
       </div>
     );
   };
 
-  const getFieldStyle = (fieldName, baseStyle) => ({
-    ...baseStyle,
-    border: errors[fieldName] && showErrors 
-      ? '2px solid #d32f2f' 
-      : '2px solid #e9ecef'
-  });
-
+  const subtotal = parseFloat(formData.amount) || 0;
+  const serviceFee = subtotal * 0.038; // 3.8% service fee
+  const total = subtotal + serviceFee;
 
   return (
     <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
       width: '100%',
       height: '100%',
       backgroundColor: '#f8f9fa',
+      zIndex: 1000,
       display: 'flex',
       flexDirection: 'column'
     }}>
       {/* Header */}
       <div style={{
-        backgroundColor: '#0088cc',
-        color: 'white',
-        padding: '16px',
+        padding: '16px 24px',
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e1e5e9',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-          💳 Add Funds - Credit Card
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1a1a1a' }}>
+          Add Funds
         </h2>
         <button
           onClick={onClose}
           style={{
             background: 'none',
             border: 'none',
-            color: 'white',
             fontSize: '24px',
             cursor: 'pointer',
-            padding: '4px'
+            padding: '4px',
+            color: '#666'
           }}
         >
           ×
@@ -6332,196 +6517,575 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
         padding: '24px',
         overflow: 'auto'
       }}>
-        <form onSubmit={handleSubmit} style={{ maxWidth: '400px', margin: '0 auto' }}>
-          {/* Amount Selection */}
+        <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+          {/* Deposit Amount */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
-              Amount (Max $500)
-            </label>
-            <input
-              type="number"
-              value={formData.amount}
-              onChange={(e) => handleInputChange('amount', e.target.value)}
-              placeholder="Enter amount"
-              min="1"
-              max="500"
-              required
-              style={getFieldStyle('amount', {
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                fontSize: '16px',
-                marginBottom: '4px'
-              })}
-            />
-            <ErrorMessage error={errors.amount} />
+            <h3 style={{ 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              color: '#1a1a1a', 
+              marginBottom: '16px',
+              margin: '0 0 16px 0'
+            }}>
+              Deposit amount
+            </h3>
             
             {/* Quick Amount Buttons */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
               {quickAmounts.map(amount => (
                 <button
                   key={amount}
                   type="button"
                   onClick={() => handleInputChange('amount', amount.toString())}
                   style={{
-                    padding: '8px 16px',
-                    backgroundColor: formData.amount === amount.toString() ? '#0088cc' : 'white',
-                    color: formData.amount === amount.toString() ? 'white' : '#0088cc',
-                    border: '2px solid #0088cc',
-                    borderRadius: '20px',
-                    fontSize: '14px',
+                    padding: '12px 20px',
+                    backgroundColor: formData.amount === amount.toString() ? '#007bff' : 'white',
+                    color: formData.amount === amount.toString() ? 'white' : '#1a1a1a',
+                    border: '1px solid #e1e5e9',
+                    borderRadius: '8px',
+                    fontSize: '16px',
                     cursor: 'pointer',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    minWidth: '60px'
                   }}
                 >
                   ${amount}
                 </button>
               ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6c757d' }}>
+                <span style={{ fontSize: '20px' }}>⚙️</span>
+                <span style={{ fontSize: '14px' }}>Custom amount</span>
+              </div>
             </div>
-          </div>
 
-          {/* Card Number */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
-              Card Number
-            </label>
+            {/* Custom Amount Input */}
             <input
-              type="text"
-              value={formData.cardNumber}
-              onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
-              placeholder="1234 5678 9012 3456"
-              maxLength="19"
-              required
-              style={getFieldStyle('cardNumber', {
+              type="number"
+              value={formData.amount}
+              onChange={(e) => handleInputChange('amount', e.target.value)}
+              placeholder="Enter custom amount"
+              min="1"
+              max="500"
+              style={{
                 width: '100%',
-                padding: '12px',
+                padding: '12px 16px',
                 borderRadius: '8px',
+                border: '1px solid #e1e5e9',
                 fontSize: '16px',
-                fontFamily: 'monospace'
-              })}
+                marginBottom: '4px',
+                backgroundColor: 'white'
+              }}
             />
-            <ErrorMessage error={errors.cardNumber} />
+            <ErrorMessage error={errors.amount} />
           </div>
 
-          {/* Expiry and CVV */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
-                Expiry Date
-              </label>
-              <input
-                type="text"
-                value={formData.expiryDate}
-                onChange={(e) => handleInputChange('expiryDate', formatExpiryDate(e.target.value))}
-                placeholder="MM/YY"
-                maxLength="5"
-                required
-                style={getFieldStyle('expiryDate', {
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontFamily: 'monospace'
-                })}
-              />
-              <ErrorMessage error={errors.expiryDate} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
-                CVV
-              </label>
-              <input
-                type="text"
-                value={formData.cvv}
-                onChange={(e) => handleInputChange('cvv', e.target.value.replace(/\D/g, '').substring(0, 4))}
-                placeholder="123"
-                maxLength="4"
-                required
-                style={getFieldStyle('cvv', {
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontFamily: 'monospace'
-                })}
-              />
-              <ErrorMessage error={errors.cvv} />
-            </div>
-          </div>
-
-          {/* Cardholder Name */}
+          {/* Payment Methods */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
-              Cardholder Name
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="John Doe"
-              required
-              style={getFieldStyle('name', {
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                fontSize: '16px'
-              })}
-            />
-            <ErrorMessage error={errors.name} />
-          </div>
+            {/* Apple Pay & Google Pay */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <button
+                type="button"
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  backgroundColor: '#000',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                🍎 Pay
+              </button>
+              <button
+                type="button"
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  backgroundColor: '#4285f4',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                G Pay
+              </button>
+            </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isProcessing}
-            style={{
-              width: '100%',
-              padding: '16px',
-              backgroundColor: isProcessing ? '#6c757d' : '#10b981',
-              color: 'white',
-              border: 'none',
+            <div style={{ 
+              textAlign: 'center', 
+              color: '#6c757d', 
+              fontSize: '14px', 
+              margin: '16px 0' 
+            }}>
+              or
+            </div>
+
+            {/* Credit Card Option */}
+            <div style={{
+              border: '2px solid #007bff',
               borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
+              padding: '16px',
+              backgroundColor: 'white',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            {isProcessing ? (
-              <>
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid #ffffff40',
-                  borderTop: '2px solid white',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
-                Processing...
-              </>
-            ) : (
-              <>
-                💰 Add ${formData.amount || '0'} to Balance
-              </>
-            )}
-          </button>
-
-          {/* Security Notice */}
-          <div style={{
-            marginTop: '16px',
-            padding: '12px',
-            backgroundColor: '#e3f2fd',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: '#1976d2',
-            textAlign: 'center'
-          }}>
-            🔒 Your payment information is secure and encrypted
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ 
+                  width: '24px', 
+                  height: '16px', 
+                  backgroundColor: '#000', 
+                  borderRadius: '2px' 
+                }}></div>
+                <span style={{ fontSize: '16px', fontWeight: '500' }}>Credit Card</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ 
+                  width: '16px', 
+                  height: '16px', 
+                  borderRadius: '50%', 
+                  backgroundColor: '#007bff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ 
+                    width: '6px', 
+                    height: '6px', 
+                    backgroundColor: 'white', 
+                    borderRadius: '50%' 
+                  }}></div>
+                </div>
+                <span style={{ color: '#007bff', fontSize: '14px', cursor: 'pointer' }}>Change</span>
+              </div>
+            </div>
           </div>
-        </form>
+
+          {/* Test Card Section */}
+          <div style={{ marginBottom: '24px' }}>
+            <div 
+              onClick={() => setUseTestCard(!useTestCard)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 0',
+                cursor: 'pointer',
+                borderBottom: '1px solid #e1e5e9'
+              }}
+            >
+              <span style={{ fontSize: '16px', fontWeight: '500', color: '#1a1a1a' }}>
+                Use a test card
+              </span>
+              <span style={{ fontSize: '18px' }}>{useTestCard ? '▼' : '▶'}</span>
+            </div>
+            
+            {useTestCard && (
+              <div style={{
+                backgroundColor: '#fff3cd',
+                border: '1px solid #ffeaa7',
+                borderRadius: '8px',
+                padding: '12px',
+                marginTop: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '16px', marginTop: '2px' }}>⚠️</span>
+                  <div>
+                    <div style={{ fontSize: '14px', color: '#856404', lineHeight: '1.4' }}>
+                      <strong>Sandbox environment</strong> - Enter appropriate CC number for your testing 
+                      (testing with 3DS requires special numbers)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            {/* Card Information */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#1a1a1a' 
+              }}>
+                Card Information <span style={{ color: '#dc3545' }}>*</span>
+              </label>
+              
+              {/* Card Number */}
+              <div style={{ 
+                border: '1px solid #e1e5e9', 
+                borderRadius: '8px 8px 0 0',
+                backgroundColor: 'white',
+                position: 'relative'
+              }}>
+                <input
+                  type="text"
+                  value={formData.cardNumber}
+                  onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
+                  placeholder="0000 0000 0000 0000"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    borderRadius: '8px 8px 0 0',
+                    fontSize: '16px',
+                    backgroundColor: 'transparent',
+                    outline: 'none'
+                  }}
+                />
+                <div style={{ 
+                  position: 'absolute', 
+                  right: '16px', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)',
+                  display: 'flex',
+                  gap: '4px'
+                }}>
+                  <div style={{ width: '24px', height: '16px', backgroundColor: '#1a1f71', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: 'white', fontWeight: 'bold' }}>VISA</div>
+                  <div style={{ width: '24px', height: '16px', backgroundColor: '#eb001b', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '6px', color: 'white', fontWeight: 'bold' }}>MC</div>
+                  <div style={{ width: '24px', height: '16px', backgroundColor: '#006fcf', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '6px', color: 'white', fontWeight: 'bold' }}>AMEX</div>
+                  <div style={{ width: '24px', height: '16px', backgroundColor: '#ff6000', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5px', color: 'white', fontWeight: 'bold' }}>DISC</div>
+                </div>
+              </div>
+              
+              {/* Expiry and CVV */}
+              <div style={{ display: 'flex' }}>
+                <input
+                  type="text"
+                  value={formData.expiryMonth}
+                  onChange={(e) => handleInputChange('expiryMonth', e.target.value.replace(/\D/g, '').substring(0, 2))}
+                  placeholder="MM"
+                  maxLength="2"
+                  style={{
+                    width: '25%',
+                    padding: '12px 16px',
+                    border: '1px solid #e1e5e9',
+                    borderTop: 'none',
+                    borderRadius: '0',
+                    fontSize: '16px',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                />
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '0 8px',
+                  border: '1px solid #e1e5e9',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
+                  backgroundColor: 'white'
+                }}>
+                  /
+                </div>
+                <input
+                  type="text"
+                  value={formData.expiryYear}
+                  onChange={(e) => handleInputChange('expiryYear', e.target.value.replace(/\D/g, '').substring(0, 2))}
+                  placeholder="YY"
+                  maxLength="2"
+                  style={{
+                    width: '25%',
+                    padding: '12px 16px',
+                    border: '1px solid #e1e5e9',
+                    borderTop: 'none',
+                    borderRadius: '0',
+                    fontSize: '16px',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                />
+                <input
+                  type="text"
+                  value={formData.cvv}
+                  onChange={(e) => handleInputChange('cvv', e.target.value.replace(/\D/g, '').substring(0, 4))}
+                  placeholder="CVV"
+                  maxLength="4"
+                  style={{
+                    width: '50%',
+                    padding: '12px 16px',
+                    border: '1px solid #e1e5e9',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    fontSize: '16px',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                />
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '0 12px',
+                  border: '1px solid #e1e5e9',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRadius: '0 0 8px 0',
+                  backgroundColor: 'white'
+                }}>
+                  <div style={{ 
+                    width: '20px', 
+                    height: '12px', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '2px',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '2px',
+                      right: '2px',
+                      width: '8px',
+                      height: '1px',
+                      backgroundColor: '#ccc'
+                    }}></div>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '2px',
+                      right: '2px',
+                      width: '8px',
+                      height: '1px',
+                      backgroundColor: '#ccc'
+                    }}></div>
+                  </div>
+                </div>
+              </div>
+              <ErrorMessage error={errors.cardNumber || errors.expiry || errors.cvv} />
+            </div>
+
+            {/* Email */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#1a1a1a' 
+              }}>
+                Email <span style={{ color: '#dc3545' }}>*</span>
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="johndoe@gmail.com"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #e1e5e9',
+                  fontSize: '16px',
+                  backgroundColor: 'white',
+                  outline: 'none'
+                }}
+              />
+              <ErrorMessage error={errors.email} />
+            </div>
+
+            {/* Name on card */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#1a1a1a' 
+              }}>
+                Name on card <span style={{ color: '#dc3545' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="John Appleseed"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #e1e5e9',
+                  fontSize: '16px',
+                  backgroundColor: 'white',
+                  outline: 'none'
+                }}
+              />
+              <ErrorMessage error={errors.name} />
+            </div>
+
+            {/* Address */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#1a1a1a' 
+              }}>
+                Address <span style={{ color: '#dc3545' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="123 Main St, New York, NY 10001"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #e1e5e9',
+                  fontSize: '16px',
+                  backgroundColor: 'white',
+                  outline: 'none'
+                }}
+              />
+              <ErrorMessage error={errors.address} />
+            </div>
+
+            {/* Order Summary */}
+            <div style={{ 
+              backgroundColor: 'white',
+              border: '1px solid #e1e5e9',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#6c757d' }}>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ color: '#6c757d' }}>Service fees</span>
+                <span>${serviceFee.toFixed(2)}</span>
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #e1e5e9', margin: '12px 0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Save Info Checkbox */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              marginBottom: '24px' 
+            }}>
+              <input
+                type="checkbox"
+                checked={saveInfo}
+                onChange={(e) => setSaveInfo(e.target.checked)}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#1a1a1a' }}>
+                Save my info for 1-click checkout
+              </span>
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#007bff', 
+                backgroundColor: '#e7f3ff',
+                padding: '2px 6px',
+                borderRadius: '4px'
+              }}>
+                🔒 Encrypted
+              </span>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isProcessing || !formData.amount}
+              style={{
+                width: '100%',
+                padding: '16px',
+                backgroundColor: isProcessing || !formData.amount ? '#6c757d' : '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: isProcessing || !formData.amount ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginBottom: '16px'
+              }}
+            >
+              {isProcessing ? (
+                <>
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    border: '2px solid transparent',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  🔒 Confirm Purchase of ${total.toFixed(2)}
+                </>
+              )}
+            </button>
+
+            {/* Footer */}
+            <div style={{ textAlign: 'center', fontSize: '12px', color: '#6c757d' }}>
+              This payment will appear on your statement as{' '}
+              <span style={{ color: '#007bff', fontWeight: '500' }}>COINFLOW</span>. For support,
+              please contact{' '}
+              <a href="mailto:support@coinflow.cash" style={{ color: '#007bff' }}>
+                support@coinflow.cash
+              </a>
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '16px',
+              marginTop: '16px',
+              fontSize: '12px',
+              color: '#6c757d'
+            }}>
+              <span>Powered by</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ 
+                  width: '16px', 
+                  height: '16px', 
+                  backgroundColor: '#007bff', 
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{ color: 'white', fontSize: '10px', fontWeight: 'bold' }}>C</span>
+                </div>
+                <span style={{ fontWeight: '600', color: '#1a1a1a' }}>Coinflow</span>
+              </div>
+              <a href="#" style={{ color: '#007bff' }}>Terms</a>
+              <a href="#" style={{ color: '#007bff' }}>Refunds</a>
+              <a href="#" style={{ color: '#007bff' }}>Privacy</a>
+            </div>
+          </form>
+        </div>
       </div>
 
       <style jsx>{`
