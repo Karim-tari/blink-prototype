@@ -19,118 +19,203 @@ const LandingPage = () => {
   }, []);
 
   const handleNavigation = (path) => {
-    window.location.href = path;
+    // Use the homepage from package.json to construct proper URLs for GitHub Pages
+    const basePath = process.env.PUBLIC_URL || '';
+    window.location.href = `${basePath}${path}`;
   };
 
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundImage: `url(${process.env.PUBLIC_URL}/bg.png)`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
+      backgroundColor: '#f8f9fa',
       display: 'flex',
       flexDirection: 'column',
-      padding: '20px',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-      position: 'relative'
+      padding: '40px 20px',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
-      {/* Lottie Animation - Top Center */}
+      {/* Header */}
       <div style={{ 
         display: 'flex',
         justifyContent: 'center',
-        paddingTop: '0px',
-        marginTop: '-25px'
+        marginBottom: '40px'
       }}>
         {lottieData ? (
           <Lottie 
             animationData={lottieData}
-            style={{ width: 120, height: 120 }}
+            style={{ width: 80, height: 80 }}
             loop={false}
             autoplay={true}
           />
         ) : (
-          <div style={{ width: 120, height: 120 }} />
+          <div style={{ width: 80, height: 80 }} />
         )}
       </div>
 
-      {/* Navigation Buttons - Vertically Centered */}
+      {/* Content Container */}
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        width: 'calc(100% - 40px)',
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)'
+        maxWidth: '400px',
+        margin: '0 auto',
+        width: '100%'
       }}>
         
-        <button
-          onClick={() => handleNavigation('/new-user')}
-          style={{
-            width: '100%',
-            padding: '16px 24px',
-            backgroundColor: '#ffffff',
-            border: 'none',
-            borderRadius: '30px',
-            color: '#1a1a1a',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          First time user experience
-        </button>
+        {/* Flows Section */}
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '16px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Flows
+          </h2>
+          
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <button
+              onClick={() => handleNavigation('/new-user')}
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                backgroundColor: 'transparent',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#9ca3af';
+                e.target.style.backgroundColor = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.backgroundColor = 'transparent';
+              }}
+            >
+              First time user experience
+            </button>
 
-        <button
-          onClick={() => handleNavigation('/push-notifications')}
-          style={{
-            width: '100%',
-            padding: '16px 24px',
-            backgroundColor: '#ffffff',
-            border: 'none',
-            borderRadius: '30px',
-            color: '#1a1a1a',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          Push notification
-        </button>
+            <button
+              onClick={() => handleNavigation('/push-notifications')}
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                backgroundColor: 'transparent',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#9ca3af';
+                e.target.style.backgroundColor = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.backgroundColor = 'transparent';
+              }}
+            >
+              Push notification
+            </button>
 
-        <button
-          onClick={() => handleNavigation('/returning-user')}
-          style={{
-            width: '100%',
-            padding: '16px 24px',
-            backgroundColor: '#ffffff',
-            border: 'none',
-            borderRadius: '30px',
-            color: '#1a1a1a',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          Returning user
-        </button>
+            <button
+              onClick={() => handleNavigation('/returning-user')}
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                backgroundColor: 'transparent',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#9ca3af';
+                e.target.style.backgroundColor = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.backgroundColor = 'transparent';
+              }}
+            >
+              Returning user
+            </button>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{
+          height: '1px',
+          backgroundColor: '#e5e7eb',
+          marginBottom: '32px'
+        }} />
+
+        {/* Components Section */}
+        <div>
+          <h2 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '16px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Components
+          </h2>
+          
+          <button
+            onClick={() => handleNavigation('/product-test')}
+            style={{
+              width: '100%',
+              padding: '16px 20px',
+              backgroundColor: 'transparent',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              color: '#374151',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = '#d1d5db';
+              e.target.style.backgroundColor = '#f9fafb';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = '#e5e7eb';
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
+            WebView Product Listing
+          </button>
+        </div>
       </div>
 
       {/* Footer */}
       <div style={{
-        position: 'absolute',
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        color: '#999',
-        fontSize: '11px',
+        marginTop: 'auto',
         textAlign: 'center',
-        letterSpacing: '0.5px'
+        color: '#9ca3af',
+        fontSize: '11px',
+        letterSpacing: '0.5px',
+        paddingTop: '40px'
       }}>
         BLINK PROTOTYPE
       </div>
