@@ -1814,7 +1814,7 @@ const AutobotApp = () => {
         const compliment = generateCompliment(finalResults[0]);
         const nudges = ["Want me to grab it now?", "Should I hold this for you?", "Ready to order?"];
         const nudge = nudges[Math.floor(Math.random() * nudges.length)];
-        addAutobotMessage(`Found it! ${compliment} ${nudge}`, 'search-result', finalResults[0]);
+        addAutobotMessage("Found it! " + compliment + " " + nudge, 'search-result', finalResults[0]);
         
         // Add contextual selfie offer for wearable items (only if user hasn't uploaded one yet)
         console.log('🔍 Selfie Debug (Single Result):', {
