@@ -89,6 +89,7 @@ const AutobotApp = () => {
   const isReturningUserPath = currentPath.includes('/returning-user') || currentPath.includes('returning-user');
   const isSubscriptionFlowPath = currentPath.includes('/subscription-flow') || currentPath.includes('subscription-flow');
   const isTasteDiscoveryPath = currentPath.includes('/taste-discovery') || currentPath.includes('taste-discovery');
+  const isReturnsExchangesPath = currentPath.includes('/returns-exchanges') || currentPath.includes('returns-exchanges');
   const isProductTestPage = currentPath.includes('/product-test') || currentPath.includes('product-test');
   const isLandingPage = currentPath === '/' || currentPath === '/blink-prototype' || currentPath === '/blink-prototype/' || currentPath.endsWith('/blink-prototype');
   
@@ -122,11 +123,12 @@ const AutobotApp = () => {
     isPushNotificationPath ? 'returning' :
     isSubscriptionFlowPath ? 'subscription' :
     isTasteDiscoveryPath ? 'taste-discovery' :
+    isReturnsExchangesPath ? 'returns-exchanges' :
     'landing' // Landing page doesn't need a user type
   ); // 'new', 'returning', 'subscription', 'taste-discovery', or 'landing'
   const [showPushNotification, setShowPushNotification] = useState(isPushNotificationPath);
   const [isFromPushNotification, setIsFromPushNotification] = useState(false);
-  const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : 150);
+  const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : isReturnsExchangesPath ? 180 : 150);
   const [isTyping, setIsTyping] = useState(false);
   const [userProfile, setUserProfile] = useState(
     isNewUserPath ? {
@@ -216,6 +218,34 @@ const AutobotApp = () => {
         footwearPreference: '', // 'sneakers', 'boots', etc.
         currentStep: 'brands' // Track where we are in the discovery flow
       }
+    } : isReturnsExchangesPath ? {
+      name: 'Taylor',
+      email: 'taylor@example.com',
+      phone: '+1 (555) 789-0123',
+      interests: ['fashion', 'returns', 'customer-service'],
+      shoeSize: '8.5',
+      clothingSize: 'S',
+      pantsSize: '28x30',
+      address: '789 Return Lane, Los Angeles, CA 90210',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 300,
+        brandsToAvoid: []
+      },
+      purchaseHistory: [
+        { item: 'Designer Jacket', date: '1 week ago', price: 180, status: 'wants to return' },
+        { item: 'Sneakers', date: '2 weeks ago', price: 120 },
+        { item: 'Jeans', date: '1 month ago', price: 85 }
+      ],
+      lastPurchasedShoes: 'Nike Air Max',
+      lastPurchasedClothing: 'Designer Jacket',
+      preferredBrands: ['Nike', 'Zara', 'H&M'],
+      favoriteBrands: {
+        clothing: ['Zara', 'H&M', 'Uniqlo'],
+        shoes: ['Nike', 'Adidas', 'Converse']
+      },
+      totalSpent: 385,
+      memberSince: 'March 2024'
     } : {
       // Default returning user profile (Karim)
       name: 'Karim',
@@ -555,6 +585,18 @@ const AutobotApp = () => {
         // Taste Discovery flow - start with brand discovery
         setTimeout(() => {
           addAutobotMessage("Hey! I'm here to help you discover your style. Any brands you're into right now?");
+          setHasInitializedMessages(true);
+        }, 1000);
+      } else if (currentFlow === 'chat' && userType === 'returns-exchanges') {
+        // Returns & Exchanges flow - start with return process
+        setTimeout(() => {
+          addAutobotMessage("You want to return that jacket? No problem. I'll email you the return label.");
+          setTimeout(() => {
+            addAutobotMessage("📧 Return label sent to " + userProfile.email + "!");
+            setTimeout(() => {
+              addAutobotMessage("You'll get a full refund of $180 once your item is received back with the return label. Usually takes 3-5 business days after we receive it.");
+            }, 2000);
+          }, 1500);
           setHasInitializedMessages(true);
         }, 1000);
       }

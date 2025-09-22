@@ -369,6 +369,69 @@ const LandingPage = () => {
                 />
               </svg>
             </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.7, ease: [0.4, 0, 0.2, 1] }}
+              onClick={() => handleNavigation('/returns-exchanges')}
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                backgroundColor: 'transparent',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.2s ease',
+                ':hover': {
+                  backgroundColor: '#f9fafb',
+                  borderColor: '#9ca3af'
+                }
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#f9fafb';
+                e.target.style.borderColor = '#9ca3af';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.borderColor = '#d1d5db';
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ 
+                  fontSize: '15px', 
+                  fontWeight: '600', 
+                  color: '#111827',
+                  marginBottom: '4px'
+                }}>
+                  Returns & Exchanges
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#6b7280',
+                  lineHeight: '1.4'
+                }}>
+                  Easy return process with email labels and full refunds
+                </div>
+              </div>
+              <svg 
+                height="16" 
+                strokeLinejoin="round" 
+                viewBox="0 0 16 16" 
+                width="16" 
+                style={{ color: '#9ca3af', flexShrink: 0 }}
+              >
+                <path 
+                  fillRule="evenodd" 
+                  clipRule="evenodd" 
+                  d="M5.50001 1.93933L6.03034 2.46966L10.8536 7.29288C11.2441 7.68341 11.2441 8.31657 10.8536 8.7071L6.03034 13.5303L5.50001 14.0607L4.43935 13L4.96968 12.4697L9.43935 7.99999L4.96968 3.53032L4.43935 2.99999L5.50001 1.93933Z" 
+                  fill="currentColor"
+                />
+              </svg>
+            </motion.div>
           </div>
         </motion.div>
 
@@ -376,7 +439,7 @@ const LandingPage = () => {
         <motion.div 
           initial={{ opacity: 0, scaleX: 0 }}
           animate={{ opacity: 1, scaleX: 1 }}
-          transition={{ duration: 0.4, delay: 0.7, ease: [0.4, 0, 0.2, 1] }}
+          transition={{ duration: 0.4, delay: 0.8, ease: [0.4, 0, 0.2, 1] }}
           style={{
             height: '1px',
             backgroundColor: '#e5e7eb',
@@ -389,12 +452,12 @@ const LandingPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          transition={{ duration: 0.6, delay: 0.9, ease: [0.4, 0, 0.2, 1] }}
         >
           <motion.h2 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.9, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.5, delay: 1.0, ease: [0.4, 0, 0.2, 1] }}
             style={{
               fontSize: '16px',
               fontWeight: '600',
@@ -416,7 +479,7 @@ const LandingPage = () => {
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.0, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.5, delay: 1.1, ease: [0.4, 0, 0.2, 1] }}
             onClick={() => handleNavigation('/product-test')}
             style={{
               width: '100%',
@@ -478,7 +541,7 @@ const LandingPage = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 1.1, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ duration: 0.6, delay: 1.2, ease: [0.4, 0, 0.2, 1] }}
         style={{
           marginTop: 'auto',
           display: 'flex',
