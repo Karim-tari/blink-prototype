@@ -87,6 +87,8 @@ const AutobotApp = () => {
   const isNewUserPath = currentPath.includes('/new-user') || currentPath.includes('new-user');
   const isPushNotificationPath = currentPath.includes('/push-notifications') || currentPath.includes('push-notifications');
   const isReturningUserPath = currentPath.includes('/returning-user') || currentPath.includes('returning-user');
+  const isSubscriptionFlowPath = currentPath.includes('/subscription-flow') || currentPath.includes('subscription-flow');
+  const isTasteDiscoveryPath = currentPath.includes('/taste-discovery') || currentPath.includes('taste-discovery');
   const isProductTestPage = currentPath.includes('/product-test') || currentPath.includes('product-test');
   const isLandingPage = currentPath === '/' || currentPath === '/blink-prototype' || currentPath === '/blink-prototype/' || currentPath.endsWith('/blink-prototype');
   
@@ -118,11 +120,13 @@ const AutobotApp = () => {
     isNewUserPath ? 'new' : 
     isReturningUserPath ? 'returning' :
     isPushNotificationPath ? 'returning' :
+    isSubscriptionFlowPath ? 'subscription' :
+    isTasteDiscoveryPath ? 'taste-discovery' :
     'landing' // Landing page doesn't need a user type
-  ); // 'new', 'returning', or 'landing'
+  ); // 'new', 'returning', 'subscription', 'taste-discovery', or 'landing'
   const [showPushNotification, setShowPushNotification] = useState(isPushNotificationPath);
   const [isFromPushNotification, setIsFromPushNotification] = useState(false);
-  const [balance, setBalance] = useState(isNewUserPath ? 0 : 150);
+  const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : 150);
   const [isTyping, setIsTyping] = useState(false);
   const [userProfile, setUserProfile] = useState(
     isNewUserPath ? {
@@ -150,7 +154,70 @@ const AutobotApp = () => {
       },
       totalSpent: 0,
       memberSince: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    } : isSubscriptionFlowPath ? {
+      name: 'Alex',
+      email: 'alex@example.com',
+      phone: '+1 (555) 987-6543',
+      interests: ['fitness', 'nutrition', 'health'],
+      shoeSize: '11',
+      clothingSize: 'L',
+      pantsSize: '34x32',
+      address: '1234 Fitness Ave, Los Angeles, CA 90210',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 300,
+        brandsToAvoid: []
+      },
+      purchaseHistory: [
+        { item: 'Optimum Nutrition Gold Standard Whey Protein', date: 'Just now', price: 45 },
+        { item: 'Nike Training Shoes', date: '1 week ago', price: 120 },
+        { item: 'Resistance Bands Set', date: '2 weeks ago', price: 25 }
+      ],
+      lastPurchasedShoes: 'Nike Training Shoes',
+      lastPurchasedSupplement: 'Optimum Nutrition Gold Standard Whey Protein',
+      preferredBrands: ['Optimum Nutrition', 'Nike', 'Under Armour', 'Dymatize'],
+      favoriteBrands: {
+        fitness: ['Nike', 'Under Armour', 'Adidas'],
+        nutrition: ['Optimum Nutrition', 'Dymatize', 'BSN'],
+        health: ['Nature Made', 'Garden of Life']
+      },
+      totalSpent: 190,
+      memberSince: 'January 2024'
+    } : isTasteDiscoveryPath ? {
+      name: 'Jordan',
+      email: 'jordan@example.com',
+      phone: '+1 (555) 456-7890',
+      interests: ['style', 'fashion', 'discovery'],
+      shoeSize: '9.5',
+      clothingSize: 'M',
+      pantsSize: '32x30',
+      address: '456 Style Street, New York, NY 10001',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 400,
+        brandsToAvoid: []
+      },
+      purchaseHistory: [],
+      lastPurchasedShoes: '',
+      lastPurchasedClothing: '',
+      preferredBrands: [],
+      favoriteBrands: {
+        sneakers: [],
+        streetwear: [],
+        basics: []
+      },
+      totalSpent: 0,
+      memberSince: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      tasteProfile: {
+        discoveredBrands: [],
+        styleContext: '',
+        favoriteColors: [],
+        stylePreference: '', // 'bold' or 'classic'
+        footwearPreference: '', // 'sneakers', 'boots', etc.
+        currentStep: 'brands' // Track where we are in the discovery flow
+      }
     } : {
+      // Default returning user profile (Karim)
       name: 'Karim',
       email: 'karim@example.com',
       phone: '+1 (555) 123-4567',
@@ -195,74 +262,159 @@ const AutobotApp = () => {
   const [waitingForZip, setWaitingForZip] = useState(false); // Track if we're waiting for ZIP code
   const [userZip, setUserZip] = useState(''); // Store user's ZIP code
   const [waitingForSelfie, setWaitingForSelfie] = useState(false); // Track if we're waiting for user's selfie
+  const [pendingSelfieItems, setPendingSelfieItems] = useState(null); // Track items for contextual selfie
   const chatContainerRef = useRef(null);
 
-  // Compliment Engine v1.0
+  // Enhanced Compliment Engine with Brand Intelligence
   const generateCompliment = (item, context = {}) => {
-    const complimentFamilies = {
-      colorForward: [
-        `That {color} looks sharp with your style.`,
-        `{color} is a clean match for you.`,
-        `Nice {color}. Very you.`
+    const brandSpecificCompliments = {
+      // Streetwear
+      'kith': [
+        `Good eye. Kith nails classic and modern.`,
+        `Strong Kith pick. They balance staples with standout pieces.`,
+        `Nice choice. Kith always delivers on quality.`
       ],
-      brandFit: [
-        `{brand} fits your vibe.`,
-        `Strong {brand} pick.`,
-        `Good call on {brand}.`
+      'supreme': [
+        `Supreme collabs move fast. Smart grab.`,
+        `Good call. Supreme pieces hold their value.`,
+        `Clean Supreme pickup.`
       ],
-      vibe: [
-        `Clean, modern look on you.`,
-        `Crisp and easy. You'll wear this a lot.`,
-        `Classic and sharp.`
+      'fear of god': [
+        `Fear of God staples hold up season after season.`,
+        `Smart pick. FOG cuts are always clean.`,
+        `Good taste. Fear of God never misses.`
       ],
-      occasion: [
-        `Great everyday piece.`,
-        `Perfect for the weekend.`,
-        `Nice pickup for travel.`
+      'ald': [
+        `Good eye. ALD nails classic and modern.`,
+        `Strong ALD pick. Their cuts are always sharp.`,
+        `Nice choice. Aimé Leon Dore keeps it refined.`
       ],
-      value: [
-        `Great find at this price.`,
-        `Nice save with that coupon.`,
-        `Best price I'm seeing.`
+      
+      // Sneakers
+      'nike': [
+        `Strong Nike pick. Their collabs move quick.`,
+        `Good call. Nike colorways like this vanish fast.`,
+        `Clean Nike pickup. You'll get a lot of wear.`
       ],
-      dropHeat: [
-        `Hot drop. Good call.`,
-        `This one moves fast.`,
-        `Right pick from the drop.`
+      'jordan': [
+        `Smart Jordan grab. These don't sit long.`,
+        `Good eye. Jordan retros are always solid.`,
+        `Strong pick. Jordan quality speaks for itself.`
+      ],
+      'new balance': [
+        `Good taste. New Balance comfort is unmatched.`,
+        `Smart NB pick. Their collabs are getting harder to find.`,
+        `Clean choice. New Balance quality is consistent.`
+      ],
+      
+      // Luxury
+      'jacquemus': [
+        `Love that. Jacquemus cuts stand out without trying.`,
+        `Good eye. Jacquemus silhouettes are always fresh.`,
+        `Smart pick. Jacquemus pieces are conversation starters.`
+      ],
+      'prada': [
+        `Refined taste. Prada tailoring is sharp.`,
+        `Good call. Prada craftsmanship is unmatched.`,
+        `Clean Prada pick. Timeless and modern.`
+      ],
+      
+      // Basics
+      'cos': [
+        `Smart move. COS staples get the most wear.`,
+        `Good eye. COS keeps it minimal but elevated.`,
+        `Clean choice. COS quality for the price is solid.`
+      ],
+      'toteme': [
+        `Sharp pick. Toteme keeps it minimal but elevated.`,
+        `Good taste. Toteme cuts are always clean.`,
+        `Smart choice. Toteme pieces work with everything.`
       ]
     };
 
-    // Select family based on context
-    let selectedFamily = 'vibe'; // default
-    if (item.color && Math.random() < 0.3) selectedFamily = 'colorForward';
-    else if (item.brand && Math.random() < 0.3) selectedFamily = 'brandFit';
-    else if (context.hasDiscount && Math.random() < 0.4) selectedFamily = 'value';
-    else if (context.isHotDrop && Math.random() < 0.3) selectedFamily = 'dropHeat';
-    else if (Math.random() < 0.2) selectedFamily = 'occasion';
+    const categoryCompliments = {
+      wearables: [
+        `You'll look great in this.`,
+        `Clean look, very you.`,
+        `Sharp pickup, I love this fit.`,
+        `Good taste.`,
+        `Clean pickup.`,
+        `Smart choice.`
+      ],
+      collectibles: [
+        `Strong add to your collection.`,
+        `Clean pickup for your shelf.`,
+        `Good call, this one is hard to get.`,
+        `Smart grab for your collection.`,
+        `Nice find.`
+      ],
+      electronics: [
+        `Perfect timing, these go quickly.`,
+        `Smart pickup, you'll use this a lot.`,
+        `Good call, this one sells fast.`,
+        `Clean choice.`,
+        `Smart grab.`
+      ],
+      subscriptions: [
+        `Smart move, this keeps you stocked.`,
+        `Good call, no more running out.`,
+        `Nice choice, this will keep things easy.`,
+        `Smart pickup for consistency.`
+      ]
+    };
 
-    // Avoid repeating recent compliments
-    const availableCompliments = complimentFamilies[selectedFamily].filter(
+    // Determine item category
+    const getItemCategory = (item) => {
+      const title = item.title?.toLowerCase() || '';
+      const category = item.category?.toLowerCase() || '';
+      
+      if (title.includes('hoodie') || title.includes('shirt') || title.includes('jacket') || 
+          title.includes('pants') || title.includes('shoes') || title.includes('sneaker') ||
+          category.includes('clothing') || category.includes('fashion')) {
+        return 'wearables';
+      }
+      if (title.includes('lego') || title.includes('figure') || title.includes('collectible') ||
+          title.includes('card') || title.includes('toy')) {
+        return 'collectibles';
+      }
+      if (title.includes('laptop') || title.includes('phone') || title.includes('headphone') ||
+          title.includes('monitor') || title.includes('console') || category.includes('electronics')) {
+        return 'electronics';
+      }
+      if (title.includes('subscription') || title.includes('monthly') || category.includes('subscription')) {
+        return 'subscriptions';
+      }
+      return 'wearables'; // default
+    };
+
+    const itemCategory = getItemCategory(item);
+    const brandKey = item.brand?.toLowerCase() || '';
+    
+    // Try brand-specific compliment first
+    if (brandSpecificCompliments[brandKey]) {
+      const brandCompliments = brandSpecificCompliments[brandKey].filter(
+        comp => !recentCompliments.includes(comp)
+      );
+      
+      if (brandCompliments.length > 0) {
+        const compliment = brandCompliments[Math.floor(Math.random() * brandCompliments.length)];
+        setRecentCompliments(prev => [...prev.slice(-4), compliment]);
+        return compliment;
+      }
+    }
+    
+    // Fall back to category compliments
+    const categoryOptions = categoryCompliments[itemCategory] || categoryCompliments.wearables;
+    const availableCompliments = categoryOptions.filter(
       comp => !recentCompliments.includes(comp)
     );
     
-    if (availableCompliments.length === 0) {
-      // If all used, reset and use vibe family
-      setRecentCompliments([]);
-      selectedFamily = 'vibe';
-    }
-
-    const templates = availableCompliments.length > 0 ? availableCompliments : complimentFamilies[selectedFamily];
-    const template = templates[Math.floor(Math.random() * templates.length)];
+    const finalCompliments = availableCompliments.length > 0 ? availableCompliments : categoryOptions;
+    const compliment = finalCompliments[Math.floor(Math.random() * finalCompliments.length)];
     
-    // Replace placeholders
-    let compliment = template
-      .replace('{color}', item.color || 'color')
-      .replace('{brand}', item.brand || item.retailer || 'brand')
-      .replace('{Color}', (item.color || 'Color').charAt(0).toUpperCase() + (item.color || 'color').slice(1));
-
     // Track this compliment
-    setRecentCompliments(prev => [...prev.slice(-9), template]); // Keep last 10
-
+    setRecentCompliments(prev => [...prev.slice(-4), compliment]);
+    
     return compliment;
   };
 
@@ -362,10 +514,9 @@ const AutobotApp = () => {
     if (!hasInitializedMessages) {
       if (userType === 'new') {
         setTimeout(() => {
-          const newUserMessage = `Hey! I am Blink, your AI personal shopper. I can buy anything for you on the internet.\n\nSend a link, a photo, or tell me what you want. I will find the best price and check out for you.\n\nFirst, what is your ZIP so I can quote the real all in price with tax and shipping?`;
+          const newUserMessage = `I can buy anything for you on the internet. Send me a link, a photo, or tell me what you want.`;
           addAutobotMessage(newUserMessage);
           setHasInitializedMessages(true);
-          setWaitingForZip(true);
         }, 1000);
       } else if (currentFlow === 'chat' && userType === 'returning') {
         setTimeout(() => {
@@ -383,6 +534,28 @@ const AutobotApp = () => {
             addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying your new Les Paul guitar from yesterday! You picked a great one! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
             setHasInitializedMessages(true);
           }
+        }, 1000);
+      } else if (currentFlow === 'chat' && userType === 'subscription') {
+        // Subscription flow - simulate completed protein powder order
+        setTimeout(() => {
+          addAutobotMessage("Order complete! Your protein powder will arrive Thursday.");
+          setHasInitializedMessages(true);
+          
+          // Show subscription nudge after 3 seconds
+          setTimeout(() => {
+            handleSubscriptionNudge({
+              item: {
+                title: 'Optimum Nutrition Gold Standard Whey Protein',
+                category: 'nutrition'
+              }
+            });
+          }, 3000);
+        }, 1000);
+      } else if (currentFlow === 'chat' && userType === 'taste-discovery') {
+        // Taste Discovery flow - start with brand discovery
+        setTimeout(() => {
+          addAutobotMessage("Hey! I'm here to help you discover your style. Any brands you're into right now?");
+          setHasInitializedMessages(true);
         }, 1000);
       }
     }
@@ -484,7 +657,7 @@ const AutobotApp = () => {
     const contextualMessages = {
       shoes: isReturningUser ? [
         `Perfect! I've got some size ${userProfile.shoeSize} options for you 👟`,
-        `Here's what I found in your size ${userProfile.shoeSize}`,
+        `Here are some great size ${userProfile.shoeSize} options`,
         `Got some great size ${userProfile.shoeSize} picks!`
       ] : [
         `Shoes! 👟 What size should I look for?`,
@@ -571,9 +744,394 @@ const AutobotApp = () => {
     return messages[Math.floor(Math.random() * messages.length)];
   };
 
+  // Funding intent detection - determines if user wants to add funds
+  const isFundingIntent = (message) => {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    const fundingKeywords = [
+      'fund my account', 'add funds', 'add money', 'fund account', 'top up',
+      'reload', 'deposit', 'add balance', 'fund my balance', 'add to balance',
+      'put money', 'add cash', 'load money', 'charge my account', 'funding',
+      'fund', 'balance', 'money', 'deposit money', 'add credit'
+    ];
+    
+    return fundingKeywords.some(keyword => lowerMessage.includes(keyword));
+  };
+
+  // Subscription intent detection - determines if user wants to set up a subscription
+  const isSubscriptionIntent = (message) => {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    const subscriptionKeywords = [
+      'subscription', 'subscribe', 'keep me stocked', 'auto order', 'recurring',
+      'monthly delivery', 'regular delivery', 'automatic', 'never run out',
+      'keep ordering', 'set up delivery', 'monthly order', 'repeat order',
+      'auto-ship', 'subscribe me', 'monthly supply', 'regular supply'
+    ];
+    
+    return subscriptionKeywords.some(keyword => lowerMessage.includes(keyword));
+  };
+
+  // Subscription response detection - determines if user is responding to subscription offer
+  const isSubscriptionResponse = (message) => {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    const positiveResponses = [
+      'yeah', 'yes', 'yep', 'sure', 'go for it', 'sounds good', 'let\'s do it',
+      'that works', 'perfect', 'great', 'awesome', 'do it', 'set it up',
+      'make it happen', 'go ahead', 'absolutely', 'definitely', 'for sure'
+    ];
+    
+    const negativeResponses = [
+      'no', 'nah', 'not now', 'maybe later', 'not interested', 'skip',
+      'not right now', 'pass', 'no thanks', 'not today', 'later'
+    ];
+    
+    const isPositive = positiveResponses.some(response => lowerMessage.includes(response));
+    const isNegative = negativeResponses.some(response => lowerMessage.includes(response));
+    
+    return { isPositive, isNegative, isResponse: isPositive || isNegative };
+  };
+
+  // Intent detection - determines if user is searching for products or just chatting
+  const isProductSearchIntent = (message) => {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    // Clear product search indicators
+    const productKeywords = [
+      'find', 'search', 'look for', 'want', 'need', 'buy', 'get me', 'show me',
+      'looking for', 'shopping for', 'interested in', 'can you find',
+      'help me find', 'can you help me find',
+      'shoes', 'shirt', 'pants', 'jacket', 'hoodie', 'sneakers', 'boots',
+      'laptop', 'phone', 'headphones', 'watch', 'bag', 'backpack'
+    ];
+    
+    // Brand names and collections - these are almost always product searches
+    const brandNames = [
+      'nike', 'adidas', 'apple', 'samsung', 'sony', 'microsoft', 'lego', 'jordan',
+      'kith', 'supreme', 'off-white', 'yeezy', 'balenciaga', 'gucci', 'louis vuitton'
+    ];
+    
+    // Collection/drop keywords - strong indicators of product searches
+    const collectionKeywords = [
+      'collection', 'drop', 'release', 'collab', 'collaboration', 'x ', 'edition',
+      'line', 'series', 'capsule', 'launch', 'new drop', 'latest drop'
+    ];
+    
+    // Conversational/dismissive indicators
+    const conversationalKeywords = [
+      'nah', 'no', 'not now', 'later', 'maybe later', 'skip', 'pass',
+      'not interested', 'not right now', 'another time', 'good', 'cool',
+      'okay', 'thanks', 'alright', 'sure', 'yeah', 'yep', 'hi', 'hello',
+      'how are you', 'what\'s up', 'hey', 'sup', 'yo'
+    ];
+    
+    // Check for brand + collection combinations (very strong indicator)
+    const hasBrand = brandNames.some(brand => lowerMessage.includes(brand));
+    const hasCollection = collectionKeywords.some(keyword => lowerMessage.includes(keyword));
+    
+    if (hasBrand && hasCollection) {
+      return true; // "kith jaws collection", "nike jordan drop", etc.
+    }
+    
+    // Check for brand names alone (also strong indicator)
+    if (hasBrand) {
+      // But make sure it's not just a casual mention
+      const casualBrandMentions = [
+        'i like', 'i love', 'i hate', 'not a fan of', 'what do you think of'
+      ];
+      const isCasualMention = casualBrandMentions.some(phrase => lowerMessage.includes(phrase));
+      if (!isCasualMention) {
+        return true; // "kith jaws", "nike air max", etc.
+      }
+    }
+    
+    // Check for collection keywords alone
+    if (hasCollection) {
+      return true; // "new drop", "latest collection", etc.
+    }
+    
+    // Check for conversational patterns first (but only if no product indicators)
+    if (conversationalKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      // But still check if they're asking for products despite conversational tone
+      if (productKeywords.some(keyword => lowerMessage.includes(keyword))) {
+        return true; // "nah, but can you find me shoes" should still search
+      }
+      return false;
+    }
+    
+    // Check for clear product search intent
+    if (productKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      return true;
+    }
+    
+    // If message is very short and ambiguous, assume conversational
+    if (lowerMessage.length < 10 && !hasBrand && !hasCollection) {
+      return false;
+    }
+    
+    // Default to product search for longer, specific messages
+    return lowerMessage.length > 25;
+  };
+
+  // Check if search is for wearable items that would benefit from selfie
+  const isWearableSearch = (searchTerm) => {
+    const lowerTerm = searchTerm.toLowerCase();
+    const wearableKeywords = [
+      'shirt', 'shirts', 't-shirt', 'tshirt', 'tee', 'top', 'blouse',
+      'hoodie', 'hoodies', 'sweatshirt', 'sweater', 'cardigan',
+      'jacket', 'jackets', 'coat', 'blazer', 'vest',
+      'pants', 'jeans', 'trousers', 'shorts', 'leggings',
+      'dress', 'dresses', 'skirt', 'skirts',
+      'shoes', 'sneakers', 'boots', 'sandals', 'heels',
+      'hat', 'hats', 'cap', 'caps', 'beanie',
+      'jewelry', 'necklace', 'bracelet', 'earrings',
+      'bag', 'bags', 'backpack', 'purse', 'handbag',
+      'clothes', 'clothing', 'outfit', 'fashion', 'apparel',
+      'collection' // Many fashion collections like "kith jaws collection"
+    ];
+    
+    // Also check for known fashion brands/collections that are typically wearable
+    const fashionBrands = ['kith', 'supreme', 'off-white', 'yeezy'];
+    const hasFashionBrand = fashionBrands.some(brand => lowerTerm.includes(brand));
+    
+    const hasWearableKeyword = wearableKeywords.some(keyword => lowerTerm.includes(keyword));
+    
+    console.log('🔍 Wearable Detection:', {
+      searchTerm,
+      lowerTerm,
+      hasWearableKeyword,
+      hasFashionBrand,
+      result: hasWearableKeyword || hasFashionBrand
+    });
+    
+    return hasWearableKeyword || hasFashionBrand;
+  };
+
+  // Comprehensive address validation for shipping
+  const validateShippingAddress = (address) => {
+    const trimmedAddress = address.trim();
+    
+    // Basic length check
+    if (trimmedAddress.length < 20) {
+      return {
+        isValid: false,
+        error: "Please provide a complete address including street, city, state/province, and postal code."
+      };
+    }
+    
+    // Check for required components
+    const hasNumbers = /\d/.test(trimmedAddress);
+    const hasCommas = trimmedAddress.includes(',') || trimmedAddress.split(/\s+/).length >= 4;
+    
+    // US ZIP code pattern
+    const usZipPattern = /\b\d{5}(-\d{4})?\b/;
+    // Canadian postal code pattern
+    const canadianPostalPattern = /\b[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d\b/;
+    // UK postcode pattern (basic)
+    const ukPostcodePattern = /\b[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}\b/;
+    
+    const hasPostalCode = usZipPattern.test(trimmedAddress) || 
+                         canadianPostalPattern.test(trimmedAddress) ||
+                         ukPostcodePattern.test(trimmedAddress);
+    
+    // Common state abbreviations and full names
+    const usStates = [
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+    ];
+    
+    // Canadian provinces
+    const canadianProvinces = [
+      'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT',
+      'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Nova Scotia', 'Northwest Territories', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'
+    ];
+    
+    const hasState = usStates.some(state => 
+      trimmedAddress.toLowerCase().includes(state.toLowerCase())
+    ) || canadianProvinces.some(province => 
+      trimmedAddress.toLowerCase().includes(province.toLowerCase())
+    );
+    
+    // Check for common address components
+    if (!hasNumbers) {
+      return {
+        isValid: false,
+        error: "Please include a street number in your address."
+      };
+    }
+    
+    if (!hasPostalCode) {
+      return {
+        isValid: false,
+        error: "Please include a valid ZIP code or postal code."
+      };
+    }
+    
+    if (!hasState && !canadianPostalPattern.test(trimmedAddress)) {
+      return {
+        isValid: false,
+        error: "Please include your state or province."
+      };
+    }
+    
+    // Check for common incomplete patterns
+    const incompletePatterns = [
+      /^[\d\s]+$/, // Only numbers and spaces
+      /^[A-Za-z\s]+$/, // Only letters and spaces
+      /^\d+\s+[A-Za-z]+\s*$/ // Just number + street name
+    ];
+    
+    if (incompletePatterns.some(pattern => pattern.test(trimmedAddress))) {
+      return {
+        isValid: false,
+        error: "Please provide your complete address including street, city, state, and ZIP code."
+      };
+    }
+    
+    return {
+      isValid: true,
+      address: trimmedAddress
+    };
+  };
+
+  // Generate conversational responses for non-search messages
+  const getConversationalResponse = (message, context = {}) => {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    // Responses for declining selfie
+    if (context.waitingForSelfie) {
+      const selfieDeclineResponses = [
+        "No worries! You can always send a photo later if you want to see how clothes look on you.",
+        "That's cool! Just let me know what you're looking for and I'll find some great options.",
+        "All good! What can I help you find today?",
+        "No problem! Tell me what you're shopping for and I'll get started."
+      ];
+      return selfieDeclineResponses[Math.floor(Math.random() * selfieDeclineResponses.length)];
+    }
+    
+    // Taste discovery for indecisive users
+    if (lowerMessage.includes("don't know") || lowerMessage.includes("not sure") || 
+        lowerMessage.includes("anything") || lowerMessage.includes("surprise me") ||
+        lowerMessage.includes("what should i") || lowerMessage.includes("help me choose")) {
+      
+      const tasteDiscoveryQuestions = [
+        "Any brands you're into right now?",
+        "Are you shopping for something specific, like a date, the office, or just everyday fits?",
+        "Do you have favorite colors you wear a lot?",
+        "Do you want something bold, or more low-key and classic?",
+        "I can show you clean Nike fits, or we could explore newer streetwear labels. What sounds better?"
+      ];
+      
+      return tasteDiscoveryQuestions[Math.floor(Math.random() * tasteDiscoveryQuestions.length)];
+    }
+    
+    // Funding requests in conversational context - handled by main intent detection
+    if (lowerMessage.includes('fund') || lowerMessage.includes('add money') || lowerMessage.includes('balance') || 
+        lowerMessage.includes('deposit') || lowerMessage.includes('top up') || lowerMessage.includes('reload')) {
+      return "Let me help you add funds to your account.";
+    }
+    
+    // Brand mention responses with tracking offer
+    if (lowerMessage.includes('kith') || lowerMessage.includes('supreme') || lowerMessage.includes('nike') || 
+        lowerMessage.includes('jordan') || lowerMessage.includes('fear of god') || lowerMessage.includes('ald')) {
+      return "Nice choice. I'll keep an eye on their drops so you don't have to dig through emails — I'll just send you the pieces worth seeing. What are you looking for from them?";
+    }
+    
+    // General conversational responses
+    if (lowerMessage.includes('good') || lowerMessage.includes('cool') || lowerMessage.includes('nice')) {
+      return "Glad you think so! What can I help you find today?";
+    }
+    
+    if (lowerMessage.includes('thanks') || lowerMessage.includes('thank you')) {
+      return "You're welcome! Let me know if you need anything.";
+    }
+    
+    if (lowerMessage.includes('hi') || lowerMessage.includes('hello') || lowerMessage.includes('hey')) {
+      return "Hey! What can I help you find today?";
+    }
+    
+    // Default conversational response
+    const generalResponses = [
+      "I'm here when you're ready to shop! What are you looking for?",
+      "Just let me know what you need and I'll find it for you.",
+      "What can I help you find today?",
+      "Ready to shop? Tell me what you're looking for!"
+    ];
+    
+    return generalResponses[Math.floor(Math.random() * generalResponses.length)];
+  };
+
+  // Compliment engine based on product category
+  const getCompliment = (item) => {
+    const title = item.title?.toLowerCase() || '';
+    const category = item.category?.toLowerCase() || '';
+    
+    // Determine product type
+    const isWearable = title.includes('shirt') || title.includes('hoodie') || title.includes('jacket') || 
+                      title.includes('shoes') || title.includes('sneakers') || title.includes('hat') || 
+                      title.includes('cap') || title.includes('jeans') || title.includes('pants') ||
+                      category.includes('fashion') || category.includes('clothing');
+    
+    const isCollectible = title.includes('lego') || title.includes('figure') || title.includes('collectible') ||
+                         title.includes('card') || title.includes('toy') || category.includes('collectible');
+    
+    const isElectronics = title.includes('phone') || title.includes('laptop') || title.includes('headphones') ||
+                         title.includes('ps5') || title.includes('xbox') || title.includes('switch') ||
+                         category.includes('electronics');
+    
+    if (isWearable) {
+      const wearableCompliments = [
+        "You'll look great in this!",
+        "Clean look, very you.",
+        "Sharp pickup, I love this fit.",
+        "Sharp look.",
+        "Clean fit.",
+        "Love this color on you."
+      ];
+      return wearableCompliments[Math.floor(Math.random() * wearableCompliments.length)];
+    } else if (isCollectible) {
+      const collectibleCompliments = [
+        "Strong add to your collection.",
+        "Clean pickup for your shelf.",
+        "Good call, this one is hard to get.",
+        "Great pickup for your shelf.",
+        "Hot release, glad we got it."
+      ];
+      return collectibleCompliments[Math.floor(Math.random() * collectibleCompliments.length)];
+    } else if (isElectronics) {
+      const electronicsCompliments = [
+        "Perfect timing, these go quickly.",
+        "Smart pickup, you'll use this a lot.",
+        "Good call, this one sells fast.",
+        "Perfect timing.",
+        "Smart pickup."
+      ];
+      return electronicsCompliments[Math.floor(Math.random() * electronicsCompliments.length)];
+    } else {
+      // General/subscription compliments
+      const generalCompliments = [
+        "Smart move, this keeps you stocked.",
+        "Good call, no more running out.",
+        "Nice choice, this will keep things easy.",
+        "Smart pickup.",
+        "Good call."
+      ];
+      return generalCompliments[Math.floor(Math.random() * generalCompliments.length)];
+    }
+  };
+
   const triggerSearchResults = (userRequest, type) => {
     // Parse user request to determine what they're looking for
     const request = userRequest.toLowerCase();
+    
+    // Debug logging for selfie detection
+    console.log('🔍 triggerSearchResults called:', {
+      userRequest,
+      type,
+      isWearable: isWearableSearch(userRequest),
+      hasUserImage: !!userImage
+    });
     
     // Debug logging for all searches
     console.log('🔍 Search Debug:', {
@@ -1257,12 +1815,42 @@ const AutobotApp = () => {
         const nudges = ["Want me to grab it now?", "Should I hold this for you?", "Ready to order?"];
         const nudge = nudges[Math.floor(Math.random() * nudges.length)];
         addAutobotMessage(`Found it! ${compliment} ${nudge}`, 'search-result', finalResults[0]);
+        
+        // Add contextual selfie offer for wearable items (only if user hasn't uploaded one yet)
+        console.log('🔍 Selfie Debug (Single Result):', {
+          userRequest,
+          isWearable: isWearableSearch(userRequest),
+          hasUserImage: !!userImage,
+          shouldShowSelfieOffer: isWearableSearch(userRequest) && !userImage
+        });
+        if (isWearableSearch(userRequest) && !userImage) {
+          setTimeout(() => {
+            addAutobotMessage("Do you want to see how you look in it? Upload a picture and I'll show you! 📸");
+            setWaitingForSelfie(true);
+            setPendingSelfieItems([finalResults[0]]); // Store only the single item shown
+          }, 2000);
+        }
       } else if (finalResults.length <= 3) {
         // Show all results if 3 or fewer, no "View more" button needed
         const message = userImage ? 
           `Found ${finalResults.length} good options with virtual try-on! 🎭` : 
           `Found ${finalResults.length} good options:`;
         addAutobotMessage(message, 'search-results', { results: finalResults, showViewMore: false, searchTerm: userRequest });
+        
+        // Add contextual selfie offer for wearable items (only if user hasn't uploaded one yet)
+        console.log('🔍 Selfie Debug (Multiple Results):', {
+          userRequest,
+          isWearable: isWearableSearch(userRequest),
+          hasUserImage: !!userImage,
+          shouldShowSelfieOffer: isWearableSearch(userRequest) && !userImage
+        });
+        if (isWearableSearch(userRequest) && !userImage) {
+          setTimeout(() => {
+            addAutobotMessage("Do you want to see how you look in them? Upload a picture and I'll show you! 📸");
+            setWaitingForSelfie(true);
+            setPendingSelfieItems(finalResults); // Store all items shown (2-3 items)
+          }, 2000);
+        }
       } else {
         // Show first 3 results with "View more" button for the rest
         const chatResults = finalResults.slice(0, 3);
@@ -1277,6 +1865,21 @@ const AutobotApp = () => {
           allResults: finalResults,
           searchTerm: userRequest 
         });
+        
+        // Add contextual selfie offer for wearable items (only if user hasn't uploaded one yet)
+        console.log('🔍 Selfie Debug (Multiple Results):', {
+          userRequest,
+          isWearable: isWearableSearch(userRequest),
+          hasUserImage: !!userImage,
+          shouldShowSelfieOffer: isWearableSearch(userRequest) && !userImage
+        });
+        if (isWearableSearch(userRequest) && !userImage) {
+          setTimeout(() => {
+            addAutobotMessage("Do you want to see how you look in them? Upload a picture and I'll show you! 📸");
+            setWaitingForSelfie(true);
+            setPendingSelfieItems(chatResults); // Store only the 3 items actually shown
+          }, 2000);
+        }
       }
     }, 1000);
   };
@@ -1348,7 +1951,7 @@ const AutobotApp = () => {
           addAutobotMessage("Great choice! 🎯 To complete your order, I'll need your name.\n\nWhat should I call you?", 'collect-name');
           return;
         } else if (!userProfile.address) {
-          addAutobotMessage("Perfect! Now I'll need your shipping address.", 'collect-address');
+          addAutobotMessage("Ready to lock it in? Please give me your full shipping address (street, city, state, ZIP code) and I'll reserve one for you.", 'collect-address');
           return;
         }
       }
@@ -1374,7 +1977,7 @@ const AutobotApp = () => {
         addAutobotMessage("Great choice! 🎯 To complete your order, I'll need your name.\n\nWhat should I call you?", 'collect-name');
         return;
       } else if (!userProfile.address) {
-        addAutobotMessage("Perfect! Now I'll need your shipping address.", 'collect-address');
+        addAutobotMessage("Ready to lock it in? Please give me your full shipping address (street, city, state, ZIP code) and I'll reserve one for you.", 'collect-address');
         return;
       }
     }
@@ -1462,12 +2065,18 @@ const AutobotApp = () => {
         couponSavings: couponSavings,
         total: finalTotal,
         orderNumber: orderNumber,
-        arrivalDay: arrivalDay
+        arrivalDay: arrivalDay,
+        compliment: getCompliment(orderData.item)
       });
       
       // Add 2-minute cancel/change window message
       setTimeout(() => {
         addAutobotMessage(`You have 2 minutes to cancel or make changes. Just message me if you need anything!`);
+        
+        // Add 1-minute reminder
+        setTimeout(() => {
+          addAutobotMessage(`Your order will be finalized in 1 minute. Message me now if you need to make any changes!`);
+        }, 60000); // 1 minute later
       }, 3000);
     }, 2000);
   };
@@ -1502,7 +2111,7 @@ const AutobotApp = () => {
       addAutobotMessage(`Perfect! I can see you want me to buy this item from the link. Let me grab the details...`);
       
       setTimeout(() => {
-        addAutobotMessage(`Got it! Here's what I found:`, 'url-product', {
+        addAutobotMessage(`Got it! Here's the product:`, 'url-product', {
           product: productInfo,
           originalUrl: url,
           originalMessage: originalMessage
@@ -1573,6 +2182,335 @@ const AutobotApp = () => {
     };
   };
 
+  // Handle subscription requests
+  const handleSubscriptionRequest = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Check if they mentioned a specific product
+    let product = 'protein powder'; // default
+    if (lowerMessage.includes('protein')) product = 'protein powder';
+    else if (lowerMessage.includes('vitamin') || lowerMessage.includes('supplement')) product = 'vitamins';
+    else if (lowerMessage.includes('coffee')) product = 'coffee';
+    else if (lowerMessage.includes('skincare') || lowerMessage.includes('beauty')) product = 'skincare';
+    
+    // Special demo trigger - simulate protein powder order completion
+    if (lowerMessage.includes('demo subscription') || lowerMessage.includes('test subscription')) {
+      // Simulate an order completion first
+      setTimeout(() => {
+        addAutobotMessage("Order complete! Your protein powder will arrive Thursday.");
+        
+        // Then show subscription nudge
+        setTimeout(() => {
+          handleSubscriptionNudge({
+            item: {
+              title: 'Optimum Nutrition Gold Standard Whey Protein',
+              category: 'nutrition'
+            }
+          });
+        }, 2000);
+      }, 1000);
+      return;
+    }
+    
+    addAutobotMessage(`Perfect! I can set up a ${product} subscription for you. You can skip, change, or cancel any time.`, 'subscription-setup', {
+      product: product,
+      step: 'initial'
+    });
+  };
+
+  // Handle subscription nudge after order completion
+  const handleSubscriptionNudge = (orderData) => {
+    const item = orderData.item;
+    const isSubscriptionEligible = item.title?.toLowerCase().includes('protein') || 
+                                  item.title?.toLowerCase().includes('vitamin') ||
+                                  item.title?.toLowerCase().includes('supplement') ||
+                                  item.title?.toLowerCase().includes('coffee') ||
+                                  item.category?.toLowerCase().includes('health') ||
+                                  item.category?.toLowerCase().includes('nutrition');
+    
+    if (isSubscriptionEligible) {
+      setTimeout(() => {
+        addAutobotMessage("Want me to set this up as a subscription so you never run out? You can skip, change, or cancel any time.");
+      }, 3000); // Show nudge 3 seconds after order completion
+    }
+  };
+
+  // Handle subscription setup responses
+  const handleSubscriptionSetup = (response, data) => {
+    if (response === 'yes') {
+      addAutobotMessage(`Perfect! Your ${data.product} subscription is now active. I'll remind you each month before it renews. You can skip, change, or cancel any time.`, 'subscription-confirmation', {
+        product: data.product,
+        frequency: 'monthly',
+        nextDelivery: 'in 30 days'
+      });
+    } else {
+      addAutobotMessage("No problem! You can always set up a subscription later if you change your mind.");
+    }
+  };
+
+  // Handle subscription nudge responses
+  const handleSubscriptionNudgeResponse = (response, data) => {
+    if (response === 'yes') {
+      addAutobotMessage(`Great! Your ${data.item.title} subscription is now active. I'll remind you each month before it renews. You can skip, change, or cancel any time.`, 'subscription-confirmation', {
+        product: data.item.title,
+        frequency: 'monthly',
+        nextDelivery: 'in 30 days'
+      });
+    } else {
+      addAutobotMessage("No worries! You can always set up a subscription later if you need it.");
+    }
+  };
+
+  // Handle taste discovery flow responses
+  const handleTasteDiscoveryResponse = (message) => {
+    const lowerMessage = message.toLowerCase().trim();
+    const currentStep = userProfile.tasteProfile?.currentStep || 'brands';
+
+    if (currentStep === 'brands') {
+      // Check if they mentioned specific brands
+      const mentionedBrands = detectMentionedBrands(message);
+      
+      if (mentionedBrands.length > 0) {
+        // They mentioned brands - compliment and track
+        const brandCompliment = getBrandCompliment(mentionedBrands[0]);
+        const trackingMessage = `Nice choice. I'll keep an eye on ${mentionedBrands.join(', ')} so you don't have to dig through emails — I'll just send you the pieces worth seeing.`;
+        
+        setTimeout(() => {
+          addAutobotMessage(`${brandCompliment} ${trackingMessage}`);
+          
+          // Update user profile with discovered brands
+          setUserProfile(prev => ({
+            ...prev,
+            tasteProfile: {
+              ...prev.tasteProfile,
+              discoveredBrands: mentionedBrands,
+              currentStep: 'context'
+            }
+          }));
+          
+          // Move to context question with confirmation
+          setTimeout(() => {
+            addAutobotMessage("Got it, I'm tracking those for you.");
+            setTimeout(() => {
+              addAutobotMessage("Are you shopping for something specific, like a date, the office, or just everyday fits?");
+            }, 1500);
+          }, 2000);
+        }, 1000);
+      } else {
+        // No brands mentioned - pivot to context
+        setTimeout(() => {
+          addAutobotMessage("Are you shopping for something specific, like a date, the office, or just everyday fits?");
+          
+          setUserProfile(prev => ({
+            ...prev,
+            tasteProfile: {
+              ...prev.tasteProfile,
+              currentStep: 'context'
+            }
+          }));
+        }, 1000);
+      }
+    } else if (currentStep === 'context') {
+      // Store context and move to color preferences
+      const contextConfirmation = getContextConfirmation(message);
+      
+      setTimeout(() => {
+        addAutobotMessage(contextConfirmation);
+        
+        setUserProfile(prev => ({
+          ...prev,
+          tasteProfile: {
+            ...prev.tasteProfile,
+            styleContext: message,
+            currentStep: 'colors'
+          }
+        }));
+        
+        setTimeout(() => {
+          addAutobotMessage("Do you have favorite colors you wear a lot?");
+        }, 1500);
+      }, 1000);
+    } else if (currentStep === 'colors') {
+      // Store colors and move to style preference
+      const colors = extractColors(message);
+      const colorConfirmation = getColorConfirmation(colors, message);
+      
+      setTimeout(() => {
+        addAutobotMessage(colorConfirmation);
+        
+        setUserProfile(prev => ({
+          ...prev,
+          tasteProfile: {
+            ...prev.tasteProfile,
+            favoriteColors: colors,
+            currentStep: 'style'
+          }
+        }));
+        
+        setTimeout(() => {
+          addAutobotMessage("Do you want something bold, or more low-key and classic?");
+        }, 1500);
+      }, 1000);
+    } else if (currentStep === 'style') {
+      // Store style preference and move to footwear
+      const stylePreference = lowerMessage.includes('bold') ? 'bold' : 'classic';
+      const styleConfirmation = getStyleConfirmation(stylePreference);
+      
+      setTimeout(() => {
+        addAutobotMessage(styleConfirmation);
+        
+        setUserProfile(prev => ({
+          ...prev,
+          tasteProfile: {
+            ...prev.tasteProfile,
+            stylePreference: stylePreference,
+            currentStep: 'footwear'
+          }
+        }));
+        
+        setTimeout(() => {
+          addAutobotMessage("Do you usually go for sneakers, boots, or something else on your feet?");
+        }, 1500);
+      }, 1000);
+    } else if (currentStep === 'footwear') {
+      // Store footwear and provide final recommendations
+      const footwearConfirmation = getFootwearConfirmation(message);
+      
+      setTimeout(() => {
+        addAutobotMessage(footwearConfirmation);
+        
+        setUserProfile(prev => ({
+          ...prev,
+          tasteProfile: {
+            ...prev.tasteProfile,
+            footwearPreference: message,
+            currentStep: 'complete'
+          }
+        }));
+        
+        setTimeout(() => {
+          const recommendations = generateStyleRecommendations(userProfile.tasteProfile, message);
+          addAutobotMessage(recommendations);
+        }, 1500);
+      }, 1000);
+    }
+  };
+
+  // Detect mentioned brands in user message
+  const detectMentionedBrands = (message) => {
+    const lowerMessage = message.toLowerCase();
+    const brands = [
+      'nike', 'adidas', 'jordan', 'supreme', 'kith', 'fear of god', 'essentials',
+      'stone island', 'off-white', 'balenciaga', 'gucci', 'prada', 'uniqlo',
+      'cos', 'toteme', 'jacquemus', 'new balance', 'asics', 'vans', 'converse'
+    ];
+    
+    return brands.filter(brand => lowerMessage.includes(brand));
+  };
+
+  // Get brand-specific compliment
+  const getBrandCompliment = (brand) => {
+    const brandCompliments = {
+      'nike': "Good eye. Nike nails the balance between performance and style.",
+      'adidas': "Smart choice. Adidas has that clean, timeless appeal.",
+      'jordan': "Classic pick. Jordan never goes out of style.",
+      'supreme': "Strong taste. Supreme knows how to make a statement.",
+      'kith': "Good eye. Kith nails classic and modern.",
+      'fear of god': "Elevated choice. Fear of God Essentials hits different.",
+      'stone island': "Quality pick. Stone Island is next level craftsmanship.",
+      'off-white': "Bold choice. Off-White brings that creative edge.",
+      'uniqlo': "Smart pick. Uniqlo does quality basics right.",
+      'cos': "Clean taste. COS has that minimalist appeal."
+    };
+    
+    return brandCompliments[brand.toLowerCase()] || "Great choice.";
+  };
+
+  // Extract colors from user message
+  const extractColors = (message) => {
+    const lowerMessage = message.toLowerCase();
+    const colors = ['black', 'white', 'gray', 'grey', 'blue', 'red', 'green', 'brown', 'beige', 'navy', 'olive'];
+    return colors.filter(color => lowerMessage.includes(color));
+  };
+
+  // Generate final style recommendations
+  const generateStyleRecommendations = (tasteProfile, footwearMessage) => {
+    const { discoveredBrands, styleContext, stylePreference } = tasteProfile;
+    
+    if (discoveredBrands.length > 0) {
+      const primaryBrand = discoveredBrands[0];
+      if (stylePreference === 'bold') {
+        return `I can show you standout ${primaryBrand} pieces, or we could explore newer streetwear labels that match your bold style. What sounds better?`;
+      } else {
+        return `I can show you clean ${primaryBrand} fits, or we could look at more classic pieces that work for ${styleContext}. What sounds better?`;
+      }
+    } else {
+      if (stylePreference === 'bold') {
+        return "I can show you bold streetwear pieces, or we could explore statement accessories. What sounds better?";
+      } else {
+        return "I can show you clean, classic fits, or we could focus on versatile basics. What sounds better?";
+      }
+    }
+  };
+
+  // Generate context confirmation messages
+  const getContextConfirmation = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('date')) {
+      return "Perfect, date night vibes. Got it.";
+    } else if (lowerMessage.includes('office') || lowerMessage.includes('work')) {
+      return "Nice, professional looks. I'm on it.";
+    } else if (lowerMessage.includes('everyday') || lowerMessage.includes('casual')) {
+      return "Cool, everyday essentials. Makes sense.";
+    } else if (lowerMessage.includes('party') || lowerMessage.includes('night out')) {
+      return "Got it, something for going out.";
+    } else {
+      return "Perfect, I understand the vibe.";
+    }
+  };
+
+  // Generate color confirmation messages
+  const getColorConfirmation = (colors, originalMessage) => {
+    if (colors.length > 0) {
+      if (colors.length === 1) {
+        return `${colors[0].charAt(0).toUpperCase() + colors[0].slice(1)} - solid choice.`;
+      } else {
+        return `${colors.join(', ')} - good palette.`;
+      }
+    } else {
+      // If no specific colors detected, give a general confirmation
+      return "Got your color preferences.";
+    }
+  };
+
+  // Generate style confirmation messages
+  const getStyleConfirmation = (stylePreference) => {
+    if (stylePreference === 'bold') {
+      return "Bold it is. I like that energy.";
+    } else {
+      return "Classic and clean. Timeless choice.";
+    }
+  };
+
+  // Generate footwear confirmation messages
+  const getFootwearConfirmation = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('sneaker')) {
+      return "Sneakers, perfect. That's my language.";
+    } else if (lowerMessage.includes('boot')) {
+      return "Boots - solid foundation.";
+    } else if (lowerMessage.includes('dress') || lowerMessage.includes('formal')) {
+      return "Dress shoes, keeping it sharp.";
+    } else if (lowerMessage.includes('sandal') || lowerMessage.includes('slide')) {
+      return "Casual footwear, I feel you.";
+    } else {
+      return "Got your footwear style.";
+    }
+  };
+
+
   const handleFundingComplete = (amount, isOptional = false) => {
     // Handle funding method selection
     if (amount === 'show_funding_methods') {
@@ -1589,6 +2527,21 @@ const AutobotApp = () => {
       addAutobotMessage(usdcMessage, 'usdc-funding', {
         walletAddress: '0x742d35Cc6644C45532F6c8C1B96d4d67C2bCcE4F',
         showAddress: true
+      });
+      return;
+    }
+    
+    // Handle Bank Transfer funding flow
+    if (amount === 'bank_transfer_funding') {
+      const bankTransferMessage = `🏦 **Fund with Bank Transfer**\n\nSend any amount via bank transfer to the account details below and your balance will be updated automatically:`;
+      addAutobotMessage(bankTransferMessage, 'bank-transfer-funding', {
+        accountDetails: {
+          accountName: 'Blink Technologies Inc.',
+          routingNumber: '021000021',
+          accountNumber: '1234567890',
+          bankName: 'Chase Bank'
+        },
+        showDetails: true
       });
       return;
     }
@@ -2084,23 +3037,73 @@ const AutobotApp = () => {
     
     // Check if we're waiting for a selfie (user's personal photo)
     if (waitingForSelfie) {
-    // Store the user's image for virtual try-on
-    setUserImage(imageData);
+      // Store the user's image for virtual try-on
+      setUserImage(imageData);
       setWaitingForSelfie(false);
       
-      // Compliment the photo and ask what they want to find
-      setTimeout(() => {
-        const compliments = [
-          "Perfect! Looking good! 📸",
-          "Great photo! Love it! 📸", 
-          "Awesome shot! 📸",
-          "Nice! That's perfect! 📸"
-        ];
-        const compliment = compliments[Math.floor(Math.random() * compliments.length)];
+      // If there are pending selfie items (contextual selfie), show virtual try-on for those items
+      if (pendingSelfieItems && pendingSelfieItems.length > 0) {
+        console.log('🎭 Virtual Try-On Debug:', {
+          pendingSelfieItems,
+          imageData: imageData ? 'Image data present' : 'No image data',
+          imageDataLength: imageData ? imageData.length : 0
+        });
         
-        addAutobotMessage(`${compliment}\n\nNow I can show you how anything looks on you! What do you want me to find for you?`);
-      }, 800);
-      return;
+        setTimeout(() => {
+          const compliments = [
+            "Perfect! Looking good! 📸",
+            "Great photo! Love it! 📸", 
+            "Awesome shot! 📸",
+            "Nice! That's perfect! 📸"
+          ];
+          const compliment = compliments[Math.floor(Math.random() * compliments.length)];
+          
+          // Create virtual try-on results with user image
+          const virtualTryOnResults = pendingSelfieItems.map(item => ({
+            ...item,
+            image: imageData, // Use user's image for virtual try-on
+            originalImage: item.image, // Keep original product image
+            isVirtualTryOn: true,
+            virtualTryOnImage: imageData // Explicit virtual try-on image
+          }));
+          
+          console.log('🎭 Virtual Try-On Results:', virtualTryOnResults);
+          
+          // Try to add the virtual try-on message
+          try {
+            addAutobotMessage(`${compliment} Here's how you look in them:`, 'search-results', { 
+              results: virtualTryOnResults,
+              showViewMore: true,
+              remainingCount: 0,
+              allResults: virtualTryOnResults,
+              searchTerm: 'virtual try-on',
+              isVirtualTryOn: true
+            });
+          } catch (error) {
+            console.error('Virtual try-on error:', error);
+            // Fallback to simple message
+            addAutobotMessage(`${compliment} Here's how you look in them! (Virtual try-on coming soon)`);
+          }
+        }, 800);
+        
+        // Clear the pending items
+        setPendingSelfieItems(null);
+        return;
+      } else {
+        // General selfie upload (not contextual)
+        setTimeout(() => {
+          const compliments = [
+            "Perfect! Looking good! 📸",
+            "Great photo! Love it! 📸", 
+            "Awesome shot! 📸",
+            "Nice! That's perfect! 📸"
+          ];
+          const compliment = compliments[Math.floor(Math.random() * compliments.length)];
+          
+          addAutobotMessage(`${compliment}\n\nNow I can show you how anything looks on you! What do you want me to find for you?`);
+        }, 800);
+        return;
+      }
     }
     
     // Store the user's image for virtual try-on if not already set
@@ -2127,7 +3130,7 @@ const AutobotApp = () => {
             }
           ];
           
-          addAutobotMessage("Here's what I found based on your photo:", 'search-results', {
+          addAutobotMessage("Here are some options based on your photo:", 'search-results', {
             results: imageSearchResults,
             showViewMore: false
           });
@@ -2145,50 +3148,6 @@ const AutobotApp = () => {
     
     addUserMessage(message);
     
-    // Handle ZIP code confirmation for new users
-    if (waitingForZip && userType === 'new') {
-      const zipPattern = /^[A-Za-z0-9\s-]{3,10}$/; // Matches US ZIP codes and Canadian postal codes
-      const trimmedMessage = message.trim();
-      
-      if (zipPattern.test(trimmedMessage)) {
-        setUserZip(trimmedMessage);
-        setWaitingForZip(false);
-        
-        // Determine if it's Canadian or US based on pattern
-        const isCanadian = /^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/.test(trimmedMessage);
-        const isUS = /^\d{5}(-\d{4})?$/.test(trimmedMessage);
-        
-        setTimeout(() => {
-          let confirmationMessage = "Okay, got it!";
-          
-          if (isCanadian) {
-            confirmationMessage += " Oh, from Canada! Hey awesome.";
-          } else if (isUS) {
-            // Get state/region info for US ZIP codes (simplified)
-            const zipCode = trimmedMessage.substring(0, 5);
-            const firstDigit = zipCode[0];
-            let region = "";
-            
-            if (firstDigit === '0' || firstDigit === '1') region = "Northeast";
-            else if (firstDigit === '2' || firstDigit === '3') region = "Southeast";
-            else if (firstDigit === '4' || firstDigit === '5') region = "Midwest";
-            else if (firstDigit === '6' || firstDigit === '7') region = "Southwest";
-            else if (firstDigit === '8' || firstDigit === '9') region = "West";
-            
-            if (region) confirmationMessage += ` Nice, ${region}!`;
-          }
-          
-          addAutobotMessage(confirmationMessage);
-          
-          // Add virtual try-on offer after ZIP confirmation
-          setTimeout(() => {
-            addAutobotMessage("Want to see yourself in the clothes? Send me a full-body photo and I'll show you how anything looks on you!");
-            setWaitingForSelfie(true);
-          }, 1500);
-        }, 800);
-        return;
-      }
-    }
     
     // Check for order modifications if there's an active order within 3 minutes
     if (activeOrder && (Date.now() - activeOrder.timestamp) < (3 * 60 * 1000)) {
@@ -2221,6 +3180,44 @@ const AutobotApp = () => {
       return;
     }
     
+    // Handle responses when waiting for selfie (contextual selfie requests)
+    if (waitingForSelfie) {
+      // Check if this is a positive response
+      const lowerMessage = message.toLowerCase().trim();
+      const positiveResponses = ['yes', 'yeah', 'yep', 'sure', 'ok', 'okay', 'sounds good', 'let\'s do it', 'why not'];
+      const negativeResponses = ['no', 'nah', 'not now', 'maybe later', 'i\'m good', 'no thanks', 'skip'];
+      
+      const isPositive = positiveResponses.some(response => lowerMessage.includes(response));
+      const isNegative = negativeResponses.some(response => lowerMessage.includes(response));
+      
+      if (isPositive) {
+        setWaitingForSelfie(false);
+        setTimeout(() => {
+          addAutobotMessage("Great! Upload your picture and I'll show you how the items look on you! 📸");
+        }, 800);
+        return;
+      } else if (isNegative) {
+        setWaitingForSelfie(false);
+        setPendingSelfieItems(null); // Clear pending items when user declines
+        setTimeout(() => {
+          addAutobotMessage("No worries! Let me know if you want to try anything on later. What else can I help you find?");
+        }, 800);
+        return;
+      } else if (!isProductSearchIntent(message)) {
+        // If it's not a clear yes/no and not a product search, treat as conversational
+        setWaitingForSelfie(false);
+        setPendingSelfieItems(null); // Clear pending items
+        const conversationalResponse = getConversationalResponse(message, { waitingForSelfie: true });
+        setTimeout(() => {
+          addAutobotMessage(conversationalResponse);
+        }, 800);
+        return;
+      }
+      // If it is a product search, continue to normal processing but stop waiting for selfie
+      setWaitingForSelfie(false);
+      setPendingSelfieItems(null); // Clear pending items when starting new search
+    }
+
     // Check if we're collecting name or address for purchase
     if (userProfile.pendingPurchase) {
       if (!userProfile.name) {
@@ -2255,19 +3252,28 @@ const AutobotApp = () => {
         setUserProfile(prev => ({ ...prev, name: extractedName }));
         
         setTimeout(() => {
-          addAutobotMessage(`Perfect, ${extractedName}! Now I'll need your shipping address.`, 'collect-address');
+          addAutobotMessage(`Perfect, ${extractedName}! Ready to lock it in? Please give me your full shipping address (street, city, state, ZIP code) and I'll reserve one for you.`, 'collect-address');
         }, 1000);
         return;
       } else if (!userProfile.address) {
-        // Collecting address
-        const address = message.trim();
+        // Collecting address with validation
+        const validation = validateShippingAddress(message);
+        
+        if (!validation.isValid) {
+          setTimeout(() => {
+            addAutobotMessage(validation.error);
+          }, 800);
+          return;
+        }
+        
+        // Address is valid, save it
         setUserProfile(prev => ({ 
           ...prev, 
-          address: address
+          address: validation.address
         }));
         
         setTimeout(() => {
-          addAutobotMessage(`Great! I've got everything I need.`);
+          addAutobotMessage(`Perfect! I've got everything I need to ship this to you.`);
           // Process the pending purchase with collected info
           setTimeout(() => {
             setUserProfile(currentProfile => {
@@ -2286,12 +3292,12 @@ const AutobotApp = () => {
                   return { ...currentProfile }; // Keep pending purchase
                 } else {
                   // Sufficient funds or returning user - show purchase confirmation
-                  const shippingMessage = `✨ Here's your order:\n\n${pendingItem.title}\n\nTotal: $${total} ($${pendingItem.price} + $${pendingItem.shipping || 0} shipping)\nDelivery: ${pendingItem.deliveryDate}\nShipping to: ${currentProfile.name}, ${address}\n\nReady to place your order?`;
+                  const shippingMessage = `✨ Here's your order:\n\n${pendingItem.title}\n\nTotal: $${total} ($${pendingItem.price} + $${pendingItem.shipping || 0} shipping)\nDelivery: ${pendingItem.deliveryDate}\nShipping to: ${currentProfile.name}, ${currentProfile.address}\n\nReady to place your order?`;
                   
                   addAutobotMessage(shippingMessage, 'purchase-confirmation', {
                     item: pendingItem,
                     total: total,
-                    address: address,
+                    address: currentProfile.address,
                     name: currentProfile.name,
                     isRepeatCustomer: false
                   });
@@ -2325,26 +3331,60 @@ const AutobotApp = () => {
     // Check if it's a casual conversation vs shopping request
     const lowerMessage = message.toLowerCase();
     
-    // Casual greetings and conversations
-    const casualPatterns = [
-      /^(hey|hi|hello|yo|sup|what'?s up|how are you|good morning|good afternoon|good evening)/,
-      /^(thanks|thank you|cool|nice|awesome|great|perfect|ok|okay)/,
-      /^(how do you work|what do you do|who are you|tell me about)/,
-      /^(can you help|what can you do|how does this work)/
-    ];
-
-    const isCasual = casualPatterns.some(pattern => pattern.test(lowerMessage));
-    
-    if (isCasual) {
+    // Check for funding intent first (higher priority)
+    if (isFundingIntent(message)) {
+      // User wants to add funds to their account
       setTimeout(() => {
-        handleCasualConversation(lowerMessage);
+        addAutobotMessage("I'll help you add funds to your account.", 'funding-method-selection', {
+          showMethods: true
+        });
       }, 1000);
     } else {
-      // Treat as shopping request
-      const category = getProductCategoryName(lowerMessage);
-      setTimeout(() => {
-        const contextualMsg = getContextualMessage(category, message);
-        addAutobotMessage(contextualMsg);
+      // Check if user is in taste discovery flow
+      if (userType === 'taste-discovery' && userProfile.tasteProfile?.currentStep !== 'complete') {
+        handleTasteDiscoveryResponse(message);
+        return;
+      }
+      
+      // Check if user is responding to a subscription offer
+      const subscriptionResponse = isSubscriptionResponse(message);
+      if (subscriptionResponse.isResponse) {
+        if (subscriptionResponse.isPositive) {
+          setTimeout(() => {
+            addAutobotMessage("Perfect, your Protein Powder subscription is now active. You will be getting a shipment every 22nd of the month. And I'll remind you monthly before it renews, you can always skip, change or cancel at any time.");
+          }, 1000);
+        } else {
+          setTimeout(() => {
+            addAutobotMessage("No worries! You can always set up a subscription later if you change your mind.");
+          }, 1000);
+        }
+        return;
+      } else if (isSubscriptionIntent(message)) {
+        // User wants to set up a subscription
+        setTimeout(() => {
+          handleSubscriptionRequest(message);
+        }, 1000);
+      } else {
+      // Casual greetings and conversations
+      const casualPatterns = [
+        /^(hey|hi|hello|yo|sup|what'?s up|how are you|good morning|good afternoon|good evening)/,
+        /^(thanks|thank you|cool|nice|awesome|great|perfect|ok|okay)/,
+        /^(how do you work|what do you do|who are you|tell me about)/,
+        /^(can you help|what can you do|how does this work)/
+      ];
+
+      const isCasual = casualPatterns.some(pattern => pattern.test(lowerMessage));
+      
+      if (isCasual) {
+        setTimeout(() => {
+          handleCasualConversation(lowerMessage);
+        }, 1000);
+      } else if (isProductSearchIntent(message)) {
+        // User is actually searching for products
+        const category = getProductCategoryName(lowerMessage);
+        setTimeout(() => {
+          const contextualMsg = getContextualMessage(category, message);
+          addAutobotMessage(contextualMsg);
         
         // For shoes, only ask for size if we don't know it
         if (category === 'shoes' && (!userProfile.shoeSize || userType === 'new')) {
@@ -2357,6 +3397,14 @@ const AutobotApp = () => {
           triggerSearchResults(message, 'search');
         }, 2000);
       }, 1000);
+      } else {
+        // Conversational response - don't show products
+        setTimeout(() => {
+          const conversationalResponse = getConversationalResponse(message);
+          addAutobotMessage(conversationalResponse);
+        }, 800);
+      }
+      }
     }
   };
 
@@ -2488,7 +3536,15 @@ const AutobotApp = () => {
           {/* Header */}
           <div className="chat-header">
             <div className="header-left">
-              <span className="back-arrow">←</span>
+              <span 
+                className="back-arrow" 
+                onClick={() => {
+                  const basePath = process.env.PUBLIC_URL || '';
+                  window.location.href = `${basePath}/`;
+                }}
+              >
+                ←
+              </span>
               <div className="autobot-info">
                 <div className="autobot-avatar">
                   <svg width="20" height="20" viewBox="0 0 32 31" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2529,6 +3585,8 @@ const AutobotApp = () => {
                   onCancelOrder={() => {
                     addAutobotMessage("No worries, I cancelled your order. Let me know if you want something else! 😊");
                   }}
+                  onSubscriptionSetup={handleSubscriptionSetup}
+                  onSubscriptionNudgeResponse={handleSubscriptionNudgeResponse}
                 />
               ))}
             </AnimatePresence>
@@ -2763,15 +3821,15 @@ const getContextualSearchText = (searchTerm) => {
   if (term.includes('kith') && term.includes('jaws')) {
     return "Hey, check out the Kith Jaws Drop";
   } else if (term.includes('ed') && term.includes('sheeran')) {
-    return "Found some Ed Sheeran hoodies! 🎵";
+    return "Ed Sheeran hoodies! 🎵";
   } else if (term.includes('jordan')) {
-    return `Found some fresh ${searchTerm}`;
+    return `Some fresh ${searchTerm} just dropped`;
   } else if (term.includes('nike') || term.includes('adidas') || term.includes('yeezy')) {
-    return `Here's what I found for ${searchTerm}`;
+    return `Here are some great ${searchTerm} options`;
   } else if (term.includes('drop')) {
     return `Check out this ${searchTerm}`;
   } else {
-    return `Found some options for ${searchTerm}`;
+    return `Here are some ${searchTerm} options`;
   }
 };
 
@@ -3194,7 +4252,7 @@ const DemoControls = ({ onNewUser, onReturningUser, currentUserType }) => {
   );
 };
 
-const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder, isFromPushNotification }) => {
+const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder, isFromPushNotification, onSubscriptionSetup, onSubscriptionNudgeResponse }) => {
   const isAutobot = message.type === 'autobot';
 
   return (
@@ -3239,6 +4297,24 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         
         {message.special === 'usdc-funding' && (
           <USDCFundingCard data={message.data} />
+        )}
+        
+        {message.special === 'bank-transfer-funding' && (
+          <BankTransferFundingCard data={message.data} />
+        )}
+        
+        {message.special === 'subscription-setup' && (
+          <SubscriptionSetupCard 
+            data={message.data} 
+            onSubscriptionSetup={onSubscriptionSetup} 
+          />
+        )}
+        
+        {message.special === 'subscription-nudge' && (
+          <SubscriptionNudgeCard 
+            data={message.data} 
+            onSubscriptionResponse={onSubscriptionNudgeResponse} 
+          />
         )}
         
         {message.special === 'account-info' && (
@@ -5232,6 +6308,262 @@ const USDCFundingCard = ({ data }) => {
   );
 };
 
+const BankTransferFundingCard = ({ data }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyAccountDetails = () => {
+    const details = `Account Name: ${data.accountDetails.accountName}
+Bank: ${data.accountDetails.bankName}
+Routing Number: ${data.accountDetails.routingNumber}
+Account Number: ${data.accountDetails.accountNumber}`;
+    
+    navigator.clipboard.writeText(details).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <>
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          🏦 Fund with Bank Transfer
+        </div>
+        
+        <div style={{ fontSize: '15px', color: '#666', marginBottom: '16px' }}>
+          Send any amount via bank transfer to the account details below and your balance will be updated automatically:
+        </div>
+        
+        {/* Account Details */}
+        <div style={{ 
+          backgroundColor: '#f8f9fa', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          marginBottom: '16px',
+          border: '1px solid #e9ecef'
+        }}>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Account Name</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>{data.accountDetails.accountName}</div>
+          </div>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Bank</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>{data.accountDetails.bankName}</div>
+          </div>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Routing Number</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>{data.accountDetails.routingNumber}</div>
+          </div>
+          
+          <div>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Account Number</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>{data.accountDetails.accountNumber}</div>
+          </div>
+        </div>
+        
+        {/* Copy Button */}
+        <motion.button
+          whileHover={{ backgroundColor: '#059669' }}
+          whileTap={{ scale: 0.98 }}
+          onClick={copyAccountDetails}
+          style={{
+            width: '100%',
+            backgroundColor: '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            marginBottom: '16px'
+          }}
+        >
+          {copied ? '✓ Copied!' : '📋 Copy Account Details'}
+        </motion.button>
+        
+        {/* Info Note */}
+        <div style={{ 
+          backgroundColor: '#e3f2fd', 
+          padding: '12px', 
+          borderRadius: '8px',
+          border: '1px solid #bbdefb'
+        }}>
+          💡 <strong>Note:</strong> Bank transfers typically take 1-3 business days to process. Your balance will update automatically once the transfer is received.
+        </div>
+      </div>
+    </>
+  );
+};
+
+const SubscriptionSetupCard = ({ data, onSubscriptionSetup }) => {
+  return (
+    <>
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          🔄 Set Up Subscription
+        </div>
+        
+        <div style={{ fontSize: '15px', color: '#666', marginBottom: '20px' }}>
+          I can set up a {data.product} subscription for you. You'll get fresh supplies automatically and can skip, change, or cancel any time.
+        </div>
+        
+        {/* Subscription Benefits */}
+        <div style={{ 
+          backgroundColor: '#f0f9ff', 
+          padding: '16px', 
+          borderRadius: '12px',
+          border: '1px solid #bae6fd',
+          marginBottom: '20px'
+        }}>
+          <div style={{ fontSize: '14px', color: '#0369a1', fontWeight: '600', marginBottom: '8px' }}>
+            ✨ Subscription Benefits
+          </div>
+          <ul style={{ fontSize: '13px', color: '#0369a1', margin: 0, paddingLeft: '16px', lineHeight: '1.5' }}>
+            <li>Never run out of your essentials</li>
+            <li>Skip, change, or cancel anytime</li>
+            <li>Monthly reminders before each delivery</li>
+            <li>Same great price, automatic convenience</li>
+          </ul>
+        </div>
+        
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <motion.button
+            whileHover={{ backgroundColor: '#059669' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onSubscriptionSetup('yes', data)}
+            style={{
+              flex: 1,
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Yes, Set Up Subscription
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ backgroundColor: '#f3f4f6' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onSubscriptionSetup('no', data)}
+            style={{
+              flex: 1,
+              backgroundColor: 'white',
+              color: '#6b7280',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Not Right Now
+          </motion.button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const SubscriptionNudgeCard = ({ data, onSubscriptionResponse }) => {
+  return (
+    <>
+      <div className="message-text">
+        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#000' }}>
+          🔄 Never Run Out Again?
+        </div>
+        
+        <div style={{ fontSize: '15px', color: '#666', marginBottom: '16px' }}>
+          Want me to set this up as a subscription so you never run out? You can skip, change, or cancel any time.
+        </div>
+        
+        {/* Product Info */}
+        <div style={{ 
+          backgroundColor: '#f9fafb', 
+          padding: '12px', 
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '8px',
+            backgroundColor: '#e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '18px'
+          }}>
+            🥤
+          </div>
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+              {data.item?.title || 'Product'}
+            </div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              Monthly delivery • Skip anytime
+            </div>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <motion.button
+            whileHover={{ backgroundColor: '#059669' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onSubscriptionResponse('yes', data)}
+            style={{
+              flex: 1,
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Yes, Subscribe
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ backgroundColor: '#f3f4f6' }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onSubscriptionResponse('no', data)}
+            style={{
+              flex: 1,
+              backgroundColor: 'white',
+              color: '#6b7280',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Just This Once
+          </motion.button>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFunding }) => {
   const handleCreditCardFunding = () => {
     // Open credit card funding interface
@@ -5248,81 +6580,219 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
     onFunded('usdc_funding', true);
   };
 
+  const handleBankTransferFunding = () => {
+    // Trigger bank transfer funding flow
+    onFunded('bank_transfer_funding', true);
+  };
+
   return (
-    <>
-      <div className="message-text">
-        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#000' }}>
-          💳 Choose Your Funding Method
+    <div style={{
+      background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+      borderRadius: '20px',
+      padding: '32px 24px',
+      margin: '0 -8px',
+      border: '1px solid rgba(148, 163, 184, 0.1)',
+      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          marginBottom: '8px', 
+          color: '#0f172a',
+          letterSpacing: '-0.025em'
+        }}>
+          Add Funds
         </div>
-        
-        <div style={{ fontSize: '15px', color: '#666', marginBottom: '20px' }}>
-          How would you like to add funds to your account?
+        <div style={{ 
+          fontSize: '16px', 
+          color: '#64748b', 
+          fontWeight: '400',
+          lineHeight: '1.5'
+        }}>
+          Choose your preferred funding method
+        </div>
+      </div>
+
+      {/* Gold Membership Offer - Redesigned */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+        padding: '20px', 
+        borderRadius: '16px',
+        border: '1px solid rgba(245, 158, 11, 0.2)',
+        marginBottom: '32px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          right: '-20%',
+          width: '100px',
+          height: '100px',
+          background: 'radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%)',
+          borderRadius: '50%'
+        }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ 
+            fontSize: '16px', 
+            color: '#92400e', 
+            fontWeight: '600', 
+            marginBottom: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '18px' }}>✨</span>
+            Blink Gold
+          </div>
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#92400e', 
+            lineHeight: '1.4',
+            opacity: 0.9
+          }}>
+            Fund $5,000+ with USDC or bank transfer to unlock better rates on all purchases
+          </div>
         </div>
       </div>
       
-      {/* Funding method buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Funding Options */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        
         {/* Credit Card Option */}
         <motion.button
-          whileHover={{ backgroundColor: '#0077b3' }}
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: '0 10px 25px -3px rgba(0, 136, 204, 0.2), 0 4px 6px -2px rgba(0, 136, 204, 0.1)'
+          }}
           whileTap={{ scale: 0.98 }}
           onClick={handleCreditCardFunding}
           style={{
             width: '100%',
-            backgroundColor: '#0088cc',
+            background: 'linear-gradient(135deg, #0088cc 0%, #0077b3 100%)',
             color: 'white',
             border: 'none',
-            borderRadius: '8px',
-            padding: '16px',
-            fontSize: '15px',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            fontSize: '16px',
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 6px -1px rgba(0, 136, 204, 0.3), 0 2px 4px -1px rgba(0, 136, 204, 0.2)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>💳</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Credit Card Icon */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+            </svg>
             <div style={{ textAlign: 'left' }}>
-              <div>Credit Card</div>
-              <div style={{ fontSize: '12px', opacity: 0.8 }}>Up to $500 • Instant</div>
+              <div style={{ fontSize: '16px', fontWeight: '600' }}>Credit Card</div>
+              <div style={{ fontSize: '13px', opacity: 0.8, fontWeight: '400' }}>Instant • Up to $500</div>
             </div>
           </div>
-          <span style={{ fontSize: '18px' }}>→</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
+            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+          </svg>
         </motion.button>
 
         {/* USDC Option */}
         <motion.button
-          whileHover={{ backgroundColor: '#6f42c1' }}
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: '0 10px 25px -3px rgba(124, 58, 237, 0.2), 0 4px 6px -2px rgba(124, 58, 237, 0.1)'
+          }}
           whileTap={{ scale: 0.98 }}
           onClick={handleUSDCFunding}
           style={{
             width: '100%',
-            backgroundColor: '#7c3aed',
+            background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
             color: 'white',
             border: 'none',
-            borderRadius: '8px',
-            padding: '16px',
-            fontSize: '15px',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            fontSize: '16px',
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3), 0 2px 4px -1px rgba(124, 58, 237, 0.2)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>🪙</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* USDC Logo */}
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: '#7c3aed'
+            }}>
+              $
+            </div>
             <div style={{ textAlign: 'left' }}>
-              <div>USDC</div>
-              <div style={{ fontSize: '12px', opacity: 0.8 }}>Any amount • Crypto wallet</div>
+              <div style={{ fontSize: '16px', fontWeight: '600' }}>USDC</div>
+              <div style={{ fontSize: '13px', opacity: 0.8, fontWeight: '400' }}>Any amount • Crypto wallet</div>
             </div>
           </div>
-          <span style={{ fontSize: '18px' }}>→</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
+            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+          </svg>
+        </motion.button>
+
+        {/* Bank Transfer Option */}
+        <motion.button
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: '0 10px 25px -3px rgba(16, 185, 129, 0.2), 0 4px 6px -2px rgba(16, 185, 129, 0.1)'
+          }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleBankTransferFunding}
+          style={{
+            width: '100%',
+            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3), 0 2px 4px -1px rgba(16, 185, 129, 0.2)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Bank Icon */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.5 1L2 6v2h20V6m-5 4v7h3v-7M2 22h20v-2H2m1.5-4h4v-7h-4m6 0v7h4v-7m-13-2h18v2H2.5z"/>
+            </svg>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '16px', fontWeight: '600' }}>Bank Transfer</div>
+              <div style={{ fontSize: '13px', opacity: 0.8, fontWeight: '400' }}>Any amount • 1-3 business days</div>
+            </div>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
+            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+          </svg>
         </motion.button>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -5545,88 +7015,222 @@ const FundingRequiredCard = ({ data, onFunded, onCreditCardFunding }) => {
     onFunded('usdc_funding', true);
   };
 
+  const handleBankTransferFunding = () => {
+    // Trigger bank transfer funding flow
+    onFunded('bank_transfer_funding', true);
+  };
+
   return (
     <motion.div 
       className="funding-required-card"
       initial={{ scale: 0.95 }}
       animate={{ scale: 1 }}
       style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '16px',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+        borderRadius: '20px',
+        padding: '32px 24px',
         marginBottom: '8px',
-        border: '1px solid #e1e5e9'
+        border: '1px solid rgba(148, 163, 184, 0.1)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
       }}
     >
       <div className="funding-content">
-        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: '#000' }}>
-          💳 Add Funds to Complete Purchase
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ 
+            fontSize: '22px', 
+            fontWeight: '700', 
+            marginBottom: '8px', 
+            color: '#0f172a',
+            letterSpacing: '-0.025em'
+          }}>
+            Add ${data.requiredAmount}
+          </div>
+          <div style={{ 
+            fontSize: '15px', 
+            color: '#64748b', 
+            fontWeight: '400',
+            lineHeight: '1.5'
+          }}>
+            Choose your funding method to complete purchase
+          </div>
         </div>
         
-        <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
-          You need ${data.requiredAmount} to complete this purchase. Choose your funding method:
+        {/* Gold Membership Offer - Redesigned */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+          padding: '16px', 
+          borderRadius: '12px',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          marginBottom: '24px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-30%',
+            right: '-15%',
+            width: '60px',
+            height: '60px',
+            background: 'radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%)',
+            borderRadius: '50%'
+          }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#92400e', 
+              fontWeight: '600', 
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ fontSize: '16px' }}>✨</span>
+              Blink Gold
+            </div>
+            <div style={{ 
+              fontSize: '13px', 
+              color: '#92400e', 
+              lineHeight: '1.3',
+              opacity: 0.9
+            }}>
+              Fund $5,000+ with USDC or bank transfer to unlock better rates
+            </div>
+          </div>
         </div>
         
-        {/* Funding method buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Funding Options */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          
           {/* Credit Card Option */}
           <motion.button
-            whileHover={{ backgroundColor: '#0056b3' }}
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: '0 10px 25px -3px rgba(0, 136, 204, 0.2), 0 4px 6px -2px rgba(0, 136, 204, 0.1)'
+            }}
             whileTap={{ scale: 0.98 }}
             onClick={handleCreditCardFunding}
             style={{
               width: '100%',
-              backgroundColor: '#0088cc',
+              background: 'linear-gradient(135deg, #0088cc 0%, #0077b3 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
-              padding: '16px',
+              borderRadius: '14px',
+              padding: '18px 20px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 6px -1px rgba(0, 136, 204, 0.3), 0 2px 4px -1px rgba(0, 136, 204, 0.2)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '20px' }}>💳</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {/* Credit Card Icon */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+              </svg>
               <div style={{ textAlign: 'left' }}>
-                <div>Credit Card</div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>Instant • $1-500</div>
+                <div style={{ fontSize: '15px', fontWeight: '600' }}>Credit Card</div>
+                <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Instant • Up to $500</div>
               </div>
             </div>
-            <span style={{ fontSize: '18px' }}>→</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
+              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+            </svg>
           </motion.button>
           
           {/* USDC Option */}
           <motion.button
-            whileHover={{ backgroundColor: '#6f42c1' }}
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: '0 10px 25px -3px rgba(124, 58, 237, 0.2), 0 4px 6px -2px rgba(124, 58, 237, 0.1)'
+            }}
             whileTap={{ scale: 0.98 }}
             onClick={handleUSDCFunding}
             style={{
               width: '100%',
-              backgroundColor: '#7c3aed',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
-              padding: '16px',
+              borderRadius: '14px',
+              padding: '18px 20px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3), 0 2px 4px -1px rgba(124, 58, 237, 0.2)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '20px' }}>🪙</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {/* USDC Logo */}
+              <div style={{
+                width: '22px',
+                height: '22px',
+                borderRadius: '50%',
+                background: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: '#7c3aed'
+              }}>
+                $
+              </div>
               <div style={{ textAlign: 'left' }}>
-                <div>USDC</div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>Any amount • Crypto wallet</div>
+                <div style={{ fontSize: '15px', fontWeight: '600' }}>USDC</div>
+                <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Any amount • Crypto wallet</div>
               </div>
             </div>
-            <span style={{ fontSize: '18px' }}>→</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
+              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+            </svg>
+          </motion.button>
+          
+          {/* Bank Transfer Option */}
+          <motion.button
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: '0 10px 25px -3px rgba(16, 185, 129, 0.2), 0 4px 6px -2px rgba(16, 185, 129, 0.1)'
+            }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleBankTransferFunding}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '14px',
+              padding: '18px 20px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3), 0 2px 4px -1px rgba(16, 185, 129, 0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {/* Bank Icon */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.5 1L2 6v2h20V6m-5 4v7h3v-7M2 22h20v-2H2m1.5-4h4v-7h-4m6 0v7h4v-7m-13-2h18v2H2.5z"/>
+              </svg>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '15px', fontWeight: '600' }}>Bank Transfer</div>
+                <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Any amount • 1-3 business days</div>
+              </div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
+              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+            </svg>
           </motion.button>
           
           {/* Cancel Option */}
@@ -6169,7 +7773,7 @@ const OrderSuccessCard = ({ data }) => {
           lineHeight: '1.4'
         }}
       >
-        I got you, your {data.item.title} is on its way.
+        Paid. {data.compliment || "Great choice!"}
       </motion.div>
 
       {/* Size Confirmation */}
@@ -6789,7 +8393,11 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   gap: '8px'
                   }}
                 >
-                🍎 Pay
+                {/* Apple Logo SVG */}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                Pay
                 </button>
               <button
                 type="button"
@@ -6809,7 +8417,14 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   gap: '8px'
                 }}
               >
-                G Pay
+                {/* Google Pay Logo SVG */}
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Pay
               </button>
             </div>
 

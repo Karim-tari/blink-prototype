@@ -13,44 +13,67 @@ const ProductComponentTest = () => {
   const [isUndoing, setIsUndoing] = useState(false);
   const [isColorTransitioning, setIsColorTransitioning] = useState(false);
   const [nextColor, setNextColor] = useState(null);
+  const [activeTab, setActiveTab] = useState('fashion');
   
-  // Sample product data based on your image
-  const product = {
-    title: "Jordan Sport Classic",
-    brand: "Nike",
-    price: 100.00,
-    shipping: 19,
-    images: {
-      black: [
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic.png`,
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-1.png`,
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-2.png`,
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-3.png`
+  // Product data for different tabs
+  const products = {
+    fashion: {
+      title: "Jordan Sport Classic",
+      brand: "Nike",
+      price: 100.00,
+      shipping: 19,
+      images: {
+        black: [
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic.png`,
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-1.png`,
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-2.png`,
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-3.png`
+        ],
+        teal: [
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-teal.png`,
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-1.png`,
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-2.png`,
+          `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-3.png`
+        ]
+      },
+      colors: [
+        { name: 'black', color: '#000000' },
+        { name: 'teal', color: '#61B6EE' }
       ],
-      teal: [
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-teal.png`,
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-1.png`,
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-2.png`,
-        `${process.env.PUBLIC_URL}/test-product/Jordan-sport-classic-product-shot-3.png`
+      sizes: [
+        { name: 'XS', fullName: 'Extra Small', available: true },
+        { name: 'S', fullName: 'Small', available: true },
+        { name: 'M', fullName: 'Medium', available: true },
+        { name: 'L', fullName: 'Large', available: true },
+        { name: 'XL', fullName: 'Extra Large', available: true },
+        { name: 'XXL', fullName: 'Extra Extra Large', available: false },
+        { name: '3XL', fullName: '3X Large', available: false }
       ]
     },
-    colors: [
-      { name: 'black', color: '#000000' },
-      { name: 'teal', color: '#61B6EE' }
-    ],
-    sizes: [
-      { name: 'XS', fullName: 'Extra Small', available: true },
-      { name: 'S', fullName: 'Small', available: true },
-      { name: 'M', fullName: 'Medium', available: true },
-      { name: 'L', fullName: 'Large', available: true },
-      { name: 'XL', fullName: 'Extra Large', available: true },
-      { name: 'XXL', fullName: 'Extra Extra Large', available: false },
-      { name: '3XL', fullName: '3X Large', available: false }
-    ]
+    collectible: {
+      title: "Death Star",
+      brand: "LEGO",
+      price: 999.99,
+      shipping: 22,
+      images: {
+        default: [
+          `${process.env.PUBLIC_URL}/test-product/death-star.png`,
+          `${process.env.PUBLIC_URL}/test-product/death-star-product-shot-1.png`,
+          `${process.env.PUBLIC_URL}/test-product/death-star-product-shot-2.png`,
+          `${process.env.PUBLIC_URL}/test-product/death-star-product-shot-3.png`
+        ]
+      },
+      colors: [], // No color selection for collectibles
+      sizes: [] // No sizes for collectibles
+    }
   };
 
-  const currentImages = product.images[selectedColor];
-  const totalImages = currentImages.length;
+  const product = products[activeTab];
+
+  const currentImages = activeTab === 'collectible' 
+    ? product.images.default 
+    : product.images[selectedColor];
+  const totalImages = currentImages ? currentImages.length : 0;
 
   const goToImage = (index) => {
     if (index >= 0 && index < totalImages) {
@@ -75,6 +98,14 @@ const ProductComponentTest = () => {
       setNextColor(null);
       setIsColorTransitioning(false);
     }, 300); // Full animation duration
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentImageIndex(0);
+    if (tab === 'fashion') {
+      setSelectedColor('black');
+    }
   };
 
   // Reset image index when color changes
@@ -114,16 +145,77 @@ const ProductComponentTest = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#ffffff',
-      padding: '20px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
+      backgroundColor: '#ffffff'
     }}>
+      {/* Tabs */}
+      <div style={{
+        borderBottom: '1px solid #e5e7eb',
+        backgroundColor: '#ffffff',
+        padding: '0 20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          maxWidth: '800px',
+          margin: '0 auto'
+        }}>
+          {/* Tab Navigation */}
+          <div style={{
+            display: 'flex',
+            gap: '32px'
+          }}>
+            <button
+              onClick={() => handleTabChange('fashion')}
+              style={{
+                padding: '16px 0',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'fashion' ? '2px solid #007bff' : '2px solid transparent',
+                color: activeTab === 'fashion' ? '#007bff' : '#6b7280',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Fashion Item
+            </button>
+            
+            <button
+              onClick={() => handleTabChange('collectible')}
+              style={{
+                padding: '16px 0',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'collectible' ? '2px solid #007bff' : '2px solid transparent',
+                color: activeTab === 'collectible' ? '#007bff' : '#6b7280',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Collectible
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div style={{
+        padding: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 73px)' // Subtract tab height
+      }}>
       <div style={{
         width: '362px',
-        position: 'relative',
-        overflow: 'hidden'
+        position: 'relative'
       }}>
         {/* Main Product Container - Slides off with rotation, bounces back on undo */}
         <motion.div
@@ -216,7 +308,8 @@ const ProductComponentTest = () => {
                 left: -(totalImages - 1) * 362, 
                 right: 0 
               }}
-              dragElastic={0.1}
+              dragElastic={0.2}
+              dragMomentum={false}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ 
                 x: -currentImageIndex * 362,
@@ -226,8 +319,8 @@ const ProductComponentTest = () => {
               transition={{ 
                 x: {
                   type: "spring", 
-                  stiffness: 300, 
-                  damping: 30 
+                  stiffness: 400, 
+                  damping: 40 
                 },
                 opacity: {
                   duration: 0.3,
@@ -237,6 +330,9 @@ const ProductComponentTest = () => {
                   duration: 0.3,
                   ease: [0.25, 0.1, 0.25, 1]
                 }
+              }}
+              onDragStart={() => {
+                // Prevent any conflicting animations during drag
               }}
               onDragEnd={(event, info) => {
                 const swipeThreshold = 50;
@@ -250,9 +346,11 @@ const ProductComponentTest = () => {
                 display: 'flex',
                 width: `${totalImages * 362}px`,
                 height: '100%',
-                cursor: 'grab'
+                cursor: 'grab',
+                userSelect: 'none' // Prevent text selection during drag
               }}
               whileDrag={{ cursor: 'grabbing' }}
+              whileHover={{ cursor: 'grab' }}
             >
               {currentImages.map((imageSrc, index) => (
                 <div
@@ -309,46 +407,48 @@ const ProductComponentTest = () => {
             )}
           </AnimatePresence>
 
-            {/* Size Badge - Inside Image */}
-            <motion.div
-              key={selectedSize} // This will trigger re-animation when size changes
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSizeSelector(!showSizeSelector);
-              }}
-              initial={{ x: -8, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ 
-                duration: 0.25,
-                ease: [0.25, 0.1, 0.25, 1.0] // Smooth cubic-bezier easing
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                position: 'absolute',
-                top: '7px',
-                left: '7px',
-                backgroundColor: '#fff',
-                padding: '6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: '500',
-                color: '#111',
-                textAlign: 'center',
-                textTransform: 'uppercase',
-                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-                lineHeight: '8.5px',
-                boxShadow: '10px 10px 15px 0 rgba(0, 0, 0, 0.1)',
-                zIndex: 2,
-                cursor: 'pointer'
-              }}
-            >
-              {product.sizes.find(size => size.name === selectedSize)?.fullName || selectedSize}
-            </motion.div>
+            {/* Size Badge - Inside Image - Only show for fashion items */}
+            {activeTab === 'fashion' && (
+              <motion.div
+                key={selectedSize} // This will trigger re-animation when size changes
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSizeSelector(!showSizeSelector);
+                }}
+                initial={{ x: -8, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ 
+                  duration: 0.25,
+                  ease: [0.25, 0.1, 0.25, 1.0] // Smooth cubic-bezier easing
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  position: 'absolute',
+                  top: '7px',
+                  left: '7px',
+                  backgroundColor: '#fff',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: '500',
+                  color: '#111',
+                  textAlign: 'center',
+                  textTransform: 'uppercase',
+                  fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                  lineHeight: '8.5px',
+                  boxShadow: '10px 10px 15px 0 rgba(0, 0, 0, 0.1)',
+                  zIndex: 2,
+                  cursor: 'pointer'
+                }}
+              >
+                {product.sizes.find(size => size.name === selectedSize)?.fullName || selectedSize}
+              </motion.div>
+            )}
 
-            {/* Size Selector Overlay */}
+            {/* Size Selector Overlay - Only show for fashion items */}
             <AnimatePresence>
-              {showSizeSelector && (
+              {activeTab === 'fashion' && showSizeSelector && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: -20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -507,42 +607,83 @@ const ProductComponentTest = () => {
               justifyContent: 'space-between',
               marginBottom: '12px'
             }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}>
-                <h3 style={{
-                  margin: 0,
-                  color: '#111',
-                  fontFamily: 'Inter',
-                  fontSize: '15px',
-                  fontStyle: 'normal',
-                  fontWeight: '600',
-                  lineHeight: 'normal'
+              {activeTab === 'fashion' ? (
+                // Fashion: Brand next to title
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start'
                 }}>
-                  {product.title}
-                </h3>
-                <p style={{
-                  margin: 0,
-                  color: '#A6A6A6',
-                  fontFamily: 'Inter',
-                  fontSize: '10px',
-                  fontStyle: 'normal',
-                  fontWeight: '600',
-                  lineHeight: 'normal'
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      color: '#111',
+                      fontFamily: 'Inter',
+                      fontSize: '15px',
+                      fontStyle: 'normal',
+                      fontWeight: '600',
+                      lineHeight: 'normal'
+                    }}>
+                      {product.title}
+                    </h3>
+                    <p style={{
+                      margin: 0,
+                      color: '#A6A6A6',
+                      fontFamily: 'Inter',
+                      fontSize: '10px',
+                      fontStyle: 'normal',
+                      fontWeight: '600',
+                      lineHeight: 'normal'
+                    }}>
+                      {product.brand}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                // Collectible: Brand on the right
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  width: '100%'
                 }}>
-                  {product.brand}
-                </p>
-              </div>
+                  <h3 style={{
+                    margin: 0,
+                    color: '#111',
+                    fontFamily: 'Inter',
+                    fontSize: '15px',
+                    fontStyle: 'normal',
+                    fontWeight: '600',
+                    lineHeight: 'normal'
+                  }}>
+                    {product.title}
+                  </h3>
+                  <p style={{
+                    margin: 0,
+                    color: '#A6A6A6',
+                    fontFamily: 'Inter',
+                    fontSize: '10px',
+                    fontStyle: 'normal',
+                    fontWeight: '600',
+                    lineHeight: 'normal'
+                  }}>
+                    {product.brand}
+                  </p>
+                </div>
+              )}
               
-              {/* Color Picker */}
-              <div style={{
-                display: 'flex',
-                gap: '6px',
-                alignItems: 'center'
-              }}>
-                {product.colors.map((colorOption) => (
+              {/* Color Picker - Only show for fashion items */}
+              {activeTab === 'fashion' && (
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  alignItems: 'center'
+                }}>
+                  {product.colors.map((colorOption) => (
                   <button
                     key={colorOption.name}
                     onClick={() => handleColorChange(colorOption.name)}
@@ -571,8 +712,9 @@ const ProductComponentTest = () => {
                       }}
                     />
                   </button>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Price */}
@@ -592,6 +734,7 @@ const ProductComponentTest = () => {
               }}>
                 ${product.price.toFixed(2)} USD
               </div>
+              
               <div style={{
                 color: '#A6A6A6',
                 fontFamily: 'Inter',
@@ -766,8 +909,8 @@ const ProductComponentTest = () => {
             </motion.div>
           )}
           
-          {/* Size */}
-          {isPurchased && (
+          {/* Size - Only show for fashion items */}
+          {activeTab === 'fashion' && isPurchased && (
             <motion.div
               initial={{ y: 15, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -843,7 +986,7 @@ const ProductComponentTest = () => {
           )}
         </motion.div>
       </div>
-
+      </div>
     </div>
   );
 };
