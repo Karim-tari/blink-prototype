@@ -1933,8 +1933,8 @@ const AutobotApp = () => {
       const subtotalAmount = items.reduce((sum, product) => sum + product.price, 0);
       const shippingTotal = items.reduce((sum, product) => sum + (product.shipping || 8), 0);
       const taxTotal = items.reduce((sum, product) => sum + Math.round(product.price * 0.08), 0);
-      const silverFee = Math.round(subtotalAmount * 0.03); // 3% silver tier fee
-      const grandTotal = subtotalAmount + shippingTotal + taxTotal + silverFee;
+      const blinkFee = Math.round(subtotalAmount * 0.03); // 3% Blink fee
+      const grandTotal = subtotalAmount + shippingTotal + taxTotal + blinkFee;
       
       // Create order summary message
       let orderSummary = "🛍️ **Your order is on its way.**\n\n";
@@ -1948,7 +1948,7 @@ const AutobotApp = () => {
       orderSummary += `Subtotal: $${subtotalAmount}\n`;
       orderSummary += `Shipping: $${shippingTotal}\n`;
       orderSummary += `Tax: $${taxTotal}\n`;
-      orderSummary += `Silver Tier Fee (3%): $${silverFee}\n`;
+      orderSummary += `Blink Fee (3%): $${blinkFee}\n`;
       orderSummary += `**Total: $${grandTotal}**\n\n`;
       orderSummary += `Estimated delivery: Tomorrow\n`;
       orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
@@ -1958,7 +1958,7 @@ const AutobotApp = () => {
         subtotal: subtotalAmount,
         shipping: shippingTotal,
         tax: taxTotal,
-        silverFee: silverFee,
+        blinkFee: blinkFee,
         total: grandTotal,
         timeLimit: 30,
         originalSearchResults: item.originalSearchResults || items,
@@ -2027,8 +2027,8 @@ const AutobotApp = () => {
     // We have both name and address - create the same detailed order summary as web view
     const shippingTotal = item.shipping || 8;
     const taxTotal = Math.round(item.price * 0.08);
-    const silverFee = Math.round(item.price * 0.03); // 3% silver tier fee
-    const grandTotal = item.price + shippingTotal + taxTotal + silverFee;
+    const blinkFee = Math.round(item.price * 0.03); // 3% Blink fee
+    const grandTotal = item.price + shippingTotal + taxTotal + blinkFee;
     
     // Create order summary message (same format as web view group purchase)
     let orderSummary = "🛍️ **Your order is on its way.**\n\n";
@@ -2038,7 +2038,7 @@ const AutobotApp = () => {
     orderSummary += `Subtotal: $${item.price}\n`;
     orderSummary += `Shipping: $${shippingTotal}\n`;
     orderSummary += `Tax: $${taxTotal}\n`;
-    orderSummary += `Silver Tier Fee (3%): $${silverFee}\n`;
+    orderSummary += `Blink Fee (3%): $${blinkFee}\n`;
     orderSummary += `**Total: $${grandTotal}**\n\n`;
     orderSummary += `Estimated delivery: Tomorrow\n`;
     orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
@@ -2048,7 +2048,7 @@ const AutobotApp = () => {
       subtotal: item.price,
       shipping: shippingTotal,
       tax: taxTotal,
-      silverFee: silverFee,
+      blinkFee: blinkFee,
       total: grandTotal,
       timeLimit: 30,
       originalSearchResults: [item], // Single item as original results
@@ -2595,31 +2595,11 @@ const AutobotApp = () => {
       
       // Show confirmation message for credit card funding
       if (!isOptional) {
-        // Determine new tier based on updated balance
-        let tier = 'Bronze';
-        let tierColor = '#cd7f32';
-        let blinkFee = '5%';
+        // Simple success message without tier information
+        // (Tier determination happens elsewhere based on funding method)
         
-        if (newBalance >= 2500) {
-          tier = 'Gold';
-          tierColor = '#ffd700';
-          blinkFee = '0%';
-        } else if (newBalance >= 501) {
-          tier = 'Silver';
-          tierColor = '#c0c0c0';
-          blinkFee = '3%';
-        }
-        
-        const confirmationMessage = `🎉 Awesome! Your funds have been added successfully.`;
-        addAutobotMessage(confirmationMessage, 'balance-inquiry', {
-          balance: newBalance,
-          fundingAmount: amount,
-          showAddFunds: false,
-          isConfirmation: true,
-          tier: tier,
-          tierColor: tierColor,
-          blinkFee: blinkFee
-        });
+        const confirmationMessage = `Perfect! Added $${amount} to your account. Your balance is now $${newBalance}. Ready to shop! 🛍️`;
+        addAutobotMessage(confirmationMessage);
       }
     }
     
@@ -2964,25 +2944,20 @@ const AutobotApp = () => {
     // Get recent orders from user profile (last 3)
     const recentOrders = userProfile.purchaseHistory ? userProfile.purchaseHistory.slice(-3).reverse() : [];
     
-    // Determine tier based on balance (updated to match new tiering system)
-    let tier = 'Bronze';
-    let tierColor = '#cd7f32';
-    let nextTierBalance = 501;
-    let nextTier = 'Silver';
-    let blinkFee = '5%';
+    // Determine tier based on balance (updated to new tiering system)
+    let tier = 'Blink';
+    let tierColor = '#007bff';
+    let nextTierBalance = 5000;
+    let nextTier = 'Blink Gold';
+    let blinkFee = '3%';
     
-    if (balance >= 2500) {
-      tier = 'Gold';
+    // Note: Blink Gold requires $5000+ funded via USDC or bank transfer
+    if (balance >= 5000) {
+      tier = 'Blink Gold';
       tierColor = '#ffd700';
       nextTierBalance = null;
       nextTier = null;
-      blinkFee = '0%';
-    } else if (balance >= 501) {
-      tier = 'Silver';
-      tierColor = '#c0c0c0';
-      nextTierBalance = 2500;
-      nextTier = 'Gold';
-      blinkFee = '3%';
+      blinkFee = '1%';
     }
     
     const infoMessage = `ℹ️ **Account Information**\n\nHere's everything Blink knows about you:`;
@@ -6630,28 +6605,28 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
   return (
     <div style={{
       background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-      borderRadius: '20px',
-      padding: '32px 24px',
-      margin: '0 -8px',
+      borderRadius: '16px',
+      padding: '20px 16px',
+      margin: '0 -4px',
       border: '1px solid rgba(148, 163, 184, 0.1)',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
+      boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02)'
     }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <div style={{ 
-          fontSize: '24px', 
-          fontWeight: '700', 
-          marginBottom: '8px', 
+          fontSize: '20px', 
+          fontWeight: '600', 
+          marginBottom: '4px', 
           color: '#0f172a',
-          letterSpacing: '-0.025em'
+          letterSpacing: '-0.015em'
         }}>
           Add Funds
         </div>
         <div style={{ 
-          fontSize: '16px', 
+          fontSize: '14px', 
           color: '#64748b', 
           fontWeight: '400',
-          lineHeight: '1.5'
+          lineHeight: '1.4'
         }}>
           Choose your preferred funding method
         </div>
@@ -6660,39 +6635,39 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
       {/* Gold Membership Offer - Redesigned */}
       <div style={{ 
         background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-        padding: '20px', 
-        borderRadius: '16px',
+        padding: '14px 16px', 
+        borderRadius: '12px',
         border: '1px solid rgba(245, 158, 11, 0.2)',
-        marginBottom: '32px',
+        marginBottom: '20px',
         position: 'relative',
         overflow: 'hidden'
       }}>
         <div style={{
           position: 'absolute',
-          top: '-50%',
-          right: '-20%',
-          width: '100px',
-          height: '100px',
+          top: '-30%',
+          right: '-15%',
+          width: '60px',
+          height: '60px',
           background: 'radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%)',
           borderRadius: '50%'
         }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ 
-            fontSize: '16px', 
+            fontSize: '15px', 
             color: '#92400e', 
             fontWeight: '600', 
-            marginBottom: '6px',
+            marginBottom: '4px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '6px'
           }}>
-            <span style={{ fontSize: '18px' }}>✨</span>
+            <span style={{ fontSize: '16px' }}>✨</span>
             Blink Gold
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: '13px', 
             color: '#92400e', 
-            lineHeight: '1.4',
+            lineHeight: '1.3',
             opacity: 0.9
           }}>
             Fund $5,000+ with USDC or bank transfer to unlock better rates on all purchases
@@ -6701,7 +6676,7 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
       </div>
       
       {/* Funding Options */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         
         {/* Credit Card Option */}
         <motion.button
@@ -6716,26 +6691,26 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
             background: 'linear-gradient(135deg, #0088cc 0%, #0077b3 100%)',
             color: 'white',
             border: 'none',
-            borderRadius: '16px',
-            padding: '20px 24px',
-            fontSize: '16px',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            fontSize: '15px',
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             transition: 'all 0.2s ease',
-            boxShadow: '0 4px 6px -1px rgba(0, 136, 204, 0.3), 0 2px 4px -1px rgba(0, 136, 204, 0.2)'
+            boxShadow: '0 2px 4px -1px rgba(0, 136, 204, 0.2), 0 1px 2px -1px rgba(0, 136, 204, 0.15)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Credit Card Icon */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
             </svg>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '16px', fontWeight: '600' }}>Credit Card</div>
-              <div style={{ fontSize: '13px', opacity: 0.8, fontWeight: '400' }}>Instant • Up to $500</div>
+              <div style={{ fontSize: '15px', fontWeight: '600' }}>Credit Card</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Instant • Up to $500</div>
             </div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
@@ -6756,37 +6731,37 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
             background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
             color: 'white',
             border: 'none',
-            borderRadius: '16px',
-            padding: '20px 24px',
-            fontSize: '16px',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            fontSize: '15px',
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             transition: 'all 0.2s ease',
-            boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3), 0 2px 4px -1px rgba(124, 58, 237, 0.2)'
+            boxShadow: '0 2px 4px -1px rgba(124, 58, 237, 0.2), 0 1px 2px -1px rgba(124, 58, 237, 0.15)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* USDC Logo */}
             <div style={{
-              width: '24px',
-              height: '24px',
+              width: '20px',
+              height: '20px',
               borderRadius: '50%',
               background: 'white',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: '700',
               color: '#7c3aed'
             }}>
               $
             </div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '16px', fontWeight: '600' }}>USDC</div>
-              <div style={{ fontSize: '13px', opacity: 0.8, fontWeight: '400' }}>Any amount • Crypto wallet</div>
+              <div style={{ fontSize: '15px', fontWeight: '600' }}>USDC</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Any amount • Crypto wallet</div>
             </div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
@@ -6807,26 +6782,26 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
             background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
             color: 'white',
             border: 'none',
-            borderRadius: '16px',
-            padding: '20px 24px',
-            fontSize: '16px',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            fontSize: '15px',
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             transition: 'all 0.2s ease',
-            boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3), 0 2px 4px -1px rgba(16, 185, 129, 0.2)'
+            boxShadow: '0 2px 4px -1px rgba(16, 185, 129, 0.2), 0 1px 2px -1px rgba(16, 185, 129, 0.15)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Bank Icon */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M11.5 1L2 6v2h20V6m-5 4v7h3v-7M2 22h20v-2H2m1.5-4h4v-7h-4m6 0v7h4v-7m-13-2h18v2H2.5z"/>
             </svg>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '16px', fontWeight: '600' }}>Bank Transfer</div>
-              <div style={{ fontSize: '13px', opacity: 0.8, fontWeight: '400' }}>Any amount • 1-3 business days</div>
+              <div style={{ fontSize: '15px', fontWeight: '600' }}>Bank Transfer</div>
+              <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Any amount • 1-3 business days</div>
             </div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
@@ -6864,28 +6839,6 @@ const BalanceInquiryCard = ({ data, onFunded }) => {
           </div>
         )}
         
-        {/* Tier status for confirmation */}
-        {isConfirmation && data.tier && (
-          <div style={{ 
-            backgroundColor: '#f3e5f5', 
-            padding: '12px', 
-            borderRadius: '8px', 
-            marginBottom: '16px',
-            border: '1px solid #9c27b0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <div style={{ 
-                width: '12px', 
-                height: '12px', 
-                backgroundColor: data.tierColor, 
-                borderRadius: '50%'
-              }}></div>
-              <div style={{ fontSize: '14px', color: '#7b1fa2', textAlign: 'center' }}>
-                🎯 You're now <strong>{data.tier} Tier</strong> with <strong>{data.blinkFee}</strong> fees
-              </div>
-            </div>
-          </div>
-        )}
         
         {/* Balance display */}
         <div style={{ 
@@ -8313,21 +8266,21 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       left: 0,
       width: '100%',
       height: '100%',
-      backgroundColor: '#f8f9fa',
+      backgroundColor: '#fafafa',
       zIndex: 1000,
       display: 'flex',
       flexDirection: 'column'
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px 24px',
+        padding: '20px 24px 16px 24px',
         backgroundColor: 'white',
-        borderBottom: '1px solid #e1e5e9',
+        borderBottom: '1px solid #f0f0f0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1a1a1a' }}>
+        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#1a1a1a', letterSpacing: '-0.01em' }}>
           Add Funds
         </h2>
         <button
@@ -8335,11 +8288,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
           style={{
             background: 'none',
             border: 'none',
-            fontSize: '24px',
+            fontSize: '22px',
             cursor: 'pointer',
-            padding: '4px',
-            color: '#666'
+            padding: '8px',
+            color: '#666',
+            borderRadius: '6px',
+            transition: 'background-color 0.2s ease'
           }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
         >
           ×
         </button>
@@ -8348,47 +8305,61 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       {/* Content */}
       <div style={{
         flex: 1,
-        padding: '24px',
+        padding: '0 24px 24px 24px',
         overflow: 'auto'
       }}>
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
           {/* Deposit Amount */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '32px' }}>
             <h3 style={{ 
-              fontSize: '16px', 
+              fontSize: '17px', 
               fontWeight: '600', 
               color: '#1a1a1a', 
-              marginBottom: '16px',
-              margin: '0 0 16px 0'
+              marginBottom: '20px',
+              margin: '0 0 20px 0',
+              letterSpacing: '-0.01em'
             }}>
               Deposit amount
             </h3>
             
             {/* Quick Amount Buttons */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
               {quickAmounts.map(amount => (
                 <button
                   key={amount}
                   type="button"
                   onClick={() => handleInputChange('amount', amount.toString())}
                   style={{
-                    padding: '12px 20px',
-                    backgroundColor: formData.amount === amount.toString() ? '#007bff' : 'white',
+                    padding: '14px 18px',
+                    backgroundColor: formData.amount === amount.toString() ? '#1a1a1a' : '#f8f9fa',
                     color: formData.amount === amount.toString() ? 'white' : '#1a1a1a',
-                    border: '1px solid #e1e5e9',
-                    borderRadius: '8px',
-                    fontSize: '16px',
+                    border: formData.amount === amount.toString() ? '1px solid #1a1a1a' : '1px solid #e8e8e8',
+                    borderRadius: '10px',
+                    fontSize: '15px',
                     cursor: 'pointer',
                     fontWeight: '500',
-                    minWidth: '60px'
+                    minWidth: '65px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (formData.amount !== amount.toString()) {
+                      e.target.style.backgroundColor = '#f0f0f0';
+                      e.target.style.borderColor = '#d0d0d0';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (formData.amount !== amount.toString()) {
+                      e.target.style.backgroundColor = '#f8f9fa';
+                      e.target.style.borderColor = '#e8e8e8';
+                    }
                   }}
                 >
                   ${amount}
                 </button>
               ))}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6c757d' }}>
-                <span style={{ fontSize: '20px' }}>⚙️</span>
-                <span style={{ fontSize: '14px' }}>Custom amount</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#888', marginLeft: '4px' }}>
+                <span style={{ fontSize: '16px' }}>⚙️</span>
+                <span style={{ fontSize: '13px', fontWeight: '500' }}>Custom amount</span>
               </div>
             </div>
 
@@ -8402,38 +8373,46 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               max="500"
               style={{
                 width: '100%',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: '1px solid #e1e5e9',
+                padding: '16px 18px',
+                borderRadius: '12px',
+                border: '1px solid #e8e8e8',
                 fontSize: '16px',
-                marginBottom: '4px',
-                backgroundColor: 'white'
+                marginBottom: '6px',
+                backgroundColor: 'white',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease',
+                outline: 'none'
               }}
+              onFocus={(e) => e.target.style.borderColor = '#007bff'}
+              onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
             />
             <ErrorMessage error={errors.amount} />
           </div>
 
           {/* Payment Methods */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '32px' }}>
             {/* Apple Pay & Google Pay */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                 <button
                   type="button"
                   style={{
                   flex: 1,
-                  padding: '16px',
+                  padding: '18px',
                   backgroundColor: '#000',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '12px',
                   fontSize: '16px',
                   fontWeight: '500',
                     cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
                   }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#1a1a1a'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#000'}
                 >
                 {/* Apple Logo SVG */}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -8445,19 +8424,22 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 type="button"
                 style={{
                   flex: 1,
-                  padding: '16px',
+                  padding: '18px',
                   backgroundColor: '#4285f4',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '12px',
                   fontSize: '16px',
                   fontWeight: '500',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
                 }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#3367d6'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#4285f4'}
               >
                 {/* Google Pay Logo SVG */}
                 <svg width="16" height="16" viewBox="0 0 24 24">
@@ -8472,85 +8454,66 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
 
             <div style={{ 
               textAlign: 'center', 
-              color: '#6c757d', 
-              fontSize: '14px', 
-              margin: '16px 0' 
+              color: '#888', 
+              fontSize: '13px', 
+              margin: '20px 0',
+              fontWeight: '500'
             }}>
               or
           </div>
 
-            {/* Credit Card Option */}
-            <div style={{
-              border: '2px solid #007bff',
-              borderRadius: '8px',
-              padding: '16px',
-              backgroundColor: 'white',
+            {/* Credit Card Entry Label */}
+            <div style={{ 
+              fontSize: '15px', 
+              fontWeight: '600', 
+              color: '#1a1a1a',
+              marginBottom: '12px',
+              letterSpacing: '-0.01em',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              gap: '8px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ 
-                  width: '24px', 
-                  height: '16px', 
-                  backgroundColor: '#000', 
-                  borderRadius: '2px' 
-                }}></div>
-                <span style={{ fontSize: '16px', fontWeight: '500' }}>Credit Card</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  borderRadius: '50%', 
-                  backgroundColor: '#007bff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <div style={{ 
-                    width: '6px', 
-                    height: '6px', 
-                    backgroundColor: 'white', 
-                    borderRadius: '50%' 
-                  }}></div>
-                </div>
-                <span style={{ color: '#007bff', fontSize: '14px', cursor: 'pointer' }}>Change</span>
-              </div>
+              <div style={{ 
+                width: '20px', 
+                height: '14px', 
+                backgroundColor: '#1a1a1a', 
+                borderRadius: '3px' 
+              }}></div>
+              Credit Card
             </div>
           </div>
 
           {/* Test Card Section */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '32px' }}>
             <div 
               onClick={() => setUseTestCard(!useTestCard)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '12px 0',
+                padding: '16px 0',
                 cursor: 'pointer',
-                borderBottom: '1px solid #e1e5e9'
+                borderBottom: '1px solid #f0f0f0'
               }}
             >
-              <span style={{ fontSize: '16px', fontWeight: '500', color: '#1a1a1a' }}>
+              <span style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
                 Use a test card
               </span>
-              <span style={{ fontSize: '18px' }}>{useTestCard ? '▼' : '▶'}</span>
+              <span style={{ fontSize: '16px', color: '#666' }}>{useTestCard ? '▼' : '▶'}</span>
             </div>
             
             {useTestCard && (
               <div style={{
-                backgroundColor: '#fff3cd',
-                border: '1px solid #ffeaa7',
-                borderRadius: '8px',
-                padding: '12px',
-                marginTop: '12px'
+                backgroundColor: '#fef9e7',
+                border: '1px solid #f7d794',
+                borderRadius: '12px',
+                padding: '16px',
+                marginTop: '16px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', marginTop: '2px' }}>⚠️</span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <span style={{ fontSize: '16px', marginTop: '1px' }}>⚠️</span>
                   <div>
-                    <div style={{ fontSize: '14px', color: '#856404', lineHeight: '1.4' }}>
+                    <div style={{ fontSize: '14px', color: '#8b6914', lineHeight: '1.5', fontWeight: '500' }}>
                       <strong>Sandbox environment</strong> - Enter appropriate CC number for your testing 
                       (testing with 3DS requires special numbers)
                     </div>
@@ -8562,23 +8525,25 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
 
           <form onSubmit={handleSubmit}>
             {/* Card Information */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '32px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500', 
-                color: '#1a1a1a' 
+                marginBottom: '12px', 
+                fontSize: '15px', 
+                fontWeight: '600', 
+                color: '#1a1a1a',
+                letterSpacing: '-0.01em'
               }}>
                 Card Information <span style={{ color: '#dc3545' }}>*</span>
-            </label>
+              </label>
               
               {/* Card Number */}
               <div style={{ 
-                border: '1px solid #e1e5e9', 
-                borderRadius: '8px 8px 0 0',
+                border: '1px solid #e8e8e8', 
+                borderRadius: '12px 12px 0 0',
                 backgroundColor: 'white',
-                position: 'relative'
+                position: 'relative',
+                transition: 'border-color 0.2s ease'
               }}>
             <input
               type="text"
@@ -8587,13 +8552,16 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   placeholder="0000 0000 0000 0000"
                   style={{
                 width: '100%',
-                    padding: '12px 16px',
+                    padding: '16px 18px',
                     border: 'none',
-                    borderRadius: '8px 8px 0 0',
+                    borderRadius: '12px 12px 0 0',
                 fontSize: '16px',
                     backgroundColor: 'transparent',
-                    outline: 'none'
+                    outline: 'none',
+                    boxSizing: 'border-box'
                   }}
+                  onFocus={(e) => e.target.parentElement.style.borderColor = '#007bff'}
+                  onBlur={(e) => e.target.parentElement.style.borderColor = '#e8e8e8'}
                 />
                 <div style={{ 
                   position: 'absolute', 
@@ -8620,20 +8588,24 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '12px 16px',
-                    border: '1px solid #e1e5e9',
+                    padding: '16px 18px',
+                    border: '1px solid #e8e8e8',
                     borderTop: 'none',
                     borderRadius: '0',
                   fontSize: '16px',
                     outline: 'none',
-                    backgroundColor: 'white'
+                    backgroundColor: 'white',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.2s ease'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
                 />
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  padding: '0 8px',
-                  border: '1px solid #e1e5e9',
+                  padding: '0 10px',
+                  border: '1px solid #e8e8e8',
                   borderTop: 'none',
                   borderLeft: 'none',
                   borderRight: 'none',
@@ -8649,14 +8621,18 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '12px 16px',
-                    border: '1px solid #e1e5e9',
+                    padding: '16px 18px',
+                    border: '1px solid #e8e8e8',
                     borderTop: 'none',
                     borderRadius: '0',
                     fontSize: '16px',
                     outline: 'none',
-                    backgroundColor: 'white'
+                    backgroundColor: 'white',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.2s ease'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
                 />
               <input
                 type="text"
@@ -8666,14 +8642,18 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 maxLength="4"
                   style={{
                     width: '50%',
-                    padding: '12px 16px',
-                    border: '1px solid #e1e5e9',
+                    padding: '16px 18px',
+                    border: '1px solid #e8e8e8',
                     borderTop: 'none',
-                    borderRadius: '0 0 8px 8px',
+                    borderRadius: '0 0 12px 12px',
                     fontSize: '16px',
                     outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.2s ease',
                     backgroundColor: 'white'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
                 />
                 <div style={{ 
                   display: 'flex', 
@@ -8715,13 +8695,14 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
             </div>
 
             {/* Email */}
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500', 
-                color: '#1a1a1a' 
+                marginBottom: '12px', 
+                fontSize: '15px', 
+                fontWeight: '600', 
+                color: '#1a1a1a',
+                letterSpacing: '-0.01em'
               }}>
                 Email <span style={{ color: '#dc3545' }}>*</span>
               </label>
@@ -8732,25 +8713,30 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="johndoe@gmail.com"
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  border: '1px solid #e1e5e9',
+                  padding: '16px 18px',
+                  borderRadius: '12px',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.2s ease',
+                  outline: 'none',
+                  border: '1px solid #e8e8e8',
                   fontSize: '16px',
-                  backgroundColor: 'white',
-                  outline: 'none'
+                  backgroundColor: 'white'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
               />
               <ErrorMessage error={errors.email} />
           </div>
 
             {/* Name on card */}
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500', 
-                color: '#1a1a1a' 
+                marginBottom: '12px', 
+                fontSize: '15px', 
+                fontWeight: '600', 
+                color: '#1a1a1a',
+                letterSpacing: '-0.01em'
               }}>
                 Name on card <span style={{ color: '#dc3545' }}>*</span>
             </label>
@@ -8761,13 +8747,17 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="John Appleseed"
                 style={{
                 width: '100%',
-                  padding: '12px 16px',
-                borderRadius: '8px',
-                  border: '1px solid #e1e5e9',
+                  padding: '16px 18px',
+                borderRadius: '12px',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease',
+                outline: 'none',
+                  border: '1px solid #e8e8e8',
                   fontSize: '16px',
-                  backgroundColor: 'white',
-                  outline: 'none'
+                  backgroundColor: 'white'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
             />
             <ErrorMessage error={errors.name} />
           </div>

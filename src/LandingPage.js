@@ -233,7 +233,7 @@ const LandingPage = () => {
                   fontWeight: '400',
                   marginTop: '2px'
                 }}>
-                  Personalized flow for existing users with purchase history
+                  Personalized flow for existing users with purchase history and a funded balance.
                 </span>
               </div>
               <svg 
