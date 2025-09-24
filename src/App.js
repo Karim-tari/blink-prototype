@@ -1856,7 +1856,7 @@ const AutobotApp = () => {
         const priceVariation = isDeathStar ? 0 : (isUsed ? Math.floor(Math.random() * 40) - 20 : Math.floor(Math.random() * 50) - 25);
         
         const finalPrice = basePrice + priceVariation;
-        const shipping = Math.random() > 0.6 ? Math.floor(Math.random() * 20) : 0;
+        const shipping = isDeathStar ? 0 : (Math.random() > 0.6 ? Math.floor(Math.random() * 20) : 0);
         
         // Create temporary item to check for coupons
         const tempItem = { price: finalPrice };
@@ -2081,7 +2081,9 @@ const AutobotApp = () => {
       return;
     }
     
-    const total = item.price + (item.shipping || 0);
+    // Check if this is Death Star - if so, price is already all-inclusive
+    const isDeathStar = item.title && item.title.toLowerCase().includes('death star');
+    const total = isDeathStar ? item.price : item.price + (item.shipping || 0);
     
     // For new users, first collect customer details, then check funding
     if (userType === 'new') {
@@ -2704,9 +2706,12 @@ const AutobotApp = () => {
       const newBalance = balance + amount;
       setBalance(prev => prev + amount);
       
-      // Show confirmation message for credit card funding
-      if (!isOptional) {
-        // Simple success message without tier information
+      // Show confirmation message for credit card funding (but not for direct purchases)
+      const pendingItem = userProfile.pendingPurchase;
+      const isDirectPurchase = pendingItem && !isOptional;
+      
+      if (!isOptional && !isDirectPurchase) {
+        // Simple success message without tier information for funding only
         // (Tier determination happens elsewhere based on funding method)
         
         const confirmationMessage = `Perfect! Added $${amount} to your account. Your balance is now $${newBalance}. Ready to shop! 🛍️`;
@@ -4146,7 +4151,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
                   borderRadius: '6px',
                   padding: '6px 10px',
                   color: '#6b7280',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -4300,7 +4305,7 @@ const AutobotWebView = ({ data, onClose, onPurchaseIntent }) => {
                   background: 'rgba(255, 255, 255, 0.2)',
                   padding: '3px 8px',
                   borderRadius: '12px',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: '500'
                 }}>
                   ${result.price + (result.shipping || 0)}
@@ -5661,7 +5666,7 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                       marginBottom: '12px'
                     }}>
                       <div style={{ 
-                        fontSize: '14px', 
+                        fontSize: '16px', 
                         color: '#8e8e93',
                         fontWeight: '500'
                       }}>
@@ -6024,8 +6029,13 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
 };
 
 const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
-  const shippingAndTax = (data.item.shipping || 8) + Math.round(data.item.price * 0.08);
-  const totalWithShippingTax = data.item.price + shippingAndTax;
+  // Check if this is Death Star - if so, price is already all-inclusive
+  const isDeathStar = data.item.title && data.item.title.toLowerCase().includes('death star');
+  
+  // Calculate total with all fees included
+  const totalWithShippingTax = isDeathStar 
+    ? data.item.price // Death Star is all-inclusive
+    : data.item.price + (data.item.shipping || 8) + Math.round(data.item.price * 0.08) + Math.round(data.item.price * 0.03); // Base + shipping + tax + 3% service fee
   
   return (
     <>
@@ -6327,7 +6337,7 @@ const AccountInfoCard = ({ data }) => {
                     border: '1px solid #e9ecef',
                     borderRadius: '8px',
                     padding: '12px',
-                    fontSize: '14px',
+                    fontSize: '16px',
                     cursor: 'pointer',
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -7426,7 +7436,7 @@ const DirectCheckoutCard = ({ data, onFunded, onCreditCardFunding }) => {
                   color: '#666', 
                   fontWeight: '400'
                 }}>
-                  Including shipping and tax
+                  Including shipping, tax, and service fee
                 </div>
               </div>
         
@@ -7674,7 +7684,7 @@ const SearchResultsWebView = ({ data, onPurchaseIntent, onImageClick }) => {
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                fontSize: '14px',
+                fontSize: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -8343,44 +8353,67 @@ const ChatInput = ({ onSubmit }) => {
 
 // Payment Method Tab Component
 const PaymentMethodTab = ({ type, label, isSelected, onClick }) => {
+  const showSavings = type === 'bank' || type === 'crypto';
+  
   return (
-    <button 
-      onClick={onClick}
-      style={{
-        flex: 1,
-        border: `1px solid ${isSelected ? '#000000' : '#e6ebf1'}`,
-        borderRadius: '25px',
-        padding: '10px 12px',
-        cursor: 'pointer',
-        backgroundColor: isSelected ? '#000000' : 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        transition: 'all 0.15s ease',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: isSelected ? 'white' : '#32325d',
-        outline: 'none'
-      }}
-    >
-      <div style={{
-        width: '16px',
-        height: '16px',
-        borderRadius: '50%',
-        border: `2px solid ${isSelected ? 'white' : '#cdd7e7'}`,
-        backgroundColor: isSelected ? 'white' : 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '8px',
-        color: isSelected ? '#000000' : 'white',
-        flexShrink: 0
-      }}>
-        {isSelected && '●'}
-      </div>
-      {label}
-    </button>
+    <div style={{ position: 'relative', flex: 1 }}>
+      <button 
+        onClick={onClick}
+        style={{
+          width: '100%',
+          border: `1px solid ${isSelected ? '#000000' : '#e6ebf1'}`,
+          borderRadius: '25px',
+          padding: '10px 12px',
+          cursor: 'pointer',
+          backgroundColor: isSelected ? '#000000' : 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          transition: 'all 0.15s ease',
+          fontSize: '14px',
+          fontWeight: '500',
+          color: isSelected ? 'white' : '#32325d',
+          outline: 'none'
+        }}
+      >
+        <div style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          border: `2px solid ${isSelected ? 'white' : '#cdd7e7'}`,
+          backgroundColor: isSelected ? 'white' : 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '8px',
+          color: isSelected ? '#000000' : 'white',
+          flexShrink: 0
+        }}>
+          {isSelected && '●'}
+        </div>
+        {label}
+      </button>
+      
+      {/* Save 7% Badge */}
+      {showSavings && (
+        <div style={{
+          position: 'absolute',
+          top: '-8px',
+          right: '8px',
+          backgroundColor: '#10b981',
+          color: 'white',
+          fontSize: '10px',
+          fontWeight: '600',
+          padding: '2px 6px',
+          borderRadius: '8px',
+          zIndex: 10,
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+        }}>
+          Save 7%
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -8522,9 +8555,31 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
     );
   };
 
-  const subtotal = parseFloat(formData.amount) || 0;
-  const serviceFee = subtotal * 0.038; // 3.8% service fee
-  const total = subtotal + serviceFee;
+  // Check if this is Death Star - if so, show proper breakdown
+  const isDeathStar = data.item?.title && data.item.title.toLowerCase().includes('death star');
+  
+  let subtotal, shipping, tax, serviceFee, total;
+  
+  if (isDeathStar) {
+    // For Death Star, break down the all-inclusive price with coupon discount
+    const totalPrice = parseFloat(formData.amount) || 0;
+    const couponDiscount = 25; // $25 coupon discount for Death Star
+    
+    // Calculate breakdown before discount
+    const priceBeforeDiscount = totalPrice + couponDiscount;
+    subtotal = Math.round(priceBeforeDiscount * 0.82 * 100) / 100; // ~82% of pre-discount total
+    shipping = Math.round(priceBeforeDiscount * 0.06 * 100) / 100; // ~6% for shipping
+    tax = Math.round(priceBeforeDiscount * 0.08 * 100) / 100; // ~8% for tax
+    serviceFee = priceBeforeDiscount - subtotal - shipping - tax; // Remainder for service fee
+    total = totalPrice; // Keep the same final total (after discount)
+  } else {
+    // For other items, normal calculation
+    subtotal = parseFloat(formData.amount) || 0;
+    shipping = 0; // Assuming no separate shipping for non-Death Star in this context
+    tax = 0; // Assuming no separate tax for non-Death Star in this context
+    serviceFee = subtotal * 0.038; // 3.8% service fee
+    total = subtotal + serviceFee;
+  }
 
   return (
     <div style={{
@@ -8584,7 +8639,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 borderBottom: '1px solid #e6ebf1'
               }}>
                 <div style={{ 
-                  fontSize: '14px', 
+                  fontSize: '16px', 
                   fontWeight: '500', 
                   color: '#32325d',
                   marginBottom: '2px'
@@ -8768,10 +8823,10 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   placeholder="1234 1234 1234 1234"
                   style={{
                 width: '100%',
-                    padding: '12px 14px',
+                    padding: '8px 10px',
                     border: 'none',
                     borderRadius: '6px 6px 0 0',
-                fontSize: '16px',
+                fontSize: '12px',
                     backgroundColor: 'transparent',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -8805,11 +8860,11 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '12px 14px',
+                    padding: '8px 10px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0',
-                  fontSize: '16px',
+                  fontSize: '12px',
                     outline: 'none',
                     backgroundColor: 'white',
                     boxSizing: 'border-box',
@@ -8841,11 +8896,11 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '12px 14px',
+                    padding: '8px 10px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0',
-                    fontSize: '16px',
+                    fontSize: '12px',
                     outline: 'none',
                     backgroundColor: 'white',
                     boxSizing: 'border-box',
@@ -8863,11 +8918,11 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 maxLength="4"
                   style={{
                     width: '50%',
-                    padding: '12px 14px',
+                    padding: '8px 10px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0 0 6px 6px',
-                    fontSize: '16px',
+                    fontSize: '12px',
                     outline: 'none',
                     boxSizing: 'border-box',
                     transition: 'border-color 0.15s ease',
@@ -8936,13 +8991,13 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="johndoe@gmail.com"
                 style={{
                   width: '100%',
-                  padding: '16px 18px',
+                  padding: '8px 10px',
                   borderRadius: '12px',
                   boxSizing: 'border-box',
                   transition: 'border-color 0.2s ease',
                   outline: 'none',
                   border: '1px solid #e8e8e8',
-                  fontSize: '16px',
+                  fontSize: '12px',
                   backgroundColor: 'white'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#007bff'}
@@ -8972,13 +9027,13 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="Jane Doe"
                 style={{
                 width: '100%',
-                  padding: '12px 14px',
+                  padding: '8px 10px',
                 borderRadius: '6px',
                 boxSizing: 'border-box',
                 transition: 'border-color 0.15s ease',
                 outline: 'none',
                   border: '1px solid #e6ebf1',
-                  fontSize: '16px',
+                  fontSize: '12px',
                   backgroundColor: 'white',
                   color: '#32325d'
                 }}
@@ -9008,10 +9063,10 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 placeholder="185 Berry St, San Francisco, CA 94107"
                 style={{
                   width: '100%',
-                  padding: '12px 14px',
+                  padding: '8px 10px',
                   borderRadius: '6px',
                   border: '1px solid #e6ebf1',
-                  fontSize: '16px',
+                  fontSize: '12px',
                   backgroundColor: 'white',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -9033,17 +9088,35 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               marginBottom: '24px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#6c757d' }}>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span style={{ color: '#6c757d', fontSize: '12px' }}>Subtotal</span>
+                <span style={{ fontSize: '12px' }}>${subtotal.toFixed(2)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ color: '#6c757d' }}>Service fees</span>
-                <span>${serviceFee.toFixed(2)}</span>
+              {isDeathStar && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6c757d', fontSize: '12px' }}>Shipping</span>
+                    <span style={{ fontSize: '12px' }}>${shipping.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6c757d', fontSize: '12px' }}>Tax</span>
+                    <span style={{ fontSize: '12px' }}>${tax.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#6c757d', fontSize: '12px' }}>Service fees</span>
+                <span style={{ fontSize: '12px' }}>${serviceFee.toFixed(2)}</span>
               </div>
+              {isDeathStar && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ color: '#10b981', fontWeight: '500', fontSize: '12px' }}>Coupon discount</span>
+                  <span style={{ color: '#10b981', fontWeight: '500', fontSize: '12px' }}>-$25.00</span>
+                </div>
+              )}
               <hr style={{ border: 'none', borderTop: '1px solid #e1e5e9', margin: '12px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span style={{ fontSize: '12px' }}>Total</span>
+                <span style={{ fontSize: '12px' }}>${total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -9203,7 +9276,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                     $
                   </div>
                   <span style={{ 
-                    fontSize: '14px', 
+                    fontSize: '16px', 
                     fontWeight: '600', 
                     color: '#32325d' 
                   }}>
@@ -9239,7 +9312,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                     color: 'white',
                     border: 'none',
                     borderRadius: '25px',
-                    fontSize: '14px',
+                    fontSize: '16px',
                     fontWeight: '500',
                     cursor: 'pointer',
                     display: 'flex',
