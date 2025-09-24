@@ -53,7 +53,7 @@ const ProductComponentTest = () => {
     collectible: {
       title: "Death Star",
       brand: "LEGO",
-      price: 999.99,
+      price: 939.99,
       shipping: 22,
       images: {
         default: [

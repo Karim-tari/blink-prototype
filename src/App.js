@@ -293,6 +293,7 @@ const AutobotApp = () => {
   const [userZip, setUserZip] = useState(''); // Store user's ZIP code
   const [waitingForSelfie, setWaitingForSelfie] = useState(false); // Track if we're waiting for user's selfie
   const [pendingSelfieItems, setPendingSelfieItems] = useState(null); // Track items for contextual selfie
+  const [previousAddressAttempt, setPreviousAddressAttempt] = useState(null); // Track previous address attempt for smart corrections
   const chatContainerRef = useRef(null);
 
   // Enhanced Compliment Engine with Brand Intelligence
@@ -423,9 +424,9 @@ const AutobotApp = () => {
     // Try brand-specific compliment first
     if (brandSpecificCompliments[brandKey]) {
       const brandCompliments = brandSpecificCompliments[brandKey].filter(
-        comp => !recentCompliments.includes(comp)
-      );
-      
+      comp => !recentCompliments.includes(comp)
+    );
+    
       if (brandCompliments.length > 0) {
         const compliment = brandCompliments[Math.floor(Math.random() * brandCompliments.length)];
         setRecentCompliments(prev => [...prev.slice(-4), compliment]);
@@ -441,10 +442,10 @@ const AutobotApp = () => {
     
     const finalCompliments = availableCompliments.length > 0 ? availableCompliments : categoryOptions;
     const compliment = finalCompliments[Math.floor(Math.random() * finalCompliments.length)];
-    
+
     // Track this compliment
     setRecentCompliments(prev => [...prev.slice(-4), compliment]);
-    
+
     return compliment;
   };
 
@@ -544,7 +545,7 @@ const AutobotApp = () => {
     if (!hasInitializedMessages) {
       if (userType === 'new') {
         setTimeout(() => {
-          const newUserMessage = `I can buy anything for you on the internet. Send me a link, a photo, or tell me what you want.`;
+          const newUserMessage = `Hey, I'm Blink, your ultimate personal shopper.\n \nI save you time and money by buying anything you want online. I check for coupons, discounts, and better prices so you always get the best deal. You can send me a link, a photo, or tell me what you want, and I'll take care of it.`;
           addAutobotMessage(newUserMessage);
           setHasInitializedMessages(true);
         }, 1000);
@@ -766,6 +767,11 @@ const AutobotApp = () => {
         `Nice choice! Star Wars, architecture, or something else?`,
         `LEGO hunting! Let me find some great sets for you.`
       ],
+      'death-star': [
+        "The Death Star! That's the ultimate LEGO Star Wars set. Let me get that for you.",
+        "Death Star! Perfect choice - this is the crown jewel of LEGO Star Wars.",
+        "LEGO Death Star! The ultimate collector's piece. Finding it now."
+      ],
       'half-life': isReturningUser ? [
         `Half-Life collectibles! 🎮 I see gaming in your interests - perfect match! Looking for vintage stuff or specific items?`,
         `Nice! Half-Life memorabilia is getting rare these days. I'll check eBay for some authentic pieces from collectors.`,
@@ -829,10 +835,22 @@ const AutobotApp = () => {
       'not right now', 'pass', 'no thanks', 'not today', 'later'
     ];
     
-    const isPositive = positiveResponses.some(response => lowerMessage.includes(response));
+    // Detect frequency preferences
+    const isBiWeekly = lowerMessage.includes('bi-weekly') || lowerMessage.includes('biweekly') || 
+                       lowerMessage.includes('bi weekly') || lowerMessage.includes('every two weeks') ||
+                       lowerMessage.includes('twice a month');
+    const isMonthly = lowerMessage.includes('monthly') || lowerMessage.includes('month') ||
+                      lowerMessage.includes('keep it monthly');
+    
+    const isPositive = positiveResponses.some(response => lowerMessage.includes(response)) || isBiWeekly || isMonthly;
     const isNegative = negativeResponses.some(response => lowerMessage.includes(response));
     
-    return { isPositive, isNegative, isResponse: isPositive || isNegative };
+    return { 
+      isPositive, 
+      isNegative, 
+      isResponse: isPositive || isNegative,
+      frequency: isBiWeekly ? 'bi-weekly' : isMonthly ? 'monthly' : 'monthly' // default to monthly
+    };
   };
 
   // Intent detection - determines if user is searching for products or just chatting
@@ -950,70 +968,103 @@ const AutobotApp = () => {
     return hasWearableKeyword || hasFashionBrand;
   };
 
-  // Comprehensive address validation for shipping
-  const validateShippingAddress = (address) => {
+  // Smart address validation that preserves correct parts and only asks for missing/incorrect parts
+  const validateShippingAddress = (address, previousAttempt = null) => {
     const trimmedAddress = address.trim();
+    
+    // Parse address components
+    const parseAddress = (addr) => {
+      const usZipPattern = /\b\d{5}(-\d{4})?\b/;
+      const canadianPostalPattern = /\b[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d\b/;
+      const ukPostcodePattern = /\b[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}\b/;
+      
+      const usStates = [
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+      ];
+      
+      const canadianProvinces = [
+        'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT',
+        'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Nova Scotia', 'Northwest Territories', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'
+      ];
+      
+      return {
+        hasNumbers: /\d/.test(addr),
+        postalCode: usZipPattern.exec(addr)?.[0] || canadianPostalPattern.exec(addr)?.[0] || ukPostcodePattern.exec(addr)?.[0],
+        hasState: usStates.some(state => addr.toLowerCase().includes(state.toLowerCase())) || 
+                 canadianProvinces.some(province => addr.toLowerCase().includes(province.toLowerCase())),
+        fullText: addr
+      };
+    };
+    
+    const current = parseAddress(trimmedAddress);
+    const previous = previousAttempt ? parseAddress(previousAttempt) : null;
+    
+    // If this is a correction attempt, check what specifically was wrong
+    if (previous) {
+      // If they're just providing a ZIP code (short input), combine with previous address
+      if (trimmedAddress.length < 10 && /^\d{5}(-\d{4})?$/.test(trimmedAddress)) {
+        const combinedAddress = previous.fullText.replace(/\b\d{5}(-\d{4})?\b/, '') + ' ' + trimmedAddress;
+        return {
+          isValid: true,
+          address: combinedAddress.trim(),
+          correctionMade: 'zip'
+        };
+      }
+      
+      // If they're providing just a state (short input), combine with previous
+      if (trimmedAddress.length < 15) {
+        const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
+        if (usStates.includes(trimmedAddress.toUpperCase())) {
+          const combinedAddress = previous.fullText + ' ' + trimmedAddress;
+          return {
+            isValid: true,
+            address: combinedAddress.trim(),
+            correctionMade: 'state'
+          };
+        }
+      }
+    }
     
     // Basic length check
     if (trimmedAddress.length < 20) {
       return {
         isValid: false,
-        error: "Please provide a complete address including street, city, state/province, and postal code."
+        error: "Please provide a complete address including street, city, state/province, and postal code.",
+        missingParts: ['complete address']
       };
     }
     
-    // Check for required components
-    const hasNumbers = /\d/.test(trimmedAddress);
-    const hasCommas = trimmedAddress.includes(',') || trimmedAddress.split(/\s+/).length >= 4;
+    // Check for specific missing components
+    const missingParts = [];
     
-    // US ZIP code pattern
-    const usZipPattern = /\b\d{5}(-\d{4})?\b/;
-    // Canadian postal code pattern
-    const canadianPostalPattern = /\b[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d\b/;
-    // UK postcode pattern (basic)
-    const ukPostcodePattern = /\b[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}\b/;
-    
-    const hasPostalCode = usZipPattern.test(trimmedAddress) || 
-                         canadianPostalPattern.test(trimmedAddress) ||
-                         ukPostcodePattern.test(trimmedAddress);
-    
-    // Common state abbreviations and full names
-    const usStates = [
-      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-      'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
-    ];
-    
-    // Canadian provinces
-    const canadianProvinces = [
-      'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT',
-      'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Nova Scotia', 'Northwest Territories', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'
-    ];
-    
-    const hasState = usStates.some(state => 
-      trimmedAddress.toLowerCase().includes(state.toLowerCase())
-    ) || canadianProvinces.some(province => 
-      trimmedAddress.toLowerCase().includes(province.toLowerCase())
-    );
-    
-    // Check for common address components
-    if (!hasNumbers) {
-      return {
-        isValid: false,
-        error: "Please include a street number in your address."
-      };
+    if (!current.hasNumbers) {
+      missingParts.push('street number');
     }
     
-    if (!hasPostalCode) {
-      return {
-        isValid: false,
-        error: "Please include a valid ZIP code or postal code."
-      };
+    if (!current.postalCode) {
+      missingParts.push('ZIP code');
     }
     
-    if (!hasState && !canadianPostalPattern.test(trimmedAddress)) {
+    if (!current.hasState) {
+      missingParts.push('state');
+    }
+    
+    // If we have missing parts, give specific feedback
+    if (missingParts.length > 0) {
+      let errorMessage;
+      if (missingParts.length === 1) {
+        errorMessage = `I have most of your address, but I need your ${missingParts[0]}. Can you just give me that part?`;
+      } else {
+        const lastPart = missingParts.pop();
+        errorMessage = `I have most of your address, but I need your ${missingParts.join(', ')} and ${lastPart}. Can you provide those?`;
+      }
+      
       return {
         isValid: false,
-        error: "Please include your state or province."
+        error: errorMessage,
+        missingParts: missingParts,
+        partialAddress: trimmedAddress
       };
     }
     
@@ -1027,7 +1078,8 @@ const AutobotApp = () => {
     if (incompletePatterns.some(pattern => pattern.test(trimmedAddress))) {
       return {
         isValid: false,
-        error: "Please provide your complete address including street, city, state, and ZIP code."
+        error: "I need a bit more detail. Can you include the city and state with that?",
+        partialAddress: trimmedAddress
       };
     }
     
@@ -1167,6 +1219,17 @@ const AutobotApp = () => {
     // Parse user request to determine what they're looking for
     const request = userRequest.toLowerCase();
     
+    // Helper function to detect ultra-specific searches that should show single results
+    const isUltraSpecificSearch = (searchTerm) => {
+      const ultraSpecificTerms = [
+        'death star',
+        'millennium falcon ultimate collector',
+        'imperial star destroyer ucs',
+        'at-at ultimate collector'
+      ];
+      return ultraSpecificTerms.some(term => searchTerm.includes(term));
+    };
+    
     // Debug logging for selfie detection
     console.log('🔍 triggerSearchResults called:', {
       userRequest,
@@ -1186,6 +1249,26 @@ const AutobotApp = () => {
     
     // Dynamic product generation based on user input
     const getProductCategory = () => {
+      console.log('🔍 getProductCategory called with request:', request);
+      console.log('🔍 Death star check:', request.includes('death star'));
+      
+      // Check for Death Star first - ultra-specific search
+      if (request.includes('death star')) {
+        console.log('🌟 DEATH STAR CONDITION HIT - FIRST CHECK!');
+        return {
+          category: 'lego',
+          emoji: '🧱',
+          products: [
+            { 
+              name: 'LEGO Star Wars Death Star', 
+              basePrice: 939.99, 
+              brand: 'LEGO',
+              image: `${process.env.PUBLIC_URL}/test-product/death-star.png`
+            }
+          ]
+        };
+      }
+      
       if (request.includes('half-life') || request.includes('half life') || (request.includes('half') && request.includes('life'))) {
         return {
           category: 'half-life',
@@ -1389,6 +1472,7 @@ const AutobotApp = () => {
                     ]
                   };
       } else if (request.includes('lego') || request.includes('star wars') || request.includes('blocks')) {
+        console.log('🧱 GENERAL LEGO CONDITION HIT!');
         return {
           category: 'lego',
           emoji: '🧱',
@@ -1766,7 +1850,10 @@ const AutobotApp = () => {
           console.log(`🔧 Transforming: ${product.name}, isUsed: ${isUsed}, hasIsUsedProperty: ${product.hasOwnProperty('isUsed')}, originalIsUsed: ${product.isUsed}`);
         }
         const basePrice = isUsed ? (product.usedPrice || product.basePrice) : product.basePrice;
-        const priceVariation = isUsed ? Math.floor(Math.random() * 40) - 20 : Math.floor(Math.random() * 50) - 25;
+        
+        // Skip price variation for Death Star to maintain exact pricing
+        const isDeathStar = product.name.toLowerCase().includes('death star');
+        const priceVariation = isDeathStar ? 0 : (isUsed ? Math.floor(Math.random() * 40) - 20 : Math.floor(Math.random() * 50) - 25);
         
         const finalPrice = basePrice + priceVariation;
         const shipping = Math.random() > 0.6 ? Math.floor(Math.random() * 20) : 0;
@@ -1852,11 +1939,20 @@ const AutobotApp = () => {
         console.log("🎵 EdSheeran search - showing direct images");
       }
       
-      if (finalResults.length === 1) {
-        const compliment = generateCompliment(finalResults[0]);
+      if (finalResults.length === 1 || isUltraSpecificSearch(request)) {
+        // For ultra-specific searches like Death Star, only show the first (best) result
+        const singleResult = finalResults[0];
+        
+        // Check if this is a Death Star search and add coupon message
+        const isDeathStarSearch = request.includes('death star');
+        if (isDeathStarSearch) {
+          addAutobotMessage('Found it! You were able to save $25 on this order.');
+        }
+        
+        const compliment = generateCompliment(singleResult);
         const nudges = ["Want me to grab it now?", "Should I hold this for you?", "Ready to order?"];
         const nudge = nudges[Math.floor(Math.random() * nudges.length)];
-        addAutobotMessage("Found it! " + compliment + " " + nudge, 'search-result', finalResults[0]);
+        addAutobotMessage("Found it! " + compliment + " " + nudge, 'search-result', singleResult);
         
         // Add contextual selfie offer for wearable items (only if user hasn't uploaded one yet)
         console.log('🔍 Selfie Debug (Single Result):', {
@@ -1865,7 +1961,7 @@ const AutobotApp = () => {
           hasUserImage: !!userImage,
           shouldShowSelfieOffer: isWearableSearch(userRequest) && !userImage
         });
-        if (isWearableSearch(userRequest) && !userImage) {
+        if (isWearableSearch(userRequest) && !userImage && !isFromPushNotification) {
           setTimeout(() => {
             addAutobotMessage("Do you want to see how you look in it? Upload a picture and I'll show you! 📸");
             setWaitingForSelfie(true);
@@ -1886,7 +1982,7 @@ const AutobotApp = () => {
           hasUserImage: !!userImage,
           shouldShowSelfieOffer: isWearableSearch(userRequest) && !userImage
         });
-        if (isWearableSearch(userRequest) && !userImage) {
+        if (isWearableSearch(userRequest) && !userImage && !isFromPushNotification && !isUltraSpecificSearch(request)) {
           setTimeout(() => {
             addAutobotMessage("Do you want to see how you look in them? Upload a picture and I'll show you! 📸");
             setWaitingForSelfie(true);
@@ -1915,7 +2011,7 @@ const AutobotApp = () => {
           hasUserImage: !!userImage,
           shouldShowSelfieOffer: isWearableSearch(userRequest) && !userImage
         });
-        if (isWearableSearch(userRequest) && !userImage) {
+        if (isWearableSearch(userRequest) && !userImage && !isFromPushNotification) {
           setTimeout(() => {
             addAutobotMessage("Do you want to see how you look in them? Upload a picture and I'll show you! 📸");
             setWaitingForSelfie(true);
@@ -1927,6 +2023,10 @@ const AutobotApp = () => {
   };
 
   const handlePurchaseIntent = (item) => {
+    // Clear photo waiting state when user initiates purchase
+    setWaitingForSelfie(false);
+    setPendingSelfieItems([]);
+    
     // Handle group purchase from web view
     if (item.type === 'group-purchase') {
       const { items, totalPrice } = item;
@@ -1998,10 +2098,10 @@ const AutobotApp = () => {
         }
       }
       
-      // Now check if new user has sufficient funds (after collecting details)
+      // For new users, show direct checkout instead of funding flow
       if (balance < total) {
         setUserProfile(prev => ({ ...prev, pendingPurchase: item }));
-        addAutobotMessage("Great! Now to complete your order, you'll need to add funds to your Blink account.", 'funding-required', {
+        addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
           item,
           total,
           currentBalance: balance,
@@ -2074,10 +2174,10 @@ const AutobotApp = () => {
     const couponSavings = checkForCoupons(orderData.item, isFromPushNotification);
     const finalTotal = couponSavings ? orderData.total - couponSavings.discount : orderData.total;
     
-    // For new users, check if they need funding first
+    // For new users, show direct checkout instead of funding flow
     if (userType === 'new' && balance < finalTotal) {
       setUserProfile(prev => ({ ...prev, pendingPurchase: orderData.item }));
-      addAutobotMessage("To complete your order, you'll need to add funds to your Blink account.", 'funding-required', {
+      addAutobotMessage(`Your total is $${finalTotal}. How would you like to pay?`, 'direct-checkout', {
         item: orderData.item,
         total: finalTotal,
         currentBalance: balance,
@@ -2127,7 +2227,18 @@ const AutobotApp = () => {
     // Don't apply coupons if disabled (e.g., for push notification flow)
     if (disableCoupons) return null;
     
-    // Simulate finding coupon codes - 30% chance of finding a coupon
+    // Special $25 coupon for LEGO Star Wars Death Star
+    if (item.title && item.title.toLowerCase().includes('death star')) {
+      return {
+        percentage: null, // Fixed amount, not percentage
+        discount: 25,
+        code: 'LEGO25',
+        isSpecialDeal: true,
+        message: 'Found it! You were able to save $25 on this order.'
+      };
+    }
+    
+    // Simulate finding coupon codes - 30% chance of finding a coupon for other items
     const hasCoupon = Math.random() < 0.3;
     
     if (!hasCoupon) return null;
@@ -2272,7 +2383,7 @@ const AutobotApp = () => {
     
     if (isSubscriptionEligible) {
       setTimeout(() => {
-        addAutobotMessage("Want me to set this up as a subscription so you never run out? You can skip, change, or cancel any time.");
+        addAutobotMessage("Do you want me to set this up as a subscription? I recommend monthly, but you can do bi-weekly or whatever works. You can always skip, change, or cancel anytime.");
       }, 3000); // Show nudge 3 seconds after order completion
     }
   };
@@ -2627,13 +2738,6 @@ const AutobotApp = () => {
         successMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\n⏰ **Free cancellation until Tuesday 11:59 PM** - but honestly, you're going to want to keep this one!\n\nI'll ping you with tracking info within the hour so you can watch your new treasure make its way to you. Get excited! 🚀`;
         
         addAutobotMessage(successMessage);
-        
-        // Second message: Offer additional funding for faster future payments
-        setTimeout(() => {
-          addAutobotMessage(`If you enjoyed this experience and want even faster checkout next time, you can add funds to your Blink account. Send any amount you'd like to the address below:`, 'optional-funding', {
-            walletAddress: '0x742d35Cc6644C45532F6c8C1B96d4d67C2bCcE4F'
-          });
-        }, 3000);
       }
       
       // Clear pending purchase
@@ -3054,8 +3158,8 @@ const AutobotApp = () => {
     
     // Check if we're waiting for a selfie (user's personal photo)
     if (waitingForSelfie) {
-      // Store the user's image for virtual try-on
-      setUserImage(imageData);
+    // Store the user's image for virtual try-on
+    setUserImage(imageData);
       setWaitingForSelfie(false);
       
       // If there are pending selfie items (contextual selfie), show virtual try-on for those items
@@ -3108,18 +3212,18 @@ const AutobotApp = () => {
         return;
       } else {
         // General selfie upload (not contextual)
-        setTimeout(() => {
-          const compliments = [
-            "Perfect! Looking good! 📸",
-            "Great photo! Love it! 📸", 
-            "Awesome shot! 📸",
-            "Nice! That's perfect! 📸"
-          ];
-          const compliment = compliments[Math.floor(Math.random() * compliments.length)];
-          
-          addAutobotMessage(`${compliment}\n\nNow I can show you how anything looks on you! What do you want me to find for you?`);
-        }, 800);
-        return;
+      setTimeout(() => {
+        const compliments = [
+          "Perfect! Looking good! 📸",
+          "Great photo! Love it! 📸", 
+          "Awesome shot! 📸",
+          "Nice! That's perfect! 📸"
+        ];
+        const compliment = compliments[Math.floor(Math.random() * compliments.length)];
+        
+        addAutobotMessage(`${compliment}\n\nNow I can show you how anything looks on you! What do you want me to find for you?`);
+      }, 800);
+      return;
       }
     }
     
@@ -3224,7 +3328,7 @@ const AutobotApp = () => {
         // If it's not a clear yes/no and not a product search, treat as conversational
         setWaitingForSelfie(false);
         setPendingSelfieItems(null); // Clear pending items
-        const conversationalResponse = getConversationalResponse(message, { waitingForSelfie: true });
+        const conversationalResponse = getConversationalResponse(message, { waitingForSelfie: false });
         setTimeout(() => {
           addAutobotMessage(conversationalResponse);
         }, 800);
@@ -3234,7 +3338,7 @@ const AutobotApp = () => {
       setWaitingForSelfie(false);
       setPendingSelfieItems(null); // Clear pending items when starting new search
     }
-
+    
     // Check if we're collecting name or address for purchase
     if (userProfile.pendingPurchase) {
       if (!userProfile.name) {
@@ -3273,24 +3377,35 @@ const AutobotApp = () => {
         }, 1000);
         return;
       } else if (!userProfile.address) {
-        // Collecting address with validation
-        const validation = validateShippingAddress(message);
+        // Collecting address with smart validation
+        const validation = validateShippingAddress(message, previousAddressAttempt);
         
         if (!validation.isValid) {
+          // Store this attempt for next time
+          setPreviousAddressAttempt(message);
           setTimeout(() => {
             addAutobotMessage(validation.error);
           }, 800);
           return;
         }
         
-        // Address is valid, save it
+        // Address is valid, save it and clear previous attempts
         setUserProfile(prev => ({ 
           ...prev, 
           address: validation.address
         }));
+        setPreviousAddressAttempt(null);
+        
+        // Give feedback based on what was corrected
+        let confirmationMessage = "Perfect! I've got everything I need to ship this to you.";
+        if (validation.correctionMade === 'zip') {
+          confirmationMessage = "Got it! Thanks for the ZIP code. I've got everything I need to ship this to you.";
+        } else if (validation.correctionMade === 'state') {
+          confirmationMessage = "Perfect! Thanks for adding the state. I've got everything I need to ship this to you.";
+        }
         
         setTimeout(() => {
-          addAutobotMessage(`Perfect! I've got everything I need to ship this to you.`);
+          addAutobotMessage(confirmationMessage);
           // Process the pending purchase with collected info
           setTimeout(() => {
             setUserProfile(currentProfile => {
@@ -3298,9 +3413,9 @@ const AutobotApp = () => {
                 const pendingItem = currentProfile.pendingPurchase;
                 const total = pendingItem.price + (pendingItem.shipping || 0);
                 
-                // For new users, check funding after collecting details
+                // For new users, show direct checkout after collecting details
                 if (userType === 'new' && balance < total) {
-                  addAutobotMessage("Now to complete your order, you'll need to add funds to your Blink account.", 'funding-required', {
+                  addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
                     item: pendingItem,
                     total: total,
                     currentBalance: balance,
@@ -3367,8 +3482,14 @@ const AutobotApp = () => {
       const subscriptionResponse = isSubscriptionResponse(message);
       if (subscriptionResponse.isResponse) {
         if (subscriptionResponse.isPositive) {
+          const frequency = subscriptionResponse.frequency;
+          const deliverySchedule = frequency === 'bi-weekly' ? 
+            'every other Tuesday' : 'every 22nd of the month';
+          const reminderFrequency = frequency === 'bi-weekly' ? 
+            'bi-weekly' : 'monthly';
+          
           setTimeout(() => {
-            addAutobotMessage("Perfect, your Protein Powder subscription is now active. You will be getting a shipment every 22nd of the month. And I'll remind you monthly before it renews, you can always skip, change or cancel at any time.");
+            addAutobotMessage(`Perfect, your Protein Powder subscription is now active with ${frequency} delivery. You will be getting a shipment ${deliverySchedule}. And I'll remind you ${reminderFrequency} before it renews, you can always skip, change or cancel at any time.`);
           }, 1000);
         } else {
           setTimeout(() => {
@@ -3382,26 +3503,26 @@ const AutobotApp = () => {
           handleSubscriptionRequest(message);
         }, 1000);
       } else {
-      // Casual greetings and conversations
-      const casualPatterns = [
-        /^(hey|hi|hello|yo|sup|what'?s up|how are you|good morning|good afternoon|good evening)/,
-        /^(thanks|thank you|cool|nice|awesome|great|perfect|ok|okay)/,
-        /^(how do you work|what do you do|who are you|tell me about)/,
-        /^(can you help|what can you do|how does this work)/
-      ];
+    // Casual greetings and conversations
+    const casualPatterns = [
+      /^(hey|hi|hello|yo|sup|what'?s up|how are you|good morning|good afternoon|good evening)/,
+      /^(thanks|thank you|cool|nice|awesome|great|perfect|ok|okay)/,
+      /^(how do you work|what do you do|who are you|tell me about)/,
+      /^(can you help|what can you do|how does this work)/
+    ];
 
-      const isCasual = casualPatterns.some(pattern => pattern.test(lowerMessage));
-      
-      if (isCasual) {
-        setTimeout(() => {
-          handleCasualConversation(lowerMessage);
-        }, 1000);
+    const isCasual = casualPatterns.some(pattern => pattern.test(lowerMessage));
+    
+    if (isCasual) {
+      setTimeout(() => {
+        handleCasualConversation(lowerMessage);
+      }, 1000);
       } else if (isProductSearchIntent(message)) {
         // User is actually searching for products
-        const category = getProductCategoryName(lowerMessage);
-        setTimeout(() => {
-          const contextualMsg = getContextualMessage(category, message);
-          addAutobotMessage(contextualMsg);
+      const category = getProductCategoryName(lowerMessage);
+      setTimeout(() => {
+        const contextualMsg = getContextualMessage(category, message);
+        addAutobotMessage(contextualMsg);
         
         // For shoes, only ask for size if we don't know it
         if (category === 'shoes' && (!userProfile.shoeSize || userType === 'new')) {
@@ -3410,9 +3531,15 @@ const AutobotApp = () => {
           return;
         }
         
+        // Add intermediate searching message
         setTimeout(() => {
-          triggerSearchResults(message, 'search');
-        }, 2000);
+          const searchingMsg = `Looking for the best deal on ${message}...`;
+          addAutobotMessage(searchingMsg);
+          
+          setTimeout(() => {
+            triggerSearchResults(message, 'search');
+          }, 2000);
+        }, 1000);
       }, 1000);
       } else {
         // Conversational response - don't show products
@@ -3460,6 +3587,7 @@ const AutobotApp = () => {
   };
 
   const getProductCategoryName = (request) => {
+    if (request.includes('death star')) return 'death-star';
     if (request.includes('half-life') || request.includes('half life') || (request.includes('half') && request.includes('life'))) return 'half-life';
     if (request.includes('kith jaws') || request.includes('kif jaws') || (request.includes('kith') && request.includes('jaws'))) return 'kith-jaws';
     if (request.includes('lego') || request.includes('star wars') || request.includes('blocks')) return 'lego';
@@ -3616,9 +3744,9 @@ const AutobotApp = () => {
             <OnboardingInput onSubmit={handleUserResponse} onboardingStep={onboardingStep} />
           )}
           
-          {currentFlow === 'chat' && (
-              <ChatInput onSubmit={handleChatMessage} />
-            )}
+          {currentFlow === 'chat' && !creditCardFundingData && (
+            <ChatInput onSubmit={handleChatMessage} />
+          )}
       </motion.div>
 
       {/* Web View - Slides in from right when opened */}
@@ -4354,6 +4482,10 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           <FundingRequiredCard data={message.data} onFunded={onFunded} onCreditCardFunding={onCreditCardFunding} />
         )}
         
+        {message.special === 'direct-checkout' && (
+          <DirectCheckoutCard data={message.data} onFunded={onFunded} onCreditCardFunding={onCreditCardFunding} />
+        )}
+        
         {message.special === 'optional-funding' && (
           <>
             <div className="message-text">{String(message.content || '')}</div>
@@ -4410,7 +4542,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
             className="whatsapp-menu-btn"
           >
             <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">${message.data.price + (message.data.shipping || 0)} -</span>
+            <span className="whatsapp-menu-text">Buy Now For ${message.data.price + (message.data.shipping || 0)}</span>
           </motion.button>
           <motion.button
             whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -4427,8 +4559,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
       {/* WhatsApp-style menu buttons for search results (multiple items) - only show additional buttons */}
       {message.special === 'search-results' && message.data && message.data.results && message.data.results.length > 0 && (
         <>
-          {/* "View more" button container - only if there are more results */}
-          {message.data.showViewMore && (
+          {/* "View more" button container - only if there are more results and NOT Death Star */}
+          {message.data.showViewMore && !message.data.searchTerm?.toLowerCase().includes('death star') && (
             <div className="whatsapp-menu-container" style={{ marginTop: '8px' }}>
               <motion.button
                 whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -4538,6 +4670,12 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
 };
 
 const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
+  // Helper function to determine if item is wearable
+  const isWearableItem = (title) => {
+    const wearableKeywords = ['shirt', 'hoodie', 'jacket', 'shoes', 'sneaker', 'hat', 'cap', 'jeans', 'pants', 'dress', 'sweater', 'coat'];
+    return wearableKeywords.some(keyword => title.toLowerCase().includes(keyword));
+  };
+
   return (
     <div style={{
       padding: '0',
@@ -4617,6 +4755,7 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
             {data.title}
           </div>
           
+          {isWearableItem(data.title) && (
           <div style={{
             fontSize: '14px', 
             color: '#8e8e93',
@@ -4624,6 +4763,7 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
           }}>
             Available in your size (Medium)
           </div>
+          )}
           
           {data.isSecondHand && (
             <div style={{ 
@@ -4636,29 +4776,18 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
           )}
         </div>
       </div>
-      
-      {/* Show coupon savings if applied */}
-      {data.couponApplied && (
-        <div style={{ 
-          marginTop: '12px', 
-          marginBottom: '8px',
-          textAlign: 'center',
-          fontSize: '14px'
-        }}>
-          <div style={{ color: '#666', textDecoration: 'line-through' }}>
-            Was ${data.originalPrice + (data.shipping || 0)}
-          </div>
-          <div style={{ color: '#28a745', fontWeight: '600', fontSize: '12px' }}>
-            ✨ Coupon applied - saved {data.couponPercentage}%!
-          </div>
-        </div>
-      )}
 
       </div>
   );
 };
 
 const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, showButtons = true }) => {
+  // Helper function to determine if item is wearable
+  const isWearableItem = (title) => {
+    const wearableKeywords = ['shirt', 'hoodie', 'jacket', 'shoes', 'sneaker', 'hat', 'cap', 'jeans', 'pants', 'dress', 'sweater', 'coat'];
+    return wearableKeywords.some(keyword => title.toLowerCase().includes(keyword));
+  };
+
   return (
     <div style={{
       padding: '0',
@@ -4738,6 +4867,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             {data.title}
           </div>
           
+          {isWearableItem(data.title) && (
           <div style={{
             fontSize: '14px', 
             color: '#8e8e93',
@@ -4745,6 +4875,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
           }}>
             Available in your size (Medium)
           </div>
+          )}
           
           {data.isSecondHand && (
             <div style={{ 
@@ -4757,23 +4888,6 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
           )}
         </div>
       </div>
-      
-      {/* Show coupon savings if applied */}
-      {data.couponApplied && (
-        <div style={{ 
-          marginTop: '12px', 
-          marginBottom: '12px',
-          textAlign: 'center',
-          fontSize: '14px'
-        }}>
-          <div style={{ color: '#666', textDecoration: 'line-through' }}>
-            Was ${data.originalPrice + (data.shipping || 0)}
-          </div>
-          <div style={{ color: '#28a745', fontWeight: '600', fontSize: '12px' }}>
-            ✨ Coupon applied - saved {data.couponPercentage}%!
-          </div>
-        </div>
-      )}
 
       {/* WhatsApp-style button at full width below description */}
       {showButtons && onPurchaseIntent && (
@@ -4786,7 +4900,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             style={{ width: '100%' }}
           >
             <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">Buy Now - ${data.price + (data.shipping || 0)} ({data.title})</span>
+            <span className="whatsapp-menu-text">Buy Now For ${data.price + (data.shipping || 0)}</span>
           </motion.button>
         </div>
       )}
@@ -6500,7 +6614,7 @@ const SubscriptionNudgeCard = ({ data, onSubscriptionResponse }) => {
         </div>
         
         <div style={{ fontSize: '15px', color: '#666', marginBottom: '16px' }}>
-          Want me to set this up as a subscription so you never run out? You can skip, change, or cancel any time.
+          Do you want me to set this up as a subscription? I recommend monthly, but you can do bi-weekly or whatever works. You can always skip, change, or cancel anytime.
         </div>
         
         {/* Product Info */}
@@ -6630,8 +6744,8 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
         }}>
           Choose your preferred funding method
         </div>
-      </div>
-
+        </div>
+        
       {/* Gold Membership Offer - Redesigned */}
       <div style={{ 
         background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
@@ -6802,7 +6916,7 @@ const FundingMethodSelectionCard = ({ data, onFunded, onWebView, onCreditCardFun
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: '15px', fontWeight: '600' }}>Bank Transfer</div>
               <div style={{ fontSize: '12px', opacity: 0.8, fontWeight: '400' }}>Any amount • 1-3 business days</div>
-            </div>
+      </div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.8 }}>
             <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
@@ -7250,6 +7364,110 @@ const FundingRequiredCard = ({ data, onFunded, onCreditCardFunding }) => {
         </div>
       </div>
     </motion.div>
+  );
+};
+
+// Direct Checkout Card - Streamlined checkout for first-time purchases
+const DirectCheckoutCard = ({ data, onFunded, onCreditCardFunding }) => {
+  const handleCreditCardCheckout = () => {
+    // Open credit card checkout interface
+    const creditCardData = {
+      type: 'direct-checkout',
+      item: data.item,
+      total: data.total,
+      maxAmount: data.total,
+      showWebView: true
+    };
+    onCreditCardFunding && onCreditCardFunding(creditCardData);
+  };
+
+  const handleUSDCCheckout = () => {
+    // Trigger USDC checkout flow
+    onFunded('usdc_checkout', true);
+  };
+
+  const handleBankTransferCheckout = () => {
+    // Trigger bank transfer checkout flow
+    onFunded('bank_transfer_checkout', true);
+  };
+
+  return (
+          <div 
+            className="direct-checkout-card"
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '8px',
+              border: '1px solid #e5e5e5'
+            }}
+          >
+            <div className="checkout-content">
+              {/* Order Summary */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ 
+                  fontSize: '15px', 
+                  fontWeight: '500', 
+                  marginBottom: '4px', 
+                  color: '#1a1a1a'
+                }}>
+                  {data.item.title}
+                </div>
+                <div style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '600', 
+                  color: '#1a1a1a',
+                  marginBottom: '2px'
+                }}>
+                  ${data.total}
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#666', 
+                  fontWeight: '400'
+                }}>
+                  Including shipping and tax
+                </div>
+              </div>
+        
+        {/* Single Checkout Button */}
+        <div>
+          <button
+            onClick={handleCreditCardCheckout}
+            style={{
+              width: '100%',
+              background: '#0084ff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '15px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+            </svg>
+            Checkout
+          </button>
+        </div>
+        
+        {/* Footer */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '12px',
+          fontSize: '12px',
+          color: '#999'
+        }}>
+          Your card will be saved for faster future purchases
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -8123,22 +8341,69 @@ const ChatInput = ({ onSubmit }) => {
   );
 };
 
+// Payment Method Tab Component
+const PaymentMethodTab = ({ type, label, isSelected, onClick }) => {
+  return (
+    <button 
+      onClick={onClick}
+      style={{
+        flex: 1,
+        border: `1px solid ${isSelected ? '#000000' : '#e6ebf1'}`,
+        borderRadius: '25px',
+        padding: '10px 12px',
+        cursor: 'pointer',
+        backgroundColor: isSelected ? '#000000' : 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        transition: 'all 0.15s ease',
+        fontSize: '14px',
+        fontWeight: '500',
+        color: isSelected ? 'white' : '#32325d',
+        outline: 'none'
+      }}
+    >
+      <div style={{
+        width: '16px',
+        height: '16px',
+        borderRadius: '50%',
+        border: `2px solid ${isSelected ? 'white' : '#cdd7e7'}`,
+        backgroundColor: isSelected ? 'white' : 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '8px',
+        color: isSelected ? '#000000' : 'white',
+        flexShrink: 0
+      }}>
+        {isSelected && '●'}
+      </div>
+      {label}
+    </button>
+  );
+};
+
 const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
+  const isPurchaseMode = data.type === 'direct-checkout';
+  const purchaseAmount = isPurchaseMode ? data.total : null;
+  
   const [formData, setFormData] = useState({
     cardNumber: '0000 0000 0000 0000',
     expiryMonth: '',
     expiryYear: '',
     cvv: '',
-    email: 'johndoe@gmail.com',
+    email: isPurchaseMode ? '' : 'johndoe@gmail.com', // No email for purchase mode
     name: 'John Appleseed',
     address: '123 Main St, New York, NY 10001',
-    amount: ''
+    amount: isPurchaseMode ? purchaseAmount.toString() : ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [showErrors, setShowErrors] = useState(false);
   const [useTestCard, setUseTestCard] = useState(true);
   const [saveInfo, setSaveInfo] = useState(true);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -8158,13 +8423,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    // Amount validation
+    // Amount validation (skip for purchase mode since amount is fixed)
+    if (!isPurchaseMode) {
     if (!formData.amount) {
       newErrors.amount = 'Amount is required';
     } else if (parseFloat(formData.amount) <= 0) {
       newErrors.amount = 'Amount must be greater than $0';
     } else if (parseFloat(formData.amount) > data.maxAmount) {
       newErrors.amount = `Amount cannot exceed $${data.maxAmount}`;
+      }
     }
     
     // Card number validation
@@ -8191,8 +8458,8 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       newErrors.name = 'Cardholder name is required';
     }
 
-    // Email validation
-    if (!formData.email.trim()) {
+    // Email validation (skip for purchase mode)
+    if (!isPurchaseMode && !formData.email.trim()) {
       newErrors.email = 'Email is required';
     }
 
@@ -8266,22 +8533,22 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       left: 0,
       width: '100%',
       height: '100%',
-      backgroundColor: '#fafafa',
+      backgroundColor: '#f6f9fc',
       zIndex: 1000,
       display: 'flex',
       flexDirection: 'column'
     }}>
       {/* Header */}
       <div style={{
-        padding: '20px 24px 16px 24px',
+        padding: '16px 24px',
         backgroundColor: 'white',
-        borderBottom: '1px solid #f0f0f0',
+        borderBottom: '1px solid #e6ebf1',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#1a1a1a', letterSpacing: '-0.01em' }}>
-          Add Funds
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '500', color: '#32325d', letterSpacing: '-0.01em' }}>
+          {isPurchaseMode ? 'Complete Purchase' : 'Add Funds'}
         </h2>
         <button
           onClick={onClose}
@@ -8305,19 +8572,50 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
       {/* Content */}
       <div style={{
         flex: 1,
-        padding: '0 24px 24px 24px',
+        padding: '24px',
         overflow: 'auto'
       }}>
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-          {/* Deposit Amount */}
-          <div style={{ marginBottom: '32px' }}>
+          {/* Purchase Summary or Deposit Amount */}
+          {isPurchaseMode ? (
+          <div style={{ marginBottom: '16px' }}>
+              <div style={{
+                padding: '12px 0',
+                borderBottom: '1px solid #e6ebf1'
+              }}>
+                <div style={{ 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#32325d',
+                  marginBottom: '2px'
+                }}>
+                  {data.item?.title || 'Purchase'}
+                </div>
+                <div style={{ 
+              fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#32325d' 
+                }}>
+                  ${purchaseAmount}
+                </div>
+                <div style={{ 
+                  fontSize: '11px', 
+                  color: '#8898aa', 
+                  fontWeight: '400' 
+                }}>
+                  Including shipping and tax
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginBottom: '32px' }}>
             <h3 style={{ 
-              fontSize: '17px', 
+                fontSize: '17px', 
               fontWeight: '600', 
               color: '#1a1a1a', 
-              marginBottom: '20px',
-              margin: '0 0 20px 0',
-              letterSpacing: '-0.01em'
+                marginBottom: '20px',
+                margin: '0 0 20px 0',
+                letterSpacing: '-0.01em'
             }}>
               Deposit amount
             </h3>
@@ -8388,180 +8686,99 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
             />
             <ErrorMessage error={errors.amount} />
           </div>
+          )}
 
-          {/* Payment Methods */}
-          <div style={{ marginBottom: '32px' }}>
-            {/* Apple Pay & Google Pay */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <button
-                  type="button"
-                  style={{
-                  flex: 1,
-                  padding: '18px',
-                  backgroundColor: '#000',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                    cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#1a1a1a'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#000'}
-                >
-                {/* Apple Logo SVG */}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                </svg>
-                Pay
-                </button>
-              <button
-                type="button"
-                style={{
-                  flex: 1,
-                  padding: '18px',
-                  backgroundColor: '#4285f4',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#3367d6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#4285f4'}
-              >
-                {/* Google Pay Logo SVG */}
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Pay
-              </button>
-            </div>
-
-            <div style={{ 
-              textAlign: 'center', 
-              color: '#888', 
-              fontSize: '13px', 
-              margin: '20px 0',
-              fontWeight: '500'
-            }}>
-              or
-          </div>
-
-            {/* Credit Card Entry Label */}
-            <div style={{ 
+          {/* Payment Method Selection */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ 
               fontSize: '15px', 
-              fontWeight: '600', 
-              color: '#1a1a1a',
+                  fontWeight: '500',
+              color: '#424770', 
               marginBottom: '12px',
-              letterSpacing: '-0.01em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+              margin: '0 0 12px 0'
             }}>
-              <div style={{ 
-                width: '20px', 
-                height: '14px', 
-                backgroundColor: '#1a1a1a', 
-                borderRadius: '3px' 
-              }}></div>
-              Credit Card
-            </div>
-          </div>
-
-          {/* Test Card Section */}
-          <div style={{ marginBottom: '32px' }}>
-            <div 
-              onClick={() => setUseTestCard(!useTestCard)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 0',
-                cursor: 'pointer',
-                borderBottom: '1px solid #f0f0f0'
-              }}
-            >
-              <span style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
-                Use a test card
-              </span>
-              <span style={{ fontSize: '16px', color: '#666' }}>{useTestCard ? '▼' : '▶'}</span>
-            </div>
+              Save payment information
+            </h3>
             
-            {useTestCard && (
-              <div style={{
-                backgroundColor: '#fef9e7',
-                border: '1px solid #f7d794',
-                borderRadius: '12px',
-                padding: '16px',
-                marginTop: '16px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                  <span style={{ fontSize: '16px', marginTop: '1px' }}>⚠️</span>
-                  <div>
-                    <div style={{ fontSize: '14px', color: '#8b6914', lineHeight: '1.5', fontWeight: '500' }}>
-                      <strong>Sandbox environment</strong> - Enter appropriate CC number for your testing 
-                      (testing with 3DS requires special numbers)
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Payment Method Tabs */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              
+              {/* Card Tab */}
+              <PaymentMethodTab 
+                type="card"
+                label="Card"
+                isSelected={selectedPaymentMethod === 'card'}
+                onClick={() => setSelectedPaymentMethod('card')}
+              />
+              
+              {/* Bank Tab */}
+              <PaymentMethodTab 
+                type="bank"
+                label="Bank"
+                isSelected={selectedPaymentMethod === 'bank'}
+                onClick={() => setSelectedPaymentMethod('bank')}
+              />
+              
+              {/* Crypto Tab */}
+              <PaymentMethodTab 
+                type="crypto"
+                label="Crypto"
+                isSelected={selectedPaymentMethod === 'crypto'}
+                onClick={() => setSelectedPaymentMethod('crypto')}
+              />
+              
+            </div>
           </div>
 
+
+          {/* Conditional Form Based on Selected Payment Method */}
+          {selectedPaymentMethod === 'card' && (
+              <div style={{
+            marginTop: '16px',
+            borderTop: '1px solid #e6ebf1',
+            paddingTop: '16px'
+          }}>
           <form onSubmit={handleSubmit}>
             {/* Card Information */}
-            <div style={{ marginBottom: '32px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '12px', 
-                fontSize: '15px', 
-                fontWeight: '600', 
-                color: '#1a1a1a',
-                letterSpacing: '-0.01em'
+                marginBottom: '6px', 
+                fontSize: '13px', 
+                fontWeight: '500', 
+                color: '#6772e5',
+                letterSpacing: '0.025em',
+                textTransform: 'uppercase'
               }}>
-                Card Information <span style={{ color: '#dc3545' }}>*</span>
-              </label>
+                Card Information
+            </label>
               
               {/* Card Number */}
               <div style={{ 
-                border: '1px solid #e8e8e8', 
-                borderRadius: '12px 12px 0 0',
+                border: '1px solid #e6ebf1', 
+                borderRadius: '6px 6px 0 0',
                 backgroundColor: 'white',
                 position: 'relative',
-                transition: 'border-color 0.2s ease'
+                transition: 'border-color 0.15s ease'
               }}>
             <input
               type="text"
               value={formData.cardNumber}
               onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
-                  placeholder="0000 0000 0000 0000"
+                  placeholder="1234 1234 1234 1234"
                   style={{
                 width: '100%',
-                    padding: '16px 18px',
+                    padding: '12px 14px',
                     border: 'none',
-                    borderRadius: '12px 12px 0 0',
+                    borderRadius: '6px 6px 0 0',
                 fontSize: '16px',
                     backgroundColor: 'transparent',
                     outline: 'none',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#32325d'
                   }}
-                  onFocus={(e) => e.target.parentElement.style.borderColor = '#007bff'}
-                  onBlur={(e) => e.target.parentElement.style.borderColor = '#e8e8e8'}
+                  onFocus={(e) => e.target.parentElement.style.borderColor = '#635bff'}
+                  onBlur={(e) => e.target.parentElement.style.borderColor = '#e6ebf1'}
                 />
                 <div style={{ 
                   position: 'absolute', 
@@ -8588,28 +8805,31 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '16px 18px',
-                    border: '1px solid #e8e8e8',
+                    padding: '12px 14px',
+                    border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0',
                   fontSize: '16px',
                     outline: 'none',
                     backgroundColor: 'white',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.2s ease'
+                    transition: 'border-color 0.15s ease',
+                    color: '#32325d'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
-                  onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
+                  onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
                 />
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  padding: '0 10px',
-                  border: '1px solid #e8e8e8',
+                  padding: '0 8px',
+                  border: '1px solid #e6ebf1',
                   borderTop: 'none',
                   borderLeft: 'none',
                   borderRight: 'none',
-                  backgroundColor: 'white'
+                  backgroundColor: 'white',
+                  color: '#8898aa',
+                  fontSize: '16px'
                 }}>
                   /
             </div>
@@ -8621,39 +8841,41 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '16px 18px',
-                    border: '1px solid #e8e8e8',
+                    padding: '12px 14px',
+                    border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0',
                     fontSize: '16px',
                     outline: 'none',
                     backgroundColor: 'white',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.2s ease'
+                    transition: 'border-color 0.15s ease',
+                    color: '#32325d'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
-                  onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
+                  onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
                 />
               <input
                 type="text"
                 value={formData.cvv}
                 onChange={(e) => handleInputChange('cvv', e.target.value.replace(/\D/g, '').substring(0, 4))}
-                  placeholder="CVV"
+                  placeholder="CVC"
                 maxLength="4"
                   style={{
                     width: '50%',
-                    padding: '16px 18px',
-                    border: '1px solid #e8e8e8',
+                    padding: '12px 14px',
+                    border: '1px solid #e6ebf1',
                     borderTop: 'none',
-                    borderRadius: '0 0 12px 12px',
+                    borderRadius: '0 0 6px 6px',
                     fontSize: '16px',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.2s ease',
-                    backgroundColor: 'white'
+                    transition: 'border-color 0.15s ease',
+                    backgroundColor: 'white',
+                    color: '#32325d'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
-                  onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
+                  onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
                 />
                 <div style={{ 
                   display: 'flex', 
@@ -8694,15 +8916,16 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               <ErrorMessage error={errors.cardNumber || errors.expiry || errors.cvv} />
             </div>
 
-            {/* Email */}
-            <div style={{ marginBottom: '24px' }}>
+            {/* Email - Only show in funding mode */}
+            {!isPurchaseMode && (
+              <div style={{ marginBottom: '24px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '12px', 
-                fontSize: '15px', 
-                fontWeight: '600', 
-                color: '#1a1a1a',
-                letterSpacing: '-0.01em'
+                  marginBottom: '12px', 
+                  fontSize: '15px', 
+                  fontWeight: '600', 
+                  color: '#1a1a1a',
+                  letterSpacing: '-0.01em'
               }}>
                 Email <span style={{ color: '#dc3545' }}>*</span>
               </label>
@@ -8727,66 +8950,76 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               />
               <ErrorMessage error={errors.email} />
           </div>
+            )}
 
             {/* Name on card */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '12px', 
-                fontSize: '15px', 
-                fontWeight: '600', 
-                color: '#1a1a1a',
-                letterSpacing: '-0.01em'
+                 marginBottom: '6px', 
+                 fontSize: '13px', 
+                fontWeight: '500', 
+                 color: '#6772e5',
+                 letterSpacing: '0.025em',
+                 textTransform: 'uppercase'
               }}>
-                Name on card <span style={{ color: '#dc3545' }}>*</span>
+                 Name on card
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="John Appleseed"
+                placeholder="Jane Doe"
                 style={{
                 width: '100%',
-                  padding: '16px 18px',
-                borderRadius: '12px',
+                  padding: '12px 14px',
+                borderRadius: '6px',
                 boxSizing: 'border-box',
-                transition: 'border-color 0.2s ease',
+                transition: 'border-color 0.15s ease',
                 outline: 'none',
-                  border: '1px solid #e8e8e8',
+                  border: '1px solid #e6ebf1',
                   fontSize: '16px',
-                  backgroundColor: 'white'
+                  backgroundColor: 'white',
+                  color: '#32325d'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#007bff'}
-                onBlur={(e) => e.target.style.borderColor = '#e8e8e8'}
+                onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
             />
             <ErrorMessage error={errors.name} />
           </div>
 
             {/* Address */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ 
                 display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
+                marginBottom: '6px', 
+                fontSize: '13px', 
                 fontWeight: '500', 
-                color: '#1a1a1a' 
+                color: '#6772e5',
+                letterSpacing: '0.025em',
+                textTransform: 'uppercase'
               }}>
-                Address <span style={{ color: '#dc3545' }}>*</span>
+                Address
               </label>
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="123 Main St, New York, NY 10001"
+                placeholder="185 Berry St, San Francisco, CA 94107"
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  border: '1px solid #e1e5e9',
+                  padding: '12px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #e6ebf1',
                   fontSize: '16px',
                   backgroundColor: 'white',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.15s ease',
+                  color: '#32325d'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
               />
               <ErrorMessage error={errors.address} />
             </div>
@@ -8819,7 +9052,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               display: 'flex', 
               alignItems: 'center', 
               gap: '8px', 
-              marginBottom: '24px' 
+              marginBottom: '16px' 
             }}>
               <input
                 type="checkbox"
@@ -8847,13 +9080,13 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               disabled={isProcessing || !formData.amount}
             style={{
               width: '100%',
-              padding: '16px',
-                backgroundColor: isProcessing || !formData.amount ? '#6c757d' : '#007bff',
+              padding: '14px',
+                backgroundColor: isProcessing || !formData.amount ? '#8898aa' : '#000000',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '25px',
               fontSize: '16px',
-              fontWeight: '600',
+              fontWeight: '500',
                 cursor: isProcessing || !formData.amount ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -8882,13 +9115,10 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
           </button>
 
             {/* Footer */}
-            <div style={{ textAlign: 'center', fontSize: '12px', color: '#6c757d' }}>
-              This payment will appear on your statement as{' '}
-              <span style={{ color: '#007bff', fontWeight: '500' }}>COINFLOW</span>. For support,
-              please contact{' '}
-              <a href="mailto:support@coinflow.cash" style={{ color: '#007bff' }}>
-                support@coinflow.cash
-              </a>
+            <div style={{ textAlign: 'center', fontSize: '12px', color: '#8898aa', marginTop: '16px' }}>
+              <div style={{ marginBottom: '8px' }}>
+                Powered by <span style={{ color: '#635bff', fontWeight: '500' }}>Coinflow</span>
+              </div>
             </div>
 
           <div style={{
@@ -8920,6 +9150,126 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               <a href="#" style={{ color: '#007bff' }}>Privacy</a>
           </div>
         </form>
+        </div>
+          )}
+          
+          {/* Bank Payment Method */}
+          {selectedPaymentMethod === 'bank' && (
+            <div style={{ 
+              marginTop: '16px',
+              borderTop: '1px solid #e6ebf1',
+              paddingTop: '16px',
+              padding: '16px 0', 
+              textAlign: 'center', 
+              color: '#8898aa' 
+            }}>
+              <p style={{ margin: 0, fontSize: '14px' }}>Bank transfer details will be provided after confirmation.</p>
+            </div>
+          )}
+          
+          {/* Crypto Payment Method */}
+          {selectedPaymentMethod === 'crypto' && (
+            <div style={{ 
+              marginTop: '16px',
+              borderTop: '1px solid #e6ebf1',
+              paddingTop: '16px',
+              padding: '16px 0'
+            }}>
+              <div style={{ 
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #e6ebf1',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '12px' 
+                }}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: '#7c3aed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: 'white'
+                  }}>
+                    $
+                  </div>
+                  <span style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#32325d' 
+                  }}>
+                    Send USDC to this address
+                  </span>
+                </div>
+                
+                <div style={{ 
+                  backgroundColor: 'white',
+                  border: '1px solid #e6ebf1',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  marginBottom: '12px',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  color: '#32325d',
+                  wordBreak: 'break-all',
+                  lineHeight: '1.4'
+                }}>
+                  0x742d35Cc6634C0532925a3b8D4C9db7C4C2b1e5A
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText('0x742d35Cc6634C0532925a3b8D4C9db7C4C2b1e5A');
+                    // You could add a toast notification here
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    backgroundColor: '#000000',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '25px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#333333'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#000000'}
+                >
+                  📋 Copy Address
+                </button>
+              </div>
+              
+              <div style={{ 
+                textAlign: 'center', 
+                fontSize: '12px', 
+                color: '#8898aa',
+                lineHeight: '1.4'
+              }}>
+                <p style={{ margin: '0 0 8px 0' }}>
+                  Send only USDC on Ethereum network to this address.
+                </p>
+                <p style={{ margin: 0 }}>
+                  Your order will be processed automatically once payment is confirmed.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

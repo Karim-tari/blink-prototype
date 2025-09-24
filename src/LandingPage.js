@@ -53,11 +53,11 @@ const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
             style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '16px',
-              textTransform: 'uppercase',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '16px',
+            textTransform: 'uppercase',
               letterSpacing: '0.5px',
               display: 'flex',
               alignItems: 'center',
@@ -107,7 +107,7 @@ const LandingPage = () => {
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                  First time user experience
+              First time user experience
                 </span>
                 <span style={{ 
                   fontSize: '12px', 
@@ -166,7 +166,7 @@ const LandingPage = () => {
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                  Push notification
+              Push notification
                 </span>
                 <span style={{ 
                   fontSize: '12px', 
@@ -225,7 +225,7 @@ const LandingPage = () => {
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                  Returning user
+              Returning user
                 </span>
                 <span style={{ 
                   fontSize: '12px', 
@@ -441,8 +441,8 @@ const LandingPage = () => {
           animate={{ opacity: 1, scaleX: 1 }}
           transition={{ duration: 0.4, delay: 0.8, ease: [0.4, 0, 0.2, 1] }}
           style={{
-            height: '1px',
-            backgroundColor: '#e5e7eb',
+          height: '1px',
+          backgroundColor: '#e5e7eb',
             marginBottom: '32px',
             transformOrigin: 'left'
           }} 
@@ -459,11 +459,11 @@ const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.0, ease: [0.4, 0, 0.2, 1] }}
             style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '16px',
-              textTransform: 'uppercase',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '16px',
+            textTransform: 'uppercase',
               letterSpacing: '0.5px',
               display: 'flex',
               alignItems: 'center',
@@ -508,7 +508,7 @@ const LandingPage = () => {
           >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                WebView Product Listing
+            WebView Product Listing
               </span>
               <span style={{ 
                 fontSize: '12px', 
@@ -518,7 +518,7 @@ const LandingPage = () => {
               }}>
                 Enhanced product component with sizing, colors, and purchase flow
               </span>
-            </div>
+        </div>
             <svg 
               height="16" 
               strokeLinejoin="round" 
@@ -543,10 +543,10 @@ const LandingPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1.2, ease: [0.4, 0, 0.2, 1] }}
         style={{
-          marginTop: 'auto',
+        marginTop: 'auto',
           display: 'flex',
           justifyContent: 'center',
-          paddingTop: '40px'
+        paddingTop: '40px'
         }}
       >
         {lottieData ? (
