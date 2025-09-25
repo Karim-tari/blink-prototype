@@ -4,6 +4,7 @@ import { Settings, MoreVertical, MapPin, Clock, Plus, Camera, Mic, ExternalLink,
 import Lottie from 'lottie-react';
 import falAI from './services/falai';
 import PushNotificationFlow from './PushNotificationFlow';
+import NaveenSlayerFlow from './NaveenSlayerFlow';
 import LandingPage from './LandingPage';
 import ProductComponentTest from './ProductComponentTest';
 import './App.css';
@@ -86,6 +87,7 @@ const AutobotApp = () => {
   const currentPath = window.location.pathname;
   const isNewUserPath = currentPath.includes('/new-user') || currentPath.includes('new-user');
   const isPushNotificationPath = currentPath.includes('/push-notifications') || currentPath.includes('push-notifications');
+  const isNaveenSlayerDropPath = currentPath.includes('/naveen-slayer-drop') || currentPath.includes('naveen-slayer-drop');
   const isReturningUserPath = currentPath.includes('/returning-user') || currentPath.includes('returning-user');
   const isSubscriptionFlowPath = currentPath.includes('/subscription-flow') || currentPath.includes('subscription-flow');
   const isTasteDiscoveryPath = currentPath.includes('/taste-discovery') || currentPath.includes('taste-discovery');
@@ -127,6 +129,7 @@ const AutobotApp = () => {
     'landing' // Landing page doesn't need a user type
   ); // 'new', 'returning', 'subscription', 'taste-discovery', or 'landing'
   const [showPushNotification, setShowPushNotification] = useState(isPushNotificationPath);
+  const [showNaveenSlayerDrop, setShowNaveenSlayerDrop] = useState(isNaveenSlayerDropPath);
   const [isFromPushNotification, setIsFromPushNotification] = useState(false);
   const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : isReturnsExchangesPath ? 180 : 150);
   const [isTyping, setIsTyping] = useState(false);
@@ -545,21 +548,32 @@ const AutobotApp = () => {
     if (!hasInitializedMessages) {
       if (userType === 'new') {
         setTimeout(() => {
-          const newUserMessage = `Hey, I'm Blink, your ultimate personal shopper.\n \nI save you time and money by buying anything you want online. I check for coupons, discounts, and better prices so you always get the best deal. You can send me a link, a photo, or tell me what you want, and I'll take care of it.`;
+          const newUserMessage = `Hey, I'm Blink, your ultimate personal shopper.\n \nI save you time and money by buying anything you want online. I check for coupons, discounts, and better prices so you always get the best deal.\n \nYou can send me a link, a photo, or tell me what you want, and I'll take care of it.`;
           addAutobotMessage(newUserMessage);
           setHasInitializedMessages(true);
         }, 1000);
       } else if (currentFlow === 'chat' && userType === 'returning') {
         setTimeout(() => {
           if (isFromPushNotification) {
-            // Coming from push notification - show Ed Sheeran message and hoodies immediately
-            addAutobotMessage("Big news, Jessica! Ed Sheeran just dropped brand-new merch. We have them all in Medium - perfect for you! 🎵");
-            setHasInitializedMessages(true);
-            
-            // Automatically show EdSheeran hoodies after a short delay
-            setTimeout(() => {
-              triggerSearchResults("Ed Sheeran hoodies", "search");
-            }, 1000);
+            if (isNaveenSlayerDropPath) {
+              // Coming from Naveen Slayer Drop notification - show streetwear message and products immediately
+              addAutobotMessage("Hey Naveen, I wanted to share the new slayer drop. Thought you might be interested. Here's how you look at them.");
+              setHasInitializedMessages(true);
+              
+              // Automatically show Naveen Slayer Drop products after a short delay
+              setTimeout(() => {
+                showNaveenSlayerProducts();
+              }, 1000);
+            } else {
+              // Coming from push notification - show Ed Sheeran message and hoodies immediately
+              addAutobotMessage("Big news, Jessica! Ed Sheeran just dropped brand-new merch. We have them all in Medium - perfect for you! 🎵");
+              setHasInitializedMessages(true);
+              
+              // Automatically show EdSheeran hoodies after a short delay
+              setTimeout(() => {
+                triggerSearchResults("Ed Sheeran hoodies", "search");
+              }, 1000);
+            }
           } else {
             // Normal returning user flow
             addAutobotMessage(`Hey Karim! 👋 Welcome back!\n\nHope you're enjoying your new Les Paul guitar from yesterday! You picked a great one! 🎸\n\nTell me what's on your mind? Anything else you're hunting for today?`);
@@ -604,12 +618,12 @@ const AutobotApp = () => {
     }
   }, [currentFlow, onboardingStep, userType, hasInitializedMessages, isFromPushNotification]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (except for Naveen Slayer Drop flow)
   useEffect(() => {
-    if (chatContainerRef.current) {
+    if (chatContainerRef.current && !isNaveenSlayerDropPath) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, isNaveenSlayerDropPath]);
 
   const handlePushNotificationComplete = () => {
     setShowPushNotification(false);
@@ -646,6 +660,40 @@ const AutobotApp = () => {
     setHasInitializedMessages(false);
   };
 
+  const handleNaveenSlayerDropComplete = () => {
+    setShowNaveenSlayerDrop(false);
+    setCurrentFlow('chat');
+    setUserType('returning');
+    setIsFromPushNotification(true);
+    // Initialize returning user profile
+    setBalance(150);
+    setUserProfile({
+      name: 'Karim',
+      interests: ['streetwear', 'fashion', 'hoodies'],
+      shoeSize: '10.5',
+      clothingSize: 'M',
+      address: '2847 Oak Street, San Francisco, CA 94115',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 500,
+        brandsToAvoid: ['off-brand']
+      },
+      purchaseHistory: [
+        { item: 'Supreme Box Logo Hoodie', date: '2 weeks ago', price: 280 },
+        { item: 'Off-White Tank Top', date: '1 month ago', price: 150 },
+        { item: 'Fear of God Essentials Hoodie', date: '3 months ago', price: 200 }
+      ],
+      lastPurchasedClothing: 'Supreme Box Logo Hoodie',
+      preferredBrands: ['Supreme', 'Off-White', 'Fear of God', 'Stussy'],
+      totalSpent: 1850,
+      memberSince: 'March 2024'
+    });
+    
+    // Reset messages and let the welcome message logic handle the Naveen Slayer Drop message
+    setMessages([]);
+    setHasInitializedMessages(false);
+  };
+
   // Show landing page for root path
   if (isLandingPage) {
     return <LandingPage />;
@@ -659,6 +707,11 @@ const AutobotApp = () => {
   // Show push notification flow if on that path
   if (showPushNotification) {
     return <PushNotificationFlow onComplete={handlePushNotificationComplete} />;
+  }
+
+  // Show Naveen Slayer Drop flow if on that path
+  if (showNaveenSlayerDrop) {
+    return <NaveenSlayerFlow onComplete={handleNaveenSlayerDropComplete} />;
   }
 
   const handleUserResponse = (response) => {
@@ -1736,6 +1789,37 @@ const AutobotApp = () => {
             { name: 'Apple Watch Series 9', basePrice: 399, brand: 'Apple' },
             { name: 'Samsung Galaxy Watch 6', basePrice: 329, brand: 'Samsung' },
             { name: 'Garmin Forerunner 955', basePrice: 499, brand: 'Garmin' }
+                    ]
+                  };
+      } else if (request.includes('naveen slayer') || request.includes('naveen') || (request.includes('slayer') && request.includes('collection'))) {
+        return {
+          category: 'naveen-slayer',
+          emoji: '🔥',
+          products: [
+            {
+              name: 'MAGMA LORD Hoodie',
+              basePrice: 120, 
+              brand: 'Slayer',
+              image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Eagle Maroon Hoodie',
+              basePrice: 120, 
+              brand: 'Slayer',
+              image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie-red.jpg`,
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Hell Awaits Cropped Rib Tank Top',
+              basePrice: 65, 
+              brand: 'Slayer',
+              image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
+              size: 'Medium',
+              available: true
+            }
           ]
         };
       } else if (request.includes('nintendo') || request.includes('switch')) {
@@ -2022,10 +2106,28 @@ const AutobotApp = () => {
     }, 1000);
   };
 
+  const showNaveenSlayerProducts = () => {
+    // Use the same approach as Ed Sheeran - trigger search results
+    triggerSearchResults("Naveen Slayer collection", "search");
+    
+    // Add follow-up message after products are displayed
+    setTimeout(() => {
+      addAutobotMessage("I kinda dig that eagle Maroon hoodie. I know you usually wear black, but this color looks good on you.", 'naveen-collection-offer');
+    }, 2000);
+  };
+
   const handlePurchaseIntent = (item) => {
     // Clear photo waiting state when user initiates purchase
     setWaitingForSelfie(false);
     setPendingSelfieItems([]);
+    
+    // Check if this is a Naveen Slayer product for special order message
+    const isNaveenSlayerProduct = item.title && (
+      item.title.includes('MAGMA LORD') || 
+      item.title.includes('Eagle Maroon') || 
+      item.title.includes('Hell Awaits') ||
+      item.brand === 'Slayer'
+    );
     
     // Handle group purchase from web view
     if (item.type === 'group-purchase') {
@@ -2127,30 +2229,50 @@ const AutobotApp = () => {
     }
     
     // We have both name and address - create the same detailed order summary as web view
-    const shippingTotal = item.shipping || 8;
-    const taxTotal = Math.round(item.price * 0.08);
-    const blinkFee = Math.round(item.price * 0.03); // 3% Blink fee
-    const grandTotal = item.price + shippingTotal + taxTotal + blinkFee;
+    // For Naveen Slayer products, the button shows $125 total, so we need to break that down
+    const buttonTotal = item.price + (item.shipping || 0); // This is what's shown in the button
+    
+    // Break down the total into components that add up to the button total
+    const subtotal = Math.round(buttonTotal * 0.80); // ~80% for subtotal
+    const shippingTotal = Math.round(buttonTotal * 0.12); // ~12% for shipping  
+    const taxTotal = Math.round(buttonTotal * 0.05); // ~5% for tax
+    const serviceFee = buttonTotal - subtotal - shippingTotal - taxTotal; // Remainder for service fee
+    const grandTotal = buttonTotal;
+    
+    // Check if this is a Naveen Slayer product for credit card message
+    const isNaveenSlayerProductForOrder = item.title && (
+      item.title.includes('MAGMA LORD') || 
+      item.title.includes('Eagle Maroon') || 
+      item.title.includes('Hell Awaits') ||
+      item.brand === 'Slayer'
+    );
     
     // Create order summary message (same format as web view group purchase)
-    let orderSummary = "🛍️ **Your order is on its way.**\n\n";
+    let orderSummary = "";
+    
+    orderSummary = "🛍️ **Your order is on its way.**\n\n";
     orderSummary += `1. ${item.title}\n`;
-    orderSummary += `   $${item.price} + $${shippingTotal} shipping\n\n`;
+    if (isNaveenSlayerProductForOrder) {
+      orderSummary += `   $${subtotal} + $${shippingTotal} shipping\n\n`;
+    } else {
+      orderSummary += `   $${item.price} + $${shippingTotal} shipping\n\n`;
+    }
     orderSummary += `**Order Total:**\n`;
-    orderSummary += `Subtotal: $${item.price}\n`;
+    orderSummary += `Subtotal: $${subtotal}\n`;
     orderSummary += `Shipping: $${shippingTotal}\n`;
     orderSummary += `Tax: $${taxTotal}\n`;
-    orderSummary += `Blink Fee (3%): $${blinkFee}\n`;
+    orderSummary += `Service Fee: $${serviceFee}\n`;
     orderSummary += `**Total: $${grandTotal}**\n\n`;
     orderSummary += `Estimated delivery: Tomorrow\n`;
     orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
 
     const orderData = {
       items: [item],
-      subtotal: item.price,
+      subtotal: subtotal,
       shipping: shippingTotal,
       tax: taxTotal,
-      blinkFee: blinkFee,
+      serviceFee: serviceFee,
+      silverFee: serviceFee, // Add silverFee for display compatibility
       total: grandTotal,
       timeLimit: 30,
       originalSearchResults: [item], // Single item as original results
@@ -2158,7 +2280,17 @@ const AutobotApp = () => {
       timestamp: Date.now()
     };
 
-    addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+    // Add credit card message before order summary for Naveen Slayer products
+    if (isNaveenSlayerProductForOrder) {
+      addAutobotMessage("Using credit card ending in **** 5732.");
+      
+      // Add a small delay before showing the order summary
+      setTimeout(() => {
+        addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+      }, 500);
+    } else {
+      addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+    }
 
     // Set active order for modifications
     setActiveOrder(orderData);
@@ -2732,8 +2864,22 @@ const AutobotApp = () => {
         // Check for automatic coupon application
         const couponSavings = checkForCoupons(pendingItem, isFromPushNotification);
         
+        // Check if this is a Naveen Slayer product for credit card message
+        const isNaveenSlayerProduct = pendingItem.title && (
+          pendingItem.title.includes('MAGMA LORD') || 
+          pendingItem.title.includes('Eagle Maroon') || 
+          pendingItem.title.includes('Hell Awaits') ||
+          pendingItem.brand === 'Naveen Slayer'
+        );
+        
         // First message: Detailed purchase success like returning user
-        let successMessage = `🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
+        let successMessage = '';
+        
+        if (isNaveenSlayerProduct) {
+          successMessage = `Using credit card ending in **** 5732.\n\n🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
+        } else {
+          successMessage = `🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
+        }
         
         // Add coupon savings message if applicable
         if (couponSavings) {
@@ -2999,7 +3145,7 @@ const AutobotApp = () => {
     orderSummary += `Subtotal: $${updatedOrder.subtotal}\n`;
     orderSummary += `Shipping: $${updatedOrder.shipping}\n`;
     orderSummary += `Tax: $${updatedOrder.tax}\n`;
-    orderSummary += `Silver Tier Fee (3%): $${updatedOrder.silverFee}\n`;
+    orderSummary += `Service Fee: $${updatedOrder.silverFee}\n`;
     orderSummary += `**Total: $${updatedOrder.total}**\n\n`;
     orderSummary += `Estimated delivery: Tomorrow\n`;
     orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
@@ -3972,6 +4118,8 @@ const getContextualSearchText = (searchTerm) => {
     return "Hey, check out the Kith Jaws Drop";
   } else if (term.includes('ed') && term.includes('sheeran')) {
     return "Ed Sheeran hoodies! 🎵";
+  } else if (term.includes('naveen') && term.includes('slayer')) {
+    return "New Slayer drop";
   } else if (term.includes('jordan')) {
     return `Some fresh ${searchTerm} just dropped`;
   } else if (term.includes('nike') || term.includes('adidas') || term.includes('yeezy')) {
@@ -4413,7 +4561,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
     >
       <div className="message-bubble">
         {message.special === 'search-result' && (
-          <SearchResultCard data={message.data} onImageClick={onImageClick} showButtons={false} />
+          <SearchResultCard data={message.data} onImageClick={onImageClick} onPurchaseIntent={onPurchaseIntent} showButtons={message.data.title && message.data.title.toLowerCase().includes('death star')} />
         )}
         
         {message.special === 'search-results' && (
@@ -4502,8 +4650,61 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           <ImageProductCard data={message.data} onPurchaseIntent={onPurchaseIntent} />
         )}
         
+        
         {message.special === 'url-product' && (
           <UrlProductCard data={message.data} onPurchaseIntent={onPurchaseIntent} />
+        )}
+        
+        {message.special === 'naveen-collection-offer' && (
+          <>
+            <div className="message-text">{String(message.content || '')}</div>
+            <div className="whatsapp-menu-container" style={{ marginTop: '12px' }}>
+              <motion.button
+                whileHover={{ backgroundColor: '#f0f0f0' }}
+                whileTap={{ scale: 0.98 }}
+                className="whatsapp-menu-btn"
+                onClick={() => {
+                  // Open web view with all three Naveen Slayer products
+                  const naveenSlayerProducts = [
+                    {
+                      title: 'MAGMA LORD Hoodie',
+                      price: 120,
+                      shipping: 5,
+                      brand: 'Slayer',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Eagle Maroon Hoodie',
+                      price: 120,
+                      shipping: 5,
+                      brand: 'Slayer',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie-red.jpg`,
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Hell Awaits Cropped Rib Tank Top',
+                      price: 65,
+                      shipping: 5,
+                      brand: 'Slayer',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
+                      size: 'Medium',
+                      available: true
+                    }
+                  ];
+                  
+                  onWebView && onWebView({
+                    results: naveenSlayerProducts,
+                    searchTerm: 'Naveen Slayer Collection'
+                  });
+                }}
+              >
+                <span className="whatsapp-menu-text">View full collection</span>
+              </motion.button>
+            </div>
+          </>
         )}
         
         {(message.special === 'collect-name' || message.special === 'collect-address') && (
@@ -4537,8 +4738,8 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         </div>
       </div>
       
-      {/* WhatsApp-style menu buttons outside message bubble */}
-      {message.special === 'search-result' && message.data && (
+      {/* WhatsApp-style menu buttons outside message bubble - hide for Death Star */}
+      {message.special === 'search-result' && message.data && !(message.data.title && message.data.title.toLowerCase().includes('death star')) && (
         <div className="whatsapp-menu-container">
           <motion.button
             whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -4674,7 +4875,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
   );
 };
 
-const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
+const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = true }) => {
   // Helper function to determine if item is wearable
   const isWearableItem = (title) => {
     const wearableKeywords = ['shirt', 'hoodie', 'jacket', 'shoes', 'sneaker', 'hat', 'cap', 'jeans', 'pants', 'dress', 'sweater', 'coat'];
@@ -4687,6 +4888,20 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
       margin: '0'
     }}>
       <div className="result-content">
+        {/* Show title above image for Death Star */}
+        {data.title && data.title.toLowerCase().includes('death star') && (
+          <div style={{ 
+            fontWeight: '600', 
+            fontSize: '18px', 
+            marginBottom: '12px',
+            color: '#000000',
+            lineHeight: '1.3',
+            textAlign: 'left'
+          }}>
+            {data.title}
+          </div>
+        )}
+        
         {/* Show virtual try-on image if available, otherwise show original image */}
         {data.hasTryOn && data.tryOnImage ? (
           <div style={{ position: 'relative', marginBottom: '12px' }}>
@@ -4715,19 +4930,47 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
             />
           </div>
         ) : data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
-          <img 
-            src={data.image} 
-            alt={data.title}
-            style={{ 
-              width: '100%', 
-              objectFit: 'cover', 
-              borderRadius: '12px',
-              marginBottom: '12px',
-              backgroundColor: '#f9fafb',
-              cursor: 'pointer'
-            }}
-            onClick={() => onImageClick && onImageClick(data.image, data.title)}
-          />
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
+            <img 
+              src={data.image} 
+              alt={data.title}
+              style={{ 
+                width: '100%', 
+                objectFit: 'cover', 
+                borderRadius: '12px',
+                backgroundColor: '#f9fafb',
+                cursor: 'pointer'
+              }}
+              onClick={() => onImageClick && onImageClick(data.image, data.title)}
+            />
+            
+            {/* Buy Now button overlay for Death Star */}
+            {data.title && data.title.toLowerCase().includes('death star') && showButtons && onPurchaseIntent && (
+              <div style={{
+                position: 'absolute',
+                bottom: '12px',
+                left: '12px',
+                right: '12px'
+              }}>
+                <motion.button
+                  whileHover={{ backgroundColor: '#0056cc' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent image click
+                    onPurchaseIntent(data);
+                  }}
+                  className="whatsapp-menu-btn"
+                  style={{
+                    width: '100%',
+                    marginBottom: '0',
+                    boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)'
+                  }}
+                >
+                  <span className="whatsapp-menu-text">Buy Now For <strong>${data.price + (data.shipping || 0)}</strong></span>
+                </motion.button>
+              </div>
+            )}
+          </div>
         ) : (
           <div style={{ 
             width: '100%', 
@@ -4750,15 +4993,18 @@ const SearchResultCard = ({ data, onImageClick, showButtons = true }) => {
         )}
         
         <div>
-          <div style={{ 
-            fontWeight: '600', 
-            fontSize: '16px', 
-            marginBottom: '4px',
-            color: '#000000',
-            lineHeight: '1.3'
-          }}>
-            {data.title}
-          </div>
+          {/* Hide title below image for Death Star since it's shown above */}
+          {!(data.title && data.title.toLowerCase().includes('death star')) && (
+            <div style={{ 
+              fontWeight: '600', 
+              fontSize: '16px', 
+              marginBottom: '4px',
+              color: '#000000',
+              lineHeight: '1.3'
+            }}>
+              {data.title}
+            </div>
+          )}
           
           {isWearableItem(data.title) && (
           <div style={{
@@ -4827,19 +5073,47 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             />
           </div>
         ) : data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
-          <img 
-            src={data.image} 
-            alt={data.title}
-            style={{ 
-              width: '100%', 
-              objectFit: 'cover', 
-              borderRadius: '12px',
-              marginBottom: '12px',
-              backgroundColor: '#f9fafb',
-              cursor: 'pointer'
-            }}
-            onClick={() => onImageClick && onImageClick(data.image, data.title)}
-          />
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
+            <img 
+              src={data.image} 
+              alt={data.title}
+              style={{ 
+                width: '100%', 
+                objectFit: 'cover', 
+                borderRadius: '12px',
+                backgroundColor: '#f9fafb',
+                cursor: 'pointer'
+              }}
+              onClick={() => onImageClick && onImageClick(data.image, data.title)}
+            />
+            
+            {/* Buy Now button overlay for Death Star */}
+            {data.title && data.title.toLowerCase().includes('death star') && showButtons && onPurchaseIntent && (
+              <div style={{
+                position: 'absolute',
+                bottom: '12px',
+                left: '12px',
+                right: '12px'
+              }}>
+                <motion.button
+                  whileHover={{ backgroundColor: '#0056cc' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent image click
+                    onPurchaseIntent(data);
+                  }}
+                  className="whatsapp-menu-btn"
+                  style={{
+                    width: '100%',
+                    marginBottom: '0',
+                    boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)'
+                  }}
+                >
+                  <span className="whatsapp-menu-text">Buy Now For <strong>${data.price + (data.shipping || 0)}</strong></span>
+                </motion.button>
+              </div>
+            )}
+          </div>
         ) : (
           <div style={{ 
             width: '100%', 
@@ -4894,8 +5168,8 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
         </div>
       </div>
 
-      {/* WhatsApp-style button at full width below description */}
-      {showButtons && onPurchaseIntent && (
+      {/* WhatsApp-style button at full width below description - hide for Death Star since it's in the image overlay */}
+      {showButtons && onPurchaseIntent && !(data.title && data.title.toLowerCase().includes('death star')) && (
         <div className="whatsapp-menu-container" style={{ marginTop: '12px', marginBottom: '0' }}>
           <motion.button
             whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -4904,8 +5178,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             className="whatsapp-menu-btn"
             style={{ width: '100%' }}
           >
-            <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">Buy Now For ${data.price + (data.shipping || 0)}</span>
+            <span className="whatsapp-menu-text">Buy Now For <strong>${data.price + (data.shipping || 0)}</strong></span>
           </motion.button>
         </div>
       )}
@@ -5248,15 +5521,35 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
               padding: '0 10px 140px', // Extra bottom padding for Safari bar
               background: 'transparent'
             }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-          }}>
-            {(() => {
-              // Separate primary (new/color variants) and secondary (used) options
-              const primaryProducts = products.filter(product => product.isUsed !== true);
-              const secondaryProducts = products.filter(product => product.isUsed === true);
+              {/* Check if this is Naveen Slayer Collection */}
+              {data.searchTerm && data.searchTerm.toLowerCase().includes('naveen slayer') ? (
+                // Show multiple Naveen Slayer products using ProductComponentTest
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '30px'
+                }}>
+                  {products.map((product, index) => (
+                    <div key={index}>
+                      <ProductComponentTest 
+                        productData={product}
+                        hideNavigation={true}
+                        compact={true}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Use regular product display for other collections
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  {(() => {
+                    // Separate primary (new/color variants) and secondary (used) options
+                    const primaryProducts = products.filter(product => product.isUsed !== true);
+                    const secondaryProducts = products.filter(product => product.isUsed === true);
               
               console.log('🔍 Debug - All products:', products);
               console.log('🔍 Debug - Primary products:', primaryProducts);
@@ -5908,7 +6201,8 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                 </>
               );
             })()}
-          </div>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -7069,7 +7363,7 @@ const GroupOrderSummaryCard = ({ data, onWebView, onCancelOrder }) => {
             <span style={{ fontSize: '14px', color: '#666' }}>${data.tax}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#666' }}>Silver Tier Fee (3%):</span>
+            <span style={{ fontSize: '14px', color: '#666' }}>Service Fee:</span>
             <span style={{ fontSize: '14px', color: '#666' }}>${data.silverFee}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #dee2e6', paddingTop: '8px' }}>

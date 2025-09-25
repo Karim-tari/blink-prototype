@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ProductComponentTest = () => {
+const ProductComponentTest = ({ productData = null, hideNavigation = false, compact = false }) => {
   const [selectedColor, setSelectedColor] = useState('black');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showSizeSelector, setShowSizeSelector] = useState(false);
@@ -13,10 +13,17 @@ const ProductComponentTest = () => {
   const [isUndoing, setIsUndoing] = useState(false);
   const [isColorTransitioning, setIsColorTransitioning] = useState(false);
   const [nextColor, setNextColor] = useState(null);
-  const [activeTab, setActiveTab] = useState('fashion');
+  // Check URL parameters for initial tab
+  const getInitialTab = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    return tabParam === 'naveenSlayer' ? 'naveenSlayer' : 'fashion';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   
   // Product data for different tabs
-  const products = {
+  const defaultProducts = {
     fashion: {
       title: "Jordan Sport Classic",
       brand: "Nike",
@@ -65,12 +72,62 @@ const ProductComponentTest = () => {
       },
       colors: [], // No color selection for collectibles
       sizes: [] // No sizes for collectibles
+    },
+    naveenSlayer: {
+      title: "MAGMA LORD Hoodie",
+      brand: "Slayer",
+      price: 120.00,
+      shipping: 5,
+      images: {
+        default: [
+          `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+          `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+          `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`
+        ]
+      },
+      colors: [], // No color options for Naveen Slayer
+      sizes: [
+        { name: 'XS', fullName: 'Extra Small', available: true },
+        { name: 'S', fullName: 'Small', available: true },
+        { name: 'M', fullName: 'Medium', available: true },
+        { name: 'L', fullName: 'Large', available: true },
+        { name: 'XL', fullName: 'Extra Large', available: true },
+        { name: 'XXL', fullName: 'Extra Extra Large', available: false },
+        { name: '3XL', fullName: '3X Large', available: false }
+      ]
     }
   };
 
-  const product = products[activeTab];
+  // Use passed productData if available, otherwise use default products
+  const products = productData ? {
+    singleProduct: {
+      title: productData.title,
+      brand: productData.brand,
+      price: productData.price,
+      shipping: productData.shipping || 0,
+      images: {
+        default: [
+          productData.image,
+          productData.image,
+          productData.image
+        ]
+      },
+      colors: [],
+      sizes: [
+        { name: 'XS', fullName: 'Extra Small', available: true },
+        { name: 'S', fullName: 'Small', available: true },
+        { name: 'M', fullName: 'Medium', available: true },
+        { name: 'L', fullName: 'Large', available: true },
+        { name: 'XL', fullName: 'Extra Large', available: true },
+        { name: 'XXL', fullName: 'Extra Extra Large', available: false },
+        { name: '3XL', fullName: '3X Large', available: false }
+      ]
+    }
+  } : defaultProducts;
 
-  const currentImages = activeTab === 'collectible' 
+  const product = productData ? products.singleProduct : products[activeTab];
+
+  const currentImages = (activeTab === 'collectible' || activeTab === 'naveenSlayer' || productData)
     ? product.images.default 
     : product.images[selectedColor];
   const totalImages = currentImages ? currentImages.length : 0;
@@ -103,7 +160,7 @@ const ProductComponentTest = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentImageIndex(0);
-    if (tab === 'fashion') {
+    if (tab === 'fashion' || tab === 'naveenSlayer') {
       setSelectedColor('black');
     }
   };
@@ -144,14 +201,14 @@ const ProductComponentTest = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: compact ? 'auto' : '100vh',
       backgroundColor: '#ffffff'
     }}>
       {/* Tabs */}
       <div style={{
-        borderBottom: '1px solid #e5e7eb',
+        borderBottom: hideNavigation ? 'none' : '1px solid #e5e7eb',
         backgroundColor: '#ffffff',
-        padding: '0 20px'
+        padding: hideNavigation ? '0' : '0 20px'
       }}>
         <div style={{
           display: 'flex',
@@ -160,62 +217,91 @@ const ProductComponentTest = () => {
           maxWidth: '800px',
           margin: '0 auto'
         }}>
-          {/* Tab Navigation */}
-          <div style={{
-            display: 'flex',
-            gap: '32px'
-          }}>
-            <button
-              onClick={() => handleTabChange('fashion')}
-              style={{
-                padding: '16px 0',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'fashion' ? '2px solid #007bff' : '2px solid transparent',
-                color: activeTab === 'fashion' ? '#007bff' : '#6b7280',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Fashion Item
-            </button>
-            
-            <button
-              onClick={() => handleTabChange('collectible')}
-              style={{
-                padding: '16px 0',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'collectible' ? '2px solid #007bff' : '2px solid transparent',
-                color: activeTab === 'collectible' ? '#007bff' : '#6b7280',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Collectible
-            </button>
-          </div>
+          {/* Tab Navigation - Hide for Naveen Slayer or when hideNavigation is true */}
+          {!hideNavigation && activeTab !== 'naveenSlayer' && (
+            <div style={{
+              display: 'flex',
+              gap: '32px'
+            }}>
+              <button
+                onClick={() => handleTabChange('fashion')}
+                style={{
+                  padding: '16px 0',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'fashion' ? '2px solid #007bff' : '2px solid transparent',
+                  color: activeTab === 'fashion' ? '#007bff' : '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Fashion Item
+              </button>
+              
+              <button
+                onClick={() => handleTabChange('collectible')}
+                style={{
+                  padding: '16px 0',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'collectible' ? '2px solid #007bff' : '2px solid transparent',
+                  color: activeTab === 'collectible' ? '#007bff' : '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Collectible
+              </button>
+            </div>
+          )}
+
+          {/* Naveen Slayer Header */}
+          {!hideNavigation && activeTab === 'naveenSlayer' && (
+            <div style={{
+              textAlign: 'center',
+              marginBottom: compact ? '8px' : '24px'
+            }}>
+              <h1 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1a1a1a',
+                margin: '0 0 8px 0',
+                fontFamily: 'inherit'
+              }}>
+                Naveen Slayer Collection
+              </h1>
+              <p style={{
+                fontSize: '16px',
+                color: '#6b7280',
+                margin: '0',
+                fontFamily: 'inherit'
+              }}>
+                Exclusive streetwear drop
+              </p>
+            </div>
+          )}
 
         </div>
       </div>
 
       {/* Main Content */}
       <div style={{
-        padding: '20px',
+        padding: compact ? '10px' : '20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 'calc(100vh - 73px)' // Subtract tab height
+        minHeight: compact ? 'auto' : 'calc(100vh - 73px)' // Subtract tab height
       }}>
       <div style={{
-        width: '362px',
-        position: 'relative'
+        width: compact ? 'auto' : '362px',
+        position: 'relative',
+        margin: '0 auto'
       }}>
         {/* Main Product Container - Slides off with rotation, bounces back on undo */}
         <motion.div
@@ -407,8 +493,8 @@ const ProductComponentTest = () => {
             )}
           </AnimatePresence>
 
-            {/* Size Badge - Inside Image - Only show for fashion items */}
-            {activeTab === 'fashion' && (
+            {/* Size Badge - Inside Image - Only show for fashion items and Naveen Slayer */}
+            {(activeTab === 'fashion' || activeTab === 'naveenSlayer') && (
               <motion.div
                 key={selectedSize} // This will trigger re-animation when size changes
                 onClick={(e) => {
@@ -446,9 +532,9 @@ const ProductComponentTest = () => {
               </motion.div>
             )}
 
-            {/* Size Selector Overlay - Only show for fashion items */}
+            {/* Size Selector Overlay - Only show for fashion items and Naveen Slayer */}
             <AnimatePresence>
-              {activeTab === 'fashion' && showSizeSelector && (
+              {(activeTab === 'fashion' || activeTab === 'naveenSlayer') && showSizeSelector && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: -20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -605,9 +691,9 @@ const ProductComponentTest = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '12px'
+              marginBottom: compact ? '6px' : '12px'
             }}>
-              {activeTab === 'fashion' ? (
+              {activeTab === 'fashion' && !productData ? (
                 // Fashion: Brand next to title
                 <div style={{
                   display: 'flex',
@@ -722,7 +808,7 @@ const ProductComponentTest = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '15px'
+              marginBottom: compact ? '8px' : '15px'
             }}>
               <div style={{
                 color: '#111',
@@ -838,7 +924,7 @@ const ProductComponentTest = () => {
                 ease: [0.4, 0, 0.2, 1]
               }}
               style={{
-                marginBottom: '20px'
+                marginBottom: compact ? '8px' : '20px'
               }}
             >
               <img 
@@ -877,7 +963,7 @@ const ProductComponentTest = () => {
                 lineHeight: '85%',
                 textTransform: 'uppercase',
                 marginTop: '30px',
-                marginBottom: '20px'
+                marginBottom: compact ? '8px' : '20px'
               }}
             >
               GETTING READY TO<br />BUY IT FOR YOU
@@ -902,15 +988,15 @@ const ProductComponentTest = () => {
                 fontStyle: 'normal',
                 fontWeight: '600',
                 lineHeight: '120%',
-                marginBottom: '8px'
+                marginBottom: compact ? '4px' : '8px'
               }}
             >
               {product.title}
             </motion.div>
           )}
           
-          {/* Size - Only show for fashion items */}
-          {activeTab === 'fashion' && isPurchased && (
+          {/* Size - Only show for fashion items and Naveen Slayer */}
+          {(activeTab === 'fashion' || activeTab === 'naveenSlayer') && isPurchased && (
             <motion.div
               initial={{ y: 15, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -927,7 +1013,7 @@ const ProductComponentTest = () => {
                 fontStyle: 'normal',
                 fontWeight: '500',
                 lineHeight: '120%',
-                marginBottom: '30px'
+                marginBottom: compact ? '10px' : '30px'
               }}
             >
               {product.sizes.find(size => size.name === selectedSize)?.fullName || selectedSize}
