@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ProductComponentTest = ({ productData = null, hideNavigation = false, compact = false }) => {
+const ProductComponentTest = ({ productData = null, hideNavigation = false, compact = false, onClose = null, purchaseCount = 1, onPurchaseIntent = null, onPurchaseMade = null, purchasedItems = [] }) => {
   const [selectedColor, setSelectedColor] = useState('black');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showSizeSelector, setShowSizeSelector] = useState(false);
@@ -106,7 +106,7 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
       price: productData.price,
       shipping: productData.shipping || 0,
       images: {
-        default: [
+        default: productData.images || [
           productData.image,
           productData.image,
           productData.image
@@ -173,6 +173,19 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
   const handlePurchase = () => {
     setIsPurchasing(true);
     setIsPurchased(true);
+    
+    // Notify parent component about the purchase
+    if (onPurchaseMade && productData) {
+      onPurchaseMade({
+        title: productData.title,
+        price: productData.price,
+        shipping: productData.shipping || 0,
+        brand: productData.brand,
+        image: productData.image,
+        size: selectedSize,
+        available: productData.available
+      });
+    }
     
     // Start 30-second countdown timer
     setUndoTimer(30);
@@ -1073,6 +1086,88 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
         </motion.div>
       </div>
       </div>
+
+      {/* Orange "Back to Blink" tab - appears after any purchase */}
+      <AnimatePresence>
+        {purchaseCount > 0 && onClose && (
+          <motion.div
+            initial={{ scaleX: 0, y: 0 }}
+            animate={{ scaleX: 1, y: 0 }}
+            exit={{ scaleX: 0, y: 0 }}
+            transition={{
+              type: 'tween',
+              ease: [0.25, 0.46, 0.45, 0.94],
+              duration: 0.4
+            }}
+            style={{
+              position: 'fixed',
+              bottom: '143px', // Above Safari bar
+              left: '0px',
+              right: '0px',
+              zIndex: 1002 // Higher than Safari bar
+            }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                // Close web view first
+                onClose();
+                // Then trigger group purchase intent in WhatsApp after a short delay
+                if (onPurchaseIntent && purchasedItems.length > 0) {
+                  setTimeout(() => {
+                    if (purchasedItems.length === 1) {
+                      // Single item purchase
+                      onPurchaseIntent(purchasedItems[0]);
+                    } else {
+                      // Group purchase
+                      onPurchaseIntent({
+                        type: 'group-purchase',
+                        items: purchasedItems,
+                        count: purchasedItems.length,
+                        totalPrice: purchasedItems.reduce((sum, item) => sum + item.price + (item.shipping || 0), 0),
+                        timeLimit: 30, // 30 minutes
+                        originalSearchResults: purchasedItems // Pass the purchased items
+                      });
+                    }
+                  }, 300);
+                }
+              }}
+              style={{
+                width: '100%',
+                background: '#E3591D',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0px',
+                padding: '16px 20px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px'
+              }}
+            >
+              Back to Blink
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: '#E3591D'
+              }}>
+                {purchaseCount}
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

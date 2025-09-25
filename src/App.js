@@ -1801,6 +1801,10 @@ const AutobotApp = () => {
               basePrice: 120, 
               brand: 'Slayer',
               image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/magma lord hoodie product shot.webp`
+              ],
               size: 'Medium',
               available: true
             },
@@ -1809,6 +1813,10 @@ const AutobotApp = () => {
               basePrice: 120, 
               brand: 'Slayer',
               image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie-red.jpg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie-red.jpg`,
+                `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/eagloe marron hodie product shot.webp`
+              ],
               size: 'Medium',
               available: true
             },
@@ -1817,6 +1825,10 @@ const AutobotApp = () => {
               basePrice: 65, 
               brand: 'Slayer',
               image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/hell awaits product shot.webp`
+              ],
               size: 'Medium',
               available: true
             }
@@ -2135,8 +2147,21 @@ const AutobotApp = () => {
       const subtotalAmount = items.reduce((sum, product) => sum + product.price, 0);
       const shippingTotal = items.reduce((sum, product) => sum + (product.shipping || 8), 0);
       const taxTotal = items.reduce((sum, product) => sum + Math.round(product.price * 0.08), 0);
-      const blinkFee = Math.round(subtotalAmount * 0.03); // 3% Blink fee
-      const grandTotal = subtotalAmount + shippingTotal + taxTotal + blinkFee;
+      const serviceFee = Math.round(subtotalAmount * 0.03); // 3% service fee
+      const grandTotal = subtotalAmount + shippingTotal + taxTotal + serviceFee;
+      
+      // Check if any items are Naveen Slayer products for credit card message
+      const hasNaveenSlayerProducts = items.some(product => 
+        product.brand === 'Slayer' || 
+        product.title?.includes('MAGMA LORD') || 
+        product.title?.includes('Eagle Maroon') || 
+        product.title?.includes('Hell Awaits')
+      );
+      
+      // Add credit card message for Naveen Slayer group purchases
+      if (hasNaveenSlayerProducts) {
+        addAutobotMessage("Using credit card ending in **** 5732.");
+      }
       
       // Create order summary message
       let orderSummary = "🛍️ **Your order is on its way.**\n\n";
@@ -2150,7 +2175,7 @@ const AutobotApp = () => {
       orderSummary += `Subtotal: $${subtotalAmount}\n`;
       orderSummary += `Shipping: $${shippingTotal}\n`;
       orderSummary += `Tax: $${taxTotal}\n`;
-      orderSummary += `Blink Fee (3%): $${blinkFee}\n`;
+      orderSummary += `Service Fee: $${serviceFee}\n`;
       orderSummary += `**Total: $${grandTotal}**\n\n`;
       orderSummary += `Estimated delivery: Tomorrow\n`;
       orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
@@ -2160,7 +2185,8 @@ const AutobotApp = () => {
         subtotal: subtotalAmount,
         shipping: shippingTotal,
         tax: taxTotal,
-        blinkFee: blinkFee,
+        serviceFee: serviceFee,
+        silverFee: serviceFee, // Add silverFee for display compatibility
         total: grandTotal,
         timeLimit: 30,
         originalSearchResults: item.originalSearchResults || items,
@@ -4672,6 +4698,10 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       shipping: 5,
                       brand: 'Slayer',
                       image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/magma lord hoodie product shot.webp`
+                      ],
                       size: 'Medium',
                       available: true
                     },
@@ -4681,6 +4711,10 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       shipping: 5,
                       brand: 'Slayer',
                       image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie-red.jpg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-hoodie-red.jpg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/eagloe marron hodie product shot.webp`
+                      ],
                       size: 'Medium',
                       available: true
                     },
@@ -4690,6 +4724,23 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                       shipping: 5,
                       brand: 'Slayer',
                       image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/hell awaits product shot.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Hell Awaits T-shirt',
+                      price: 45,
+                      shipping: 5,
+                      brand: 'Slayer',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/hell-awaits-tshirt.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/hell-awaits-tshirt.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/Slayer_Hell_Awaits_Green_Oil_Washed_T-Shirt-product shot.webp`
+                      ],
                       size: 'Medium',
                       available: true
                     }
@@ -5250,6 +5301,8 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [undoTimers, setUndoTimers] = useState({}); // Track countdown timers for each item
   const [showProductShots, setShowProductShots] = useState({}); // Track which items are showing product shots
+  const [purchasedCount, setPurchasedCount] = useState(0); // Track total purchased items for Naveen Slayer
+  const [purchasedItems, setPurchasedItems] = useState([]); // Track all purchased items for group order
 
   // Toggle between regular image and product shot
   const toggleProductShot = (index) => {
@@ -5257,6 +5310,12 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
       ...prev,
       [index]: !prev[index]
     }));
+  };
+
+  // Handle purchase made in Naveen Slayer products
+  const handlePurchaseMade = (itemData) => {
+    setPurchasedCount(prev => prev + 1);
+    setPurchasedItems(prev => [...prev, itemData]);
   };
 
   useEffect(() => {
@@ -5535,6 +5594,11 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
                         productData={product}
                         hideNavigation={true}
                         compact={true}
+                        onClose={onClose}
+                        onPurchaseIntent={onPurchaseIntent}
+                        purchaseCount={purchasedCount}
+                        onPurchaseMade={handlePurchaseMade}
+                        purchasedItems={purchasedItems}
                       />
                     </div>
                   ))}
