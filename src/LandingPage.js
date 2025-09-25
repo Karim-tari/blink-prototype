@@ -1,22 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import Lottie from 'lottie-react';
 
 const LandingPage = () => {
-  const [lottieData, setLottieData] = useState(null);
-
-  useEffect(() => {
-    // Load Lottie animation data
-    const lottieUrl = `${process.env.PUBLIC_URL}/lottie/data.json`;
-    fetch(lottieUrl)
-      .then(response => response.json())
-      .then(data => {
-        setLottieData(data);
-      })
-      .catch(error => {
-        console.error('Error loading Lottie animation:', error);
-      });
-  }, []);
 
   const handleNavigation = (path) => {
     // Use the homepage from package.json to construct proper URLs for GitHub Pages
@@ -592,28 +577,6 @@ const LandingPage = () => {
       </div>
 
       {/* Footer */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{
-        marginTop: 'auto',
-          display: 'flex',
-          justifyContent: 'center',
-        paddingTop: '40px'
-        }}
-      >
-        {lottieData ? (
-          <Lottie 
-            animationData={lottieData}
-            style={{ width: 80, height: 80 }}
-            loop={false}
-            autoplay={true}
-          />
-        ) : (
-          <div style={{ width: 80, height: 80 }} />
-        )}
-      </motion.div>
     </div>
   );
 };
