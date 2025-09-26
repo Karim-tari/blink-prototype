@@ -284,6 +284,7 @@ const AutobotApp = () => {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [waitingForSizeConfirmation, setWaitingForSizeConfirmation] = useState(false);
   const [pendingShoeSearch, setPendingShoeSearch] = useState('');
+  const [waitingForLegoExclusiveResponse, setWaitingForLegoExclusiveResponse] = useState(false);
   const [hasInitializedMessages, setHasInitializedMessages] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -1316,7 +1317,7 @@ const AutobotApp = () => {
               name: 'LEGO Star Wars Death Star', 
               basePrice: 939.99, 
               brand: 'LEGO',
-              image: `${process.env.PUBLIC_URL}/test-product/death-star.png`
+              image: `${process.env.PUBLIC_URL}/Star wars death star/LEGO-starwars-death-star.png`
             }
           ]
         };
@@ -2039,11 +2040,7 @@ const AutobotApp = () => {
         // For ultra-specific searches like Death Star, only show the first (best) result
         const singleResult = finalResults[0];
         
-        // Check if this is a Death Star search and add coupon message
-        const isDeathStarSearch = request.includes('death star');
-        if (isDeathStarSearch) {
-          addAutobotMessage('Found it! You were able to save $25 on this order.');
-        }
+        // Death Star coupon message is now handled before search results
         
         const compliment = generateCompliment(singleResult);
         const nudges = ["Want me to grab it now?", "Should I hold this for you?", "Ready to order?"];
@@ -2915,6 +2912,15 @@ const AutobotApp = () => {
         successMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\n⏰ **Free cancellation until Tuesday 11:59 PM** - but honestly, you're going to want to keep this one!\n\nI'll ping you with tracking info within the hour so you can watch your new treasure make its way to you. Get excited! 🚀`;
         
         addAutobotMessage(successMessage);
+        
+        // Add LEGO exclusive follow-up message for Death Star purchases
+        const isDeathStarPurchase = pendingItem.title && pendingItem.title.toLowerCase().includes('death star');
+        if (isDeathStarPurchase) {
+          setTimeout(() => {
+            addAutobotMessage("Lego exclusives are awesome! Want me to let you know when they drop their next exclusive set?");
+            setWaitingForLegoExclusiveResponse(true);
+          }, 10000); // 10 seconds delay
+        }
       }
       
       // Clear pending purchase
@@ -3636,6 +3642,32 @@ const AutobotApp = () => {
       handleSizeConfirmation(message);
       return;
     }
+
+    // Handle LEGO exclusive notification response
+    if (waitingForLegoExclusiveResponse) {
+      const lowerMessage = message.toLowerCase().trim();
+      const positiveResponses = ['yes', 'yeah', 'yep', 'sure', 'ok', 'okay', 'sounds good', 'please do that', 'do that', 'absolutely', 'definitely'];
+      const negativeResponses = ['no', 'nah', 'not now', 'maybe later', 'no thanks', 'skip'];
+      
+      const isPositive = positiveResponses.some(response => lowerMessage.includes(response));
+      const isNegative = negativeResponses.some(response => lowerMessage.includes(response));
+      
+      if (isPositive) {
+        setTimeout(() => {
+          addAutobotMessage("Awesome, will do. I'll let you know as soon as the next LEGO exclusive drops.");
+        }, 800);
+        setWaitingForLegoExclusiveResponse(false);
+        return;
+      } else if (isNegative) {
+        setTimeout(() => {
+          addAutobotMessage("No problem! Let me know if you need anything else.");
+        }, 800);
+        setWaitingForLegoExclusiveResponse(false);
+        return;
+      }
+      // If unclear response, continue to normal processing but stop waiting
+      setWaitingForLegoExclusiveResponse(false);
+    }
     
     // Check if it's a casual conversation vs shopping request
     const lowerMessage = message.toLowerCase();
@@ -3710,12 +3742,18 @@ const AutobotApp = () => {
         
         // Add intermediate searching message
         setTimeout(() => {
-          const searchingMsg = `Looking for the best deal on ${message}...`;
+          const searchingMsg = `Searching the web for coupons and discounts...`;
           addAutobotMessage(searchingMsg);
           
+          // Wait 4 seconds, then show savings message before results
           setTimeout(() => {
-            triggerSearchResults(message, 'search');
-          }, 2000);
+            addAutobotMessage("Found the best one! You'll save $25 on your order!");
+            
+            // Show results after savings message
+            setTimeout(() => {
+              triggerSearchResults(message, 'search');
+            }, 1000);
+          }, 4000);
         }, 1000);
       }, 1000);
       } else {
@@ -4799,7 +4837,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
             className="whatsapp-menu-btn"
           >
             <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">Buy Now For ${message.data.price + (message.data.shipping || 0)}</span>
+            <span className="whatsapp-menu-text">Buy Now for ${message.data.price + (message.data.shipping || 0)}</span>
           </motion.button>
           <motion.button
             whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -5014,10 +5052,9 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
                   style={{
                     width: '100%',
                     marginBottom: '0',
-                    boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)'
                   }}
                 >
-                  <span className="whatsapp-menu-text">Buy Now For <strong>${data.price + (data.shipping || 0)}</strong></span>
+                  <span className="whatsapp-menu-text">Buy Now for <strong>${data.price + (data.shipping || 0)}</strong></span>
                 </motion.button>
               </div>
             )}
@@ -5157,10 +5194,9 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
                   style={{
                     width: '100%',
                     marginBottom: '0',
-                    boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)'
                   }}
                 >
-                  <span className="whatsapp-menu-text">Buy Now For <strong>${data.price + (data.shipping || 0)}</strong></span>
+                  <span className="whatsapp-menu-text">Buy Now for <strong>${data.price + (data.shipping || 0)}</strong></span>
                 </motion.button>
               </div>
             )}
@@ -5229,7 +5265,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             className="whatsapp-menu-btn"
             style={{ width: '100%' }}
           >
-            <span className="whatsapp-menu-text">Buy Now For <strong>${data.price + (data.shipping || 0)}</strong></span>
+            <span className="whatsapp-menu-text">Buy Now for <strong>${data.price + (data.shipping || 0)}</strong></span>
           </motion.button>
         </div>
       )}
@@ -8780,7 +8816,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
   const purchaseAmount = isPurchaseMode ? data.total : null;
   
   const [formData, setFormData] = useState({
-    cardNumber: '0000 0000 0000 0000',
+    cardNumber: '',
     expiryMonth: '',
     expiryYear: '',
     cvv: '',
@@ -8994,29 +9030,57 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
           <div style={{ marginBottom: '16px' }}>
               <div style={{
                 padding: '12px 0',
-                borderBottom: '1px solid #e6ebf1'
+                borderBottom: '1px solid #e6ebf1',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
               }}>
-                <div style={{ 
-                  fontSize: '16px', 
-                  fontWeight: '500', 
-                  color: '#32325d',
-                  marginBottom: '2px'
-                }}>
-                  {data.item?.title || 'Purchase'}
-                </div>
-                <div style={{ 
-              fontSize: '16px', 
-                  fontWeight: '600', 
-                  color: '#32325d' 
-                }}>
-                  ${purchaseAmount}
-                </div>
-                <div style={{ 
-                  fontSize: '11px', 
-                  color: '#8898aa', 
-                  fontWeight: '400' 
-                }}>
-                  Including shipping and tax
+                {/* Product Thumbnail */}
+                {data.item?.image && (
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    backgroundColor: '#f8f9fa',
+                    flexShrink: 0
+                  }}>
+                    <img 
+                      src={data.item.image}
+                      alt={data.item.title}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {/* Product Info */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '500', 
+                    color: '#32325d',
+                    marginBottom: '2px'
+                  }}>
+                    {data.item?.title || 'Purchase'}
+                  </div>
+                  <div style={{ 
+                fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: '#32325d' 
+                  }}>
+                    ${purchaseAmount}
+                  </div>
+                  <div style={{ 
+                    fontSize: '11px', 
+                    color: '#8898aa', 
+                    fontWeight: '400' 
+                  }}>
+                    Including shipping and tax
+                  </div>
                 </div>
               </div>
             </div>
@@ -9181,7 +9245,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   placeholder="1234 1234 1234 1234"
                   style={{
                 width: '100%',
-                    padding: '8px 10px',
+                    padding: '12px 14px',
                     border: 'none',
                     borderRadius: '6px 6px 0 0',
                 fontSize: '12px',
@@ -9218,7 +9282,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '8px 10px',
+                    padding: '12px 14px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0',
@@ -9254,7 +9318,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   maxLength="2"
                   style={{
                     width: '25%',
-                    padding: '8px 10px',
+                    padding: '12px 14px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0',
@@ -9276,7 +9340,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 maxLength="4"
                   style={{
                     width: '50%',
-                    padding: '8px 10px',
+                    padding: '12px 14px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
                     borderRadius: '0 0 6px 6px',
@@ -9485,17 +9549,43 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               gap: '8px', 
               marginBottom: '16px' 
             }}>
-              <input
-                type="checkbox"
-                checked={saveInfo}
-                onChange={(e) => setSaveInfo(e.target.checked)}
-                style={{ width: '16px', height: '16px' }}
-              />
-              <span style={{ fontSize: '14px', color: '#1a1a1a' }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="checkbox"
+                  checked={saveInfo}
+                  onChange={(e) => setSaveInfo(e.target.checked)}
+                  style={{ 
+                    width: '18px', 
+                    height: '18px',
+                    appearance: 'none',
+                    backgroundColor: saveInfo ? '#007bff' : 'white',
+                    border: `2px solid ${saveInfo ? '#007bff' : '#d1d5db'}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                />
+                {saveInfo && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '2px',
+                    left: '5px',
+                    width: '6px',
+                    height: '10px',
+                    border: '2px solid white',
+                    borderTop: 'none',
+                    borderLeft: 'none',
+                    transform: 'rotate(45deg)',
+                    pointerEvents: 'none'
+                  }} />
+                )}
+              </div>
+              <span style={{ fontSize: '12px', color: '#6b7280' }}>
                 Save my info for 1-click checkout
               </span>
               <span style={{ 
-                fontSize: '12px', 
+                fontSize: '10px', 
                 color: '#007bff', 
                 backgroundColor: '#e7f3ff',
                 padding: '2px 6px',
