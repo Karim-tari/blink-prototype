@@ -5,6 +5,7 @@ import Lottie from 'lottie-react';
 import falAI from './services/falai';
 import PushNotificationFlow from './PushNotificationFlow';
 import NaveenSlayerFlow from './NaveenSlayerFlow';
+import NaveenBackstreetBoysFlow from './NaveenBackstreetBoysFlow';
 import LandingPage from './LandingPage';
 import ProductComponentTest from './ProductComponentTest';
 import './App.css';
@@ -88,6 +89,7 @@ const AutobotApp = () => {
   const isNewUserPath = currentPath.includes('/new-user') || currentPath.includes('new-user');
   const isPushNotificationPath = currentPath.includes('/push-notifications') || currentPath.includes('push-notifications');
   const isNaveenSlayerDropPath = currentPath.includes('/naveen-slayer-drop') || currentPath.includes('naveen-slayer-drop');
+  const isNaveenBackstreetBoysPath = currentPath.includes('/naveen-backstreet-boys') || currentPath.includes('naveen-backstreet-boys');
   const isReturningUserPath = currentPath.includes('/returning-user') || currentPath.includes('returning-user');
   const isSubscriptionFlowPath = currentPath.includes('/subscription-flow') || currentPath.includes('subscription-flow');
   const isTasteDiscoveryPath = currentPath.includes('/taste-discovery') || currentPath.includes('taste-discovery');
@@ -130,6 +132,7 @@ const AutobotApp = () => {
   ); // 'new', 'returning', 'subscription', 'taste-discovery', or 'landing'
   const [showPushNotification, setShowPushNotification] = useState(isPushNotificationPath);
   const [showNaveenSlayerDrop, setShowNaveenSlayerDrop] = useState(isNaveenSlayerDropPath);
+  const [showNaveenBackstreetBoys, setShowNaveenBackstreetBoys] = useState(isNaveenBackstreetBoysPath);
   const [isFromPushNotification, setIsFromPushNotification] = useState(false);
   const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : isReturnsExchangesPath ? 180 : 150);
   const [isTyping, setIsTyping] = useState(false);
@@ -565,6 +568,15 @@ const AutobotApp = () => {
               setTimeout(() => {
                 showNaveenSlayerProducts();
               }, 1000);
+            } else if (isNaveenBackstreetBoysPath) {
+              // Coming from Naveen Backstreet Boys notification - show vintage message and products immediately
+              addAutobotMessage("Hey Naveen, I wanted to share the new Backstreet Boys millennium collection. Thought you might be interested in this nostalgic drop.");
+              setHasInitializedMessages(true);
+              
+              // Automatically show Naveen Backstreet Boys products after a short delay
+              setTimeout(() => {
+                showNaveenBackstreetBoysProducts();
+              }, 1000);
             } else {
               // Coming from push notification - show Ed Sheeran message and hoodies immediately
               addAutobotMessage("Big news, Jessica! Ed Sheeran just dropped brand-new merch. We have them all in Medium - perfect for you! 🎵");
@@ -619,12 +631,12 @@ const AutobotApp = () => {
     }
   }, [currentFlow, onboardingStep, userType, hasInitializedMessages, isFromPushNotification]);
 
-  // Auto-scroll to bottom when messages change (except for Naveen Slayer Drop flow)
+  // Auto-scroll to bottom when messages change (except for Naveen flows)
   useEffect(() => {
-    if (chatContainerRef.current && !isNaveenSlayerDropPath) {
+    if (chatContainerRef.current && !isNaveenSlayerDropPath && !isNaveenBackstreetBoysPath) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isTyping, isNaveenSlayerDropPath]);
+  }, [messages, isTyping, isNaveenSlayerDropPath, isNaveenBackstreetBoysPath]);
 
   const handlePushNotificationComplete = () => {
     setShowPushNotification(false);
@@ -695,6 +707,40 @@ const AutobotApp = () => {
     setHasInitializedMessages(false);
   };
 
+  const handleNaveenBackstreetBoysComplete = () => {
+    setShowNaveenBackstreetBoys(false);
+    setCurrentFlow('chat');
+    setUserType('returning');
+    setIsFromPushNotification(true);
+    // Initialize returning user profile
+    setBalance(150);
+    setUserProfile({
+      name: 'Karim',
+      interests: ['vintage', 'band merch', 'nostalgia'],
+      shoeSize: '10.5',
+      clothingSize: 'M',
+      address: '2847 Oak Street, San Francisco, CA 94115',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 500,
+        brandsToAvoid: ['off-brand']
+      },
+      purchaseHistory: [
+        { item: 'Vintage Band Tee', date: '2 weeks ago', price: 85 },
+        { item: 'Millennium Hoodie', date: '1 month ago', price: 120 },
+        { item: 'Retro Crew Sweater', date: '3 months ago', price: 95 }
+      ],
+      lastPurchasedClothing: 'Vintage Band Tee',
+      preferredBrands: ['Backstreet Boys', 'Vintage', 'Band Merch', 'Retro'],
+      totalSpent: 1200,
+      memberSince: 'March 2024'
+    });
+    
+    // Reset messages and let the welcome message logic handle the Naveen Backstreet Boys message
+    setMessages([]);
+    setHasInitializedMessages(false);
+  };
+
   // Show landing page for root path
   if (isLandingPage) {
     return <LandingPage />;
@@ -713,6 +759,11 @@ const AutobotApp = () => {
   // Show Naveen Slayer Drop flow if on that path
   if (showNaveenSlayerDrop) {
     return <NaveenSlayerFlow onComplete={handleNaveenSlayerDropComplete} />;
+  }
+
+  // Show Naveen Backstreet Boys flow if on that path
+  if (showNaveenBackstreetBoys) {
+    return <NaveenBackstreetBoysFlow onComplete={handleNaveenBackstreetBoysComplete} />;
   }
 
   const handleUserResponse = (response) => {
@@ -991,6 +1042,31 @@ const AutobotApp = () => {
   // Check if search is for wearable items that would benefit from selfie
   const isWearableSearch = (searchTerm) => {
     const lowerTerm = searchTerm.toLowerCase();
+    
+    // First check for non-wearable/collectible items that should never trigger selfie
+    const collectibleKeywords = [
+      'lego', 'legos', 'toy', 'toys', 'collectible', 'collectibles',
+      'figure', 'figures', 'model', 'models', 'set', 'sets',
+      'death star', 'star wars', 'pokemon', 'funko', 'pop',
+      'game', 'games', 'console', 'controller', 'electronics',
+      'book', 'books', 'poster', 'posters', 'art', 'artwork',
+      'home decor', 'decoration', 'furniture', 'lamp', 'mug',
+      'phone case', 'case', 'cover', 'accessory', 'tech'
+    ];
+    
+    const isCollectible = collectibleKeywords.some(keyword => lowerTerm.includes(keyword));
+    
+    // If it's a collectible, never show selfie offer
+    if (isCollectible) {
+      console.log('🔍 Wearable Detection - Collectible Detected:', {
+        searchTerm,
+        lowerTerm,
+        isCollectible: true,
+        result: false
+      });
+      return false;
+    }
+    
     const wearableKeywords = [
       'shirt', 'shirts', 't-shirt', 'tshirt', 'tee', 'top', 'blouse',
       'hoodie', 'hoodies', 'sweatshirt', 'sweater', 'cardigan',
@@ -1016,6 +1092,7 @@ const AutobotApp = () => {
       lowerTerm,
       hasWearableKeyword,
       hasFashionBrand,
+      isCollectible,
       result: hasWearableKeyword || hasFashionBrand
     });
     
@@ -1792,7 +1869,7 @@ const AutobotApp = () => {
             { name: 'Garmin Forerunner 955', basePrice: 499, brand: 'Garmin' }
                     ]
                   };
-      } else if (request.includes('naveen slayer') || request.includes('naveen') || (request.includes('slayer') && request.includes('collection'))) {
+      } else if (request.includes('naveen slayer') || (request.includes('naveen') && request.includes('slayer')) || (request.includes('slayer') && request.includes('collection'))) {
         return {
           category: 'naveen-slayer',
           emoji: '🔥',
@@ -1829,6 +1906,74 @@ const AutobotApp = () => {
               images: [
                 `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
                 `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/hell awaits product shot.webp`
+              ],
+              size: 'Medium',
+              available: true
+            }
+          ]
+        };
+      } else if (request.includes('naveen backstreet') || request.includes('backstreet boys') || (request.includes('naveen') && request.includes('backstreet')) || (request.includes('millennium') && request.includes('collection'))) {
+        console.log('🎵 NAVEEN BACKSTREET BOYS CONDITION HIT!', { request });
+        return {
+          category: 'naveen-backstreet-boys',
+          emoji: '🎵',
+          products: [
+            {
+              name: 'Into The Millennium Slate Hoodie',
+              basePrice: 125, 
+              brand: 'Backstreet Boys',
+              image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-illennium Slate Hoodie.jpg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-illennium Slate Hoodie.jpg`,
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Millennium Slate Hoodie-Product.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Into The Millennium 2.0 White Tee',
+              basePrice: 85, 
+              brand: 'Backstreet Boys',
+              image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium 2.0 Cover White Tee.jpg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium 2.0 Cover White Tee.jpg`,
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into the Millennium 2.0 Cover White Tee-Product.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Into The Millennium Sweater',
+              basePrice: 110, 
+              brand: 'Backstreet Boys',
+              image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Crew Neck Sweater.jpg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Crew Neck Sweater.jpg`,
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into The Millennium Crew Neck Sweater-Product.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Into The Millennium Dateback Tee',
+              basePrice: 90, 
+              brand: 'Backstreet Boys',
+              image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium Denim Wash Dateback Tee.jpg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium Denim Wash Dateback Tee.jpg`,
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into the Millennium Denim Wash Dateback Tee-Product.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Into The Millennium Spirit Jersey',
+              basePrice: 95, 
+              brand: 'Backstreet Boys',
+              image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Spirit Jersey.jpg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Spirit Jersey.jpg`,
+                `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into The Millennium Spirit Jersey-Product.webp`
               ],
               size: 'Medium',
               available: true
@@ -2089,9 +2234,16 @@ const AutobotApp = () => {
         const message = userImage ? 
           `Found ${finalResults.length} good options. Here are the top matches with virtual try-on! 🎭` : 
           `Found ${finalResults.length} good options. Here are the top matches:`;
+        
+        // Check if this is a Naveen collection - don't show "View more" button for these
+        const isNaveenCollection = userRequest.toLowerCase().includes('naveen slayer') || 
+                                  userRequest.toLowerCase().includes('naveen backstreet') ||
+                                  (userRequest.toLowerCase().includes('naveen') && userRequest.toLowerCase().includes('slayer')) ||
+                                  (userRequest.toLowerCase().includes('naveen') && userRequest.toLowerCase().includes('backstreet'));
+        
         addAutobotMessage(message, 'search-results', { 
           results: chatResults, 
-          showViewMore: true, 
+          showViewMore: !isNaveenCollection, 
           remainingCount: remainingCount,
           allResults: finalResults,
           searchTerm: userRequest 
@@ -2125,6 +2277,16 @@ const AutobotApp = () => {
     }, 2000);
   };
 
+  const showNaveenBackstreetBoysProducts = () => {
+    // Use the same approach as Ed Sheeran - trigger search results
+    triggerSearchResults("Naveen Backstreet Boys collection", "search");
+    
+    // Add follow-up message after products are displayed
+    setTimeout(() => {
+      addAutobotMessage("That millennium hoodie brings back so many memories! Perfect for those nostalgic vibes you love.", 'naveen-backstreet-collection-offer');
+    }, 2000);
+  };
+
   const handlePurchaseIntent = (item) => {
     // Clear photo waiting state when user initiates purchase
     setWaitingForSelfie(false);
@@ -2137,6 +2299,13 @@ const AutobotApp = () => {
       item.title.includes('Hell Awaits') ||
       item.brand === 'Slayer'
     );
+
+    // Check if this is a Naveen Backstreet Boys product for special order message
+    const isNaveenBackstreetBoysProduct = item.title && (
+      item.title.includes('Into The Millennium') || 
+      item.title.includes('Millennium') || 
+      item.brand === 'Backstreet Boys'
+    );
     
     // Handle group purchase from web view
     if (item.type === 'group-purchase') {
@@ -2147,16 +2316,22 @@ const AutobotApp = () => {
       const serviceFee = Math.round(subtotalAmount * 0.03); // 3% service fee
       const grandTotal = subtotalAmount + shippingTotal + taxTotal + serviceFee;
       
-      // Check if any items are Naveen Slayer products for credit card message
+      // Check if any items are Naveen products for credit card message
       const hasNaveenSlayerProducts = items.some(product => 
         product.brand === 'Slayer' || 
         product.title?.includes('MAGMA LORD') || 
         product.title?.includes('Eagle Maroon') || 
         product.title?.includes('Hell Awaits')
       );
+
+      const hasNaveenBackstreetBoysProducts = items.some(product => 
+        product.brand === 'Backstreet Boys' || 
+        product.title?.includes('Into The Millennium') || 
+        product.title?.includes('Millennium')
+      );
       
-      // Add credit card message for Naveen Slayer group purchases
-      if (hasNaveenSlayerProducts) {
+      // Add credit card message for Naveen group purchases
+      if (hasNaveenSlayerProducts || hasNaveenBackstreetBoysProducts) {
         addAutobotMessage("Using credit card ending in **** 5732.");
       }
       
@@ -2906,7 +3081,11 @@ const AutobotApp = () => {
         
         // Add coupon savings message if applicable
         if (couponSavings) {
-          successMessage += `💰 **BTW I saved you ${couponSavings.percentage}% with a coupon code**\n\n`;
+          if (couponSavings.percentage) {
+            successMessage += `💰 **BTW I saved you ${couponSavings.percentage}% with a coupon code**\n\n`;
+          } else if (couponSavings.discount) {
+            successMessage += `💰 **BTW I saved you $${couponSavings.discount} with a coupon code**\n\n`;
+          }
         }
         
         successMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\n⏰ **Free cancellation until Tuesday 11:59 PM** - but honestly, you're going to want to keep this one!\n\nI'll ping you with tracking info within the hour so you can watch your new treasure make its way to you. Get excited! 🚀`;
@@ -4184,6 +4363,8 @@ const getContextualSearchText = (searchTerm) => {
     return "Ed Sheeran hoodies! 🎵";
   } else if (term.includes('naveen') && term.includes('slayer')) {
     return "New Slayer drop";
+  } else if (term.includes('naveen') && term.includes('backstreet')) {
+    return "Millennium Collection";
   } else if (term.includes('jordan')) {
     return `Some fresh ${searchTerm} just dropped`;
   } else if (term.includes('nike') || term.includes('adidas') || term.includes('yeezy')) {
@@ -4787,6 +4968,96 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
                   onWebView && onWebView({
                     results: naveenSlayerProducts,
                     searchTerm: 'Naveen Slayer Collection'
+                  });
+                }}
+              >
+                <span className="whatsapp-menu-text">View full collection</span>
+              </motion.button>
+            </div>
+          </>
+        )}
+        
+        {message.special === 'naveen-backstreet-collection-offer' && (
+          <>
+            <div className="message-text">{String(message.content || '')}</div>
+            <div className="whatsapp-menu-container" style={{ marginTop: '12px' }}>
+              <motion.button
+                whileHover={{ backgroundColor: '#f0f0f0' }}
+                whileTap={{ scale: 0.98 }}
+                className="whatsapp-menu-btn"
+                onClick={() => {
+                  // Open web view with all five Naveen Backstreet Boys products
+                  const naveenBackstreetBoysProducts = [
+                    {
+                      title: 'Into The Millennium Slate Hoodie',
+                      price: 125,
+                      shipping: 5,
+                      brand: 'Backstreet Boys',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-illennium Slate Hoodie.jpg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-illennium Slate Hoodie.jpg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Millennium Slate Hoodie-Product.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Into The Millennium 2.0 White Tee',
+                      price: 85,
+                      shipping: 5,
+                      brand: 'Backstreet Boys',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium 2.0 Cover White Tee.jpg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium 2.0 Cover White Tee.jpg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into the Millennium 2.0 Cover White Tee-Product.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Into The Millennium Sweater',
+                      price: 110,
+                      shipping: 5,
+                      brand: 'Backstreet Boys',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Crew Neck Sweater.jpg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Crew Neck Sweater.jpg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into The Millennium Crew Neck Sweater-Product.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Into The Millennium Dateback Tee',
+                      price: 90,
+                      shipping: 5,
+                      brand: 'Backstreet Boys',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium Denim Wash Dateback Tee.jpg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into the Millennium Denim Wash Dateback Tee.jpg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into the Millennium Denim Wash Dateback Tee-Product.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Into The Millennium Spirit Jersey',
+                      price: 95,
+                      shipping: 5,
+                      brand: 'Backstreet Boys',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Spirit Jersey.jpg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Naveen-Into The Millennium Spirit Jersey.jpg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Backstreet-Boys/Into The Millennium Spirit Jersey-Product.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    }
+                  ];
+                  
+                  onWebView && onWebView({
+                    results: naveenBackstreetBoysProducts,
+                    searchTerm: 'Naveen Backstreet Boys Collection'
                   });
                 }}
               >
@@ -5616,9 +5887,9 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
               padding: '0 10px 140px', // Extra bottom padding for Safari bar
               background: 'transparent'
             }}>
-              {/* Check if this is Naveen Slayer Collection */}
-              {data.searchTerm && data.searchTerm.toLowerCase().includes('naveen slayer') ? (
-                // Show multiple Naveen Slayer products using ProductComponentTest
+              {/* Check if this is Naveen Slayer or Naveen Backstreet Boys Collection */}
+              {data.searchTerm && (data.searchTerm.toLowerCase().includes('naveen slayer') || data.searchTerm.toLowerCase().includes('naveen backstreet')) ? (
+                // Show multiple Naveen products using ProductComponentTest
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',

@@ -240,6 +240,64 @@ const LandingPage = () => {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              onClick={() => handleNavigation('/naveen-backstreet-boys')}
+              style={{
+                padding: '16px 20px',
+                border: '1px solid #d1d5db',
+                borderRadius: '12px',
+                backgroundColor: 'transparent',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#9ca3af';
+                e.target.style.backgroundColor = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.backgroundColor = 'transparent';
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  Naveen Backstreet Boys
+                </span>
+                <span style={{ 
+                  fontSize: '12px', 
+                  color: '#9ca3af',
+                  fontWeight: '400',
+                  marginTop: '2px'
+                }}>
+                  Vintage band merch collection with retro vibes
+                </span>
+              </div>
+              <svg 
+                height="16" 
+                strokeLinejoin="round" 
+                viewBox="0 0 16 16" 
+                width="16" 
+                style={{ color: '#9ca3af', flexShrink: 0 }}
+              >
+                <path 
+                  fillRule="evenodd" 
+                  clipRule="evenodd" 
+                  d="M5.50001 1.93933L6.03034 2.46966L10.8536 7.29288C11.2441 7.68341 11.2441 8.31657 10.8536 8.7071L6.03034 13.5303L5.50001 14.0607L4.43935 13L4.96968 12.4697L9.43935 7.99999L4.96968 3.53032L4.43935 2.99999L5.50001 1.93933Z" 
+                  fill="currentColor"
+                />
+              </svg>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.45, ease: [0.4, 0, 0.2, 1] }}
               onClick={() => handleNavigation('/returning-user')}
               style={{
                 width: '100%',

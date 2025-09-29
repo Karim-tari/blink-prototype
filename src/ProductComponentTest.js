@@ -466,7 +466,16 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
                     style={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover'
+                      objectFit: 'cover',
+                      display: 'block',
+                      backgroundColor: '#f8f9fa'
+                    }}
+                    onError={(e) => {
+                      console.log('Image failed to load:', imageSrc);
+                      e.target.style.backgroundColor = '#f0f0f0';
+                    }}
+                    onLoad={(e) => {
+                      console.log('Image loaded successfully:', imageSrc);
                     }}
                   />
                 </div>
@@ -748,7 +757,8 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  width: '100%'
+                  width: '100%',
+                  gap: '12px' // Add gap between title and brand
                 }}>
                   <h3 style={{
                     margin: 0,
@@ -757,7 +767,9 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
                     fontSize: '15px',
                     fontStyle: 'normal',
                     fontWeight: '600',
-                    lineHeight: 'normal'
+                    lineHeight: 'normal',
+                    flex: '1', // Allow title to take available space
+                    paddingRight: '8px' // Add padding to separate from brand
                   }}>
                     {product.title}
                   </h3>
@@ -768,7 +780,9 @@ const ProductComponentTest = ({ productData = null, hideNavigation = false, comp
                     fontSize: '10px',
                     fontStyle: 'normal',
                     fontWeight: '600',
-                    lineHeight: 'normal'
+                    lineHeight: 'normal',
+                    textAlign: 'right', // Right-justify the brand text
+                    flexShrink: 0 // Prevent brand from shrinking
                   }}>
                     {product.brand}
                   </p>
