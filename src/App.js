@@ -570,7 +570,7 @@ const AutobotApp = () => {
               }, 1000);
             } else if (isNaveenBackstreetBoysPath) {
               // Coming from Naveen Backstreet Boys notification - show vintage message and products immediately
-              addAutobotMessage(`Hey Naveen! The new Backstreet boys Millennium collection is amazing. I can't wait for you to see how you look in every piece. LMK which one you like most and I'll buy it for you!`);
+              addAutobotMessage(`Hey Naveen! The new Backstreet boys Millennium collection is amazing. I can't wait for you to see how you look in every piece.\n\nLMK which one you like most and I'll buy it for you!`);
               setHasInitializedMessages(true);
               
               // Automatically show Naveen Backstreet Boys products after a short delay
@@ -2477,6 +2477,13 @@ const AutobotApp = () => {
       item.brand === 'Slayer'
     );
     
+    // Check if this is a Naveen Backstreet Boys product for credit card message
+    const isNaveenBackstreetBoysProductForOrder = item.title && (
+      item.title.includes('Into The Millennium') || 
+      item.title.includes('Millennium') ||
+      item.brand === 'Backstreet Boys'
+    );
+    
     // Create order summary message (same format as web view group purchase)
     let orderSummary = "";
     
@@ -2510,8 +2517,15 @@ const AutobotApp = () => {
       timestamp: Date.now()
     };
 
-    // Add credit card message before order summary for Naveen Slayer products
-    if (isNaveenSlayerProductForOrder) {
+    // Add credit card message before order summary for Naveen products
+    if (isNaveenBackstreetBoysProductForOrder) {
+      addAutobotMessage("Used your remaining $38 in Blink credits and charged credit card ending in **** 5732 for the remaining balance.");
+      
+      // Add a small delay before showing the order summary
+      setTimeout(() => {
+        addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+      }, 500);
+    } else if (isNaveenSlayerProductForOrder) {
       addAutobotMessage("Using credit card ending in **** 5732.");
       
       // Add a small delay before showing the order summary
@@ -2524,6 +2538,17 @@ const AutobotApp = () => {
 
     // Set active order for modifications
     setActiveOrder(orderData);
+    
+    // Add BOOM confirmation message 4 seconds after order summary for Backstreet Boys
+    if (isNaveenBackstreetBoysProductForOrder) {
+      // Calculate delay: 500ms (credit card message delay) + 4000ms (wait after order summary)
+      const boomDelay = 4500;
+      setTimeout(() => {
+        let confirmationMessage = `🎉 BOOM! You just ordered your ${item.title}!\n\n📦 **Expect it at your doorstep by Tomorrow!**\n\n`;
+        confirmationMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
+        addAutobotMessage(confirmationMessage);
+      }, boomDelay);
+    }
 
     // Set 3-minute timer for final order confirmation
     setTimeout(() => {
@@ -9397,11 +9422,11 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
   let subtotal, shipping, tax, serviceFee, total;
   
   if (isDeathStar) {
-    // For Death Star: Original price is $999.99, with $25 discount = $974.99
-    // Then add shipping (FREE), tax (8%), and service fee (3%)
+    // For Death Star: Original price is 999.99 dollars, with 25 dollar discount = 974.99 dollars
+    // Then add shipping (FREE), tax (8 percent), and service fee (3 percent)
     const originalPrice = 999.99;
     const couponDiscount = 25;
-    const discountedPrice = originalPrice - couponDiscount; // $974.99
+    const discountedPrice = originalPrice - couponDiscount; // 974.99 dollars
     
     subtotal = originalPrice; // Show original price
     shipping = 0; // Free shipping
