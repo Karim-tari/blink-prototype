@@ -570,7 +570,7 @@ const AutobotApp = () => {
               }, 1000);
             } else if (isNaveenBackstreetBoysPath) {
               // Coming from Naveen Backstreet Boys notification - show vintage message and products immediately
-              addAutobotMessage("Hey Naveen, I wanted to share the new Backstreet Boys millennium collection. Thought you might be interested in this nostalgic drop.");
+              addAutobotMessage(`Hey Naveen! The new Backstreet boys Millennium collection is amazing. I can't wait for you to see how you look in every piece. LMK which one you like most and I'll buy it for you!`);
               setHasInitializedMessages(true);
               
               // Automatically show Naveen Backstreet Boys products after a short delay
@@ -1392,9 +1392,12 @@ const AutobotApp = () => {
           products: [
             { 
               name: 'LEGO Star Wars Death Star', 
-              basePrice: 939.99, 
+              basePrice: 999.99, 
               brand: 'LEGO',
-              image: `${process.env.PUBLIC_URL}/Star wars death star/LEGO-starwars-death-star.png`
+              image: `${process.env.PUBLIC_URL}/Star wars death star/LEGO-starwars-death-star.png`,
+              source: 'lego.com',
+              discountApplied: true,
+              discount: 25
             }
           ]
         };
@@ -2100,16 +2103,24 @@ const AutobotApp = () => {
         const finalPrice = basePrice + priceVariation;
         const shipping = isDeathStar ? 0 : (Math.random() > 0.6 ? Math.floor(Math.random() * 20) : 0);
         
-        // Create temporary item to check for coupons
-        const tempItem = { price: finalPrice };
-        const couponSavings = checkForCoupons(tempItem, isFromPushNotification);
+        // For Death Star, use the explicit discount if provided
+        let discountedPrice;
+        let couponSavings;
         
-        const discountedPrice = couponSavings ? finalPrice - couponSavings.discount : finalPrice;
+        if (isDeathStar && product.discount) {
+          discountedPrice = finalPrice - product.discount;
+          couponSavings = null; // Don't apply additional coupon checking for Death Star
+        } else {
+          // Create temporary item to check for coupons
+          const tempItem = { price: finalPrice };
+          couponSavings = checkForCoupons(tempItem, isFromPushNotification);
+          discountedPrice = couponSavings ? finalPrice - couponSavings.discount : finalPrice;
+        }
         
         return {
           title: product.name.includes('Used') ? product.name : product.name + (isUsed ? ' (Used - Very Good)' : ''),
           price: discountedPrice,
-          originalPrice: couponSavings ? finalPrice : null,
+          originalPrice: (isDeathStar && product.discount) ? finalPrice : (couponSavings ? finalPrice : null),
           shipping: shipping,
           availability: availabilityOptions[Math.floor(Math.random() * availabilityOptions.length)],
           authenticity: isUsed ? 'Certified Pre-Owned' : (Math.random() > 0.8 ? 'Certified Refurb' : 'Brand New'),
@@ -2123,7 +2134,11 @@ const AutobotApp = () => {
           couponPercentage: couponSavings ? couponSavings.percentage : null,
           // Add metadata for used options count
           hasUsedOptions: !!product.usedPrice,
-          usedOptionsCount: product.usedPrice ? Math.floor(Math.random() * 20) + 10 : 0 // Random count between 10-29
+          usedOptionsCount: product.usedPrice ? Math.floor(Math.random() * 20) + 10 : 0, // Random count between 10-29
+          // Pass through source and discount information
+          source: product.source,
+          discountApplied: product.discountApplied,
+          discount: product.discount
         };
       }),
       drop: [
@@ -2283,7 +2298,7 @@ const AutobotApp = () => {
     
     // Add follow-up message after products are displayed
     setTimeout(() => {
-      addAutobotMessage("That millennium hoodie brings back so many memories! Perfect for those nostalgic vibes you love.", 'naveen-backstreet-collection-offer');
+      addAutobotMessage(`The band did such a great job with this collection!\n\nThere are 23 more pieces. Ready to see you look in the rest of them?`, 'naveen-backstreet-collection-offer');
     }, 2000);
   };
 
@@ -2331,12 +2346,18 @@ const AutobotApp = () => {
       );
       
       // Add credit card message for Naveen group purchases
-      if (hasNaveenSlayerProducts || hasNaveenBackstreetBoysProducts) {
+      if (hasNaveenBackstreetBoysProducts) {
+        addAutobotMessage("Used your remaining $38 in Blink credits and charged credit card ending in **** 5732 for the remaining balance.");
+      } else if (hasNaveenSlayerProducts) {
         addAutobotMessage("Using credit card ending in **** 5732.");
       }
       
-      // Create order summary message
-      let orderSummary = "🛍️ **Your order is on its way.**\n\n";
+      // Wait 4 seconds before showing order confirmation for Backstreet Boys
+      const delayTime = hasNaveenBackstreetBoysProducts ? 4000 : 0;
+      
+      setTimeout(() => {
+        // Create order summary message
+        let orderSummary = "🛍️ **Your order is on its way.**\n\n";
       
       items.forEach((product, index) => {
         orderSummary += `${index + 1}. ${product.title}\n`;
@@ -2369,6 +2390,17 @@ const AutobotApp = () => {
 
       // Set active order for modifications
       setActiveOrder(orderData);
+      
+      // Add BOOM confirmation message 4 seconds after order summary for Backstreet Boys
+      if (hasNaveenBackstreetBoysProducts) {
+        setTimeout(() => {
+          const firstItem = items[0];
+          let confirmationMessage = `🎉 BOOM! You just ordered your ${firstItem.title}${items.length > 1 ? ` and ${items.length - 1} other item${items.length > 2 ? 's' : ''}` : ''}!\n\n📦 **Expect it at your doorstep by Tomorrow!**\n\n`;
+          confirmationMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
+          addAutobotMessage(confirmationMessage);
+        }, 4000);
+      }
+      }, delayTime);
 
       // Set 3-minute timer for final order confirmation
       setTimeout(() => {
@@ -3070,11 +3102,24 @@ const AutobotApp = () => {
           pendingItem.brand === 'Naveen Slayer'
         );
         
+        // Check if this is a Naveen Backstreet Boys product
+        const isNaveenBackstreetBoysProduct = (
+          pendingItem.title && (
+            pendingItem.title.includes('Into The Millennium') ||
+            pendingItem.title.includes('Millennium')
+          )
+        ) || pendingItem.brand === 'Backstreet Boys';
+        
         // First message: Detailed purchase success like returning user
         let successMessage = '';
         
-        if (isNaveenSlayerProduct) {
-          successMessage = `Using credit card ending in **** 5732.\n\n🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
+        if (isNaveenSlayerProduct || isNaveenBackstreetBoysProduct) {
+          // Different message for Backstreet Boys vs Slayer
+          if (isNaveenBackstreetBoysProduct) {
+            successMessage = `Used your remaining $38 in Blink credits and charged credit card ending in **** 5732 for the remaining balance.\n\n🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
+          } else {
+            successMessage = `Using credit card ending in **** 5732.\n\n🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
+          }
         } else {
           successMessage = `🎉 BOOM! You just ordered your ${pendingItem.title}!\n\n📦 **Expect it at your doorstep by ${pendingItem.deliveryDate}!**\n\n`;
         }
@@ -3088,7 +3133,7 @@ const AutobotApp = () => {
           }
         }
         
-        successMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\n⏰ **Free cancellation until Tuesday 11:59 PM** - but honestly, you're going to want to keep this one!\n\nI'll ping you with tracking info within the hour so you can watch your new treasure make its way to you. Get excited! 🚀`;
+        successMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
         
         addAutobotMessage(successMessage);
         
@@ -3773,7 +3818,20 @@ const AutobotApp = () => {
             setUserProfile(currentProfile => {
               if (currentProfile.pendingPurchase) {
                 const pendingItem = currentProfile.pendingPurchase;
-                const total = pendingItem.price + (pendingItem.shipping || 0);
+                
+                // Check if Death Star to calculate proper total with tax and service fee
+                const isDeathStar = pendingItem.title && pendingItem.title.toLowerCase().includes('death star');
+                let total;
+                
+                if (isDeathStar) {
+                  // For Death Star: item price + shipping (FREE) + tax (8%) + service fee (3%)
+                  const shipping = 0; // Free shipping
+                  const tax = parseFloat((pendingItem.price * 0.08).toFixed(2));
+                  const serviceFee = parseFloat((pendingItem.price * 0.03).toFixed(2));
+                  total = parseFloat((pendingItem.price + shipping + tax + serviceFee).toFixed(2));
+                } else {
+                  total = pendingItem.price + (pendingItem.shipping || 0);
+                }
                 
                 // For new users, show direct checkout after collecting details
                 if (userType === 'new' && balance < total) {
@@ -3919,21 +3977,31 @@ const AutobotApp = () => {
           return;
         }
         
-        // Add intermediate searching message
+        // Add intermediate searching message with 3 second delay for realism
         setTimeout(() => {
-          const searchingMsg = `Searching the web for coupons and discounts...`;
-          addAutobotMessage(searchingMsg);
+          // Check if this is a LEGO Death Star search for special messaging
+          const isDeathStarSearch = lowerMessage.includes('death star') || (lowerMessage.includes('lego') && lowerMessage.includes('star wars'));
           
-          // Wait 4 seconds, then show savings message before results
+          if (isDeathStarSearch) {
+            const deathStarMsg = `Found it!\n\nThe LEGO Star Wars Death Star Ultimate Collector's Edition set is EPIC. 9,023 pieces, 38 minifigures, and people absolutely love it.\n\nReviews on Reddit and Lego.com are super positive.\n\nNow let me find you the best price. Aggressively searching the web for discounts and coupons...`;
+            addAutobotMessage(deathStarMsg, 'death-star-found', {
+              image: `${process.env.PUBLIC_URL}/Star wars death star/LEGO-starwars-death-star.png`
+            });
+          } else {
+            const searchingMsg = `Searching the web for coupons and discounts...`;
+            addAutobotMessage(searchingMsg);
+          }
+          
+          // Wait 8 seconds to give time for user to read the search message, then show savings
           setTimeout(() => {
-            addAutobotMessage("Found the best one! You'll save $25 on your order!");
+            addAutobotMessage("I was able to save you $25 on this order!");
             
             // Show results after savings message
             setTimeout(() => {
               triggerSearchResults(message, 'search');
             }, 1000);
-          }, 4000);
-        }, 1000);
+          }, 8000);
+        }, 3000);
       }, 1000);
       } else {
         // Conversational response - don't show products
@@ -4895,6 +4963,29 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           <ImageProductCard data={message.data} onPurchaseIntent={onPurchaseIntent} />
         )}
         
+        {message.special === 'death-star-found' && (
+          <>
+            <div className="message-text">{String(message.content || '')}</div>
+            {message.data && message.data.image && (
+              <div style={{ 
+                marginTop: '12px', 
+                borderRadius: '12px', 
+                overflow: 'hidden'
+              }}>
+                <img 
+                  src={message.data.image} 
+                  alt="LEGO Death Star"
+                  style={{ 
+                    width: '100%', 
+                    height: 'auto',
+                    display: 'block',
+                    borderRadius: '12px'
+                  }}
+                />
+              </div>
+            )}
+          </>
+        )}
         
         {message.special === 'url-product' && (
           <UrlProductCard data={message.data} onPurchaseIntent={onPurchaseIntent} />
@@ -5241,6 +5332,8 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
     const wearableKeywords = ['shirt', 'hoodie', 'jacket', 'shoes', 'sneaker', 'hat', 'cap', 'jeans', 'pants', 'dress', 'sweater', 'coat'];
     return wearableKeywords.some(keyword => title.toLowerCase().includes(keyword));
   };
+  
+  const isDeathStar = data.title && data.title.toLowerCase().includes('death star');
 
   return (
     <div style={{
@@ -5262,8 +5355,8 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
           </div>
         )}
         
-        {/* Show virtual try-on image if available, otherwise show original image */}
-        {data.hasTryOn && data.tryOnImage ? (
+        {/* Show virtual try-on image if available, otherwise show original image - but NOT for Death Star */}
+        {!isDeathStar && data.hasTryOn && data.tryOnImage ? (
           <div style={{ position: 'relative', marginBottom: '12px' }}>
             <img 
               src={data.tryOnImage} 
@@ -5289,7 +5382,7 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
               }}
             />
           </div>
-        ) : data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
+        ) : !isDeathStar && data.image && (data.image.startsWith('http') || data.image.includes('PUBLIC_URL') || data.image.startsWith('/')) ? (
           <div style={{ position: 'relative', marginBottom: '12px' }}>
             <img 
               src={data.image} 
@@ -5303,34 +5396,8 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
               }}
               onClick={() => onImageClick && onImageClick(data.image, data.title)}
             />
-            
-            {/* Buy Now button overlay for Death Star */}
-            {data.title && data.title.toLowerCase().includes('death star') && showButtons && onPurchaseIntent && (
-              <div style={{
-                position: 'absolute',
-                bottom: '12px',
-                left: '12px',
-                right: '12px'
-              }}>
-                <motion.button
-                  whileHover={{ backgroundColor: '#0056cc' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent image click
-                    onPurchaseIntent(data);
-                  }}
-                  className="whatsapp-menu-btn"
-                  style={{
-                    width: '100%',
-                    marginBottom: '0',
-                  }}
-                >
-                  <span className="whatsapp-menu-text">Buy Now for <strong>${data.price + (data.shipping || 0)}</strong></span>
-                </motion.button>
-              </div>
-            )}
           </div>
-        ) : (
+        ) : !isDeathStar ? (
           <div style={{ 
             width: '100%', 
             height: '240px', 
@@ -5349,11 +5416,11 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
               Product Image
             </div>
           </div>
-        )}
+        ) : null}
         
         <div>
           {/* Hide title below image for Death Star since it's shown above */}
-          {!(data.title && data.title.toLowerCase().includes('death star')) && (
+          {!isDeathStar && (
             <div style={{ 
               fontWeight: '600', 
               fontSize: '16px', 
@@ -5382,6 +5449,96 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
               marginBottom: '4px'
             }}>
                 📍 {data.location} • {data.condition}
+            </div>
+          )}
+          
+          {/* Show checkout card for LEGO Death Star with horizontal layout */}
+          {isDeathStar && (
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '8px',
+              padding: '12px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
+            }}>
+              {/* Product thumbnail on the left */}
+              {data.image && (
+                <div style={{
+                  flexShrink: 0,
+                  width: '100px',
+                  height: '100px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  backgroundColor: '#ffffff'
+                }}>
+                  <img 
+                    src={data.image}
+                    alt={data.title}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Product details on the right */}
+              <div style={{ 
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                {/* Pricing section */}
+                <div>
+                  <div style={{ 
+                    fontSize: '15px',
+                    color: '#8e8e93',
+                    textDecoration: 'line-through',
+                    marginBottom: '2px'
+                  }}>
+                    ${data.originalPrice?.toFixed(2)}
+                  </div>
+                  <div style={{ 
+                    fontSize: '22px',
+                    fontWeight: '700',
+                    color: '#000000',
+                    marginBottom: '4px'
+                  }}>
+                    ${data.price.toFixed(2)}
+                  </div>
+                  {data.source && (
+                    <div style={{ 
+                      color: '#8e8e93', 
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      marginBottom: '8px'
+                    }}>
+                      From {data.source}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Buy Now button */}
+                {showButtons && onPurchaseIntent && (
+                  <motion.button
+                    whileHover={{ backgroundColor: '#0056cc' }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => onPurchaseIntent(data)}
+                    className="whatsapp-menu-btn"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      marginBottom: '0'
+                    }}
+                  >
+                    <span className="whatsapp-menu-text">Buy Now</span>
+                  </motion.button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -6694,13 +6851,16 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
 };
 
 const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
-  // Check if this is Death Star - if so, price is already all-inclusive
+  // Check if this is Death Star - if so, show detailed breakdown
   const isDeathStar = data.item.title && data.item.title.toLowerCase().includes('death star');
   
-  // Calculate total with all fees included
-  const totalWithShippingTax = isDeathStar 
-    ? data.item.price // Death Star is all-inclusive
-    : data.item.price + (data.item.shipping || 8) + Math.round(data.item.price * 0.08) + Math.round(data.item.price * 0.03); // Base + shipping + tax + 3% service fee
+  // Calculate components
+  // data.item.price is already the discounted price (999.99 - 25 = 974.99)
+  const itemPrice = data.item.price;
+  const shipping = isDeathStar ? 0 : (data.item.shipping || 8);
+  const tax = parseFloat((itemPrice * 0.08).toFixed(2));
+  const serviceFee = parseFloat((itemPrice * 0.03).toFixed(2));
+  const totalWithShippingTax = parseFloat((itemPrice + shipping + tax + serviceFee).toFixed(2));
   
   return (
     <>
@@ -6712,8 +6872,19 @@ const PurchaseConfirmationCard = ({ data, onConfirmPurchase }) => {
         <div style={{ marginBottom: '8px' }}>
           <strong>{data.item.title}</strong>
           </div>
+        
+        {/* Show breakdown for Death Star */}
+        {isDeathStar && (
+          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px', lineHeight: '1.6' }}>
+            <div>Item: ${itemPrice.toFixed(2)}</div>
+            <div>Shipping: <span style={{ color: '#34C759', fontWeight: '500' }}>FREE</span></div>
+            <div>Tax: ${tax.toFixed(2)}</div>
+            <div>Service Fee: ${serviceFee.toFixed(2)}</div>
+          </div>
+        )}
+        
         <div style={{ fontSize: '16px', fontWeight: '600', color: '#0088cc', marginBottom: '8px' }}>
-          All in total: ${totalWithShippingTax}
+          Total: ${totalWithShippingTax.toFixed(2)}
         </div>
         <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
           📍 {String(data.name || '')}, {String(data.address || '')}
@@ -9226,17 +9397,17 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
   let subtotal, shipping, tax, serviceFee, total;
   
   if (isDeathStar) {
-    // For Death Star, break down the all-inclusive price with coupon discount
-    const totalPrice = parseFloat(formData.amount) || 0;
-    const couponDiscount = 25; // $25 coupon discount for Death Star
+    // For Death Star: Original price is $999.99, with $25 discount = $974.99
+    // Then add shipping (FREE), tax (8%), and service fee (3%)
+    const originalPrice = 999.99;
+    const couponDiscount = 25;
+    const discountedPrice = originalPrice - couponDiscount; // $974.99
     
-    // Calculate breakdown before discount
-    const priceBeforeDiscount = totalPrice + couponDiscount;
-    subtotal = Math.round(priceBeforeDiscount * 0.82 * 100) / 100; // ~82% of pre-discount total
-    shipping = Math.round(priceBeforeDiscount * 0.06 * 100) / 100; // ~6% for shipping
-    tax = Math.round(priceBeforeDiscount * 0.08 * 100) / 100; // ~8% for tax
-    serviceFee = priceBeforeDiscount - subtotal - shipping - tax; // Remainder for service fee
-    total = totalPrice; // Keep the same final total (after discount)
+    subtotal = originalPrice; // Show original price
+    shipping = 0; // Free shipping
+    tax = parseFloat((discountedPrice * 0.08).toFixed(2)); // 8% of discounted price
+    serviceFee = parseFloat((discountedPrice * 0.03).toFixed(2)); // 3% of discounted price
+    total = parseFloat((discountedPrice + shipping + tax + serviceFee).toFixed(2));
   } else {
     // For other items, normal calculation
     subtotal = parseFloat(formData.amount) || 0;
@@ -9788,7 +9959,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ color: '#6c757d', fontSize: '12px' }}>Shipping</span>
-                    <span style={{ fontSize: '12px' }}>${shipping.toFixed(2)}</span>
+                    <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '500' }}>FREE</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ color: '#6c757d', fontSize: '12px' }}>Tax</span>
@@ -9797,7 +9968,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                 </>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#6c757d', fontSize: '12px' }}>Service fees</span>
+                <span style={{ color: '#6c757d', fontSize: '12px' }}>Service fee</span>
                 <span style={{ fontSize: '12px' }}>${serviceFee.toFixed(2)}</span>
               </div>
               {isDeathStar && (
