@@ -6,6 +6,7 @@ import falAI from './services/falai';
 import PushNotificationFlow from './PushNotificationFlow';
 import NaveenSlayerFlow from './NaveenSlayerFlow';
 import NaveenBackstreetBoysFlow from './NaveenBackstreetBoysFlow';
+import NaveenEdSheeranFlow from './NaveenEdSheeranFlow';
 import LandingPage from './LandingPage';
 import ProductComponentTest from './ProductComponentTest';
 import './App.css';
@@ -90,6 +91,7 @@ const AutobotApp = () => {
   const isPushNotificationPath = currentPath.includes('/push-notifications') || currentPath.includes('push-notifications');
   const isNaveenSlayerDropPath = currentPath.includes('/naveen-slayer-drop') || currentPath.includes('naveen-slayer-drop');
   const isNaveenBackstreetBoysPath = currentPath.includes('/naveen-backstreet-boys') || currentPath.includes('naveen-backstreet-boys');
+  const isNaveenEdSheeranPath = currentPath.includes('/naveen-ed-sheeran') || currentPath.includes('naveen-ed-sheeran');
   const isReturningUserPath = currentPath.includes('/returning-user') || currentPath.includes('returning-user');
   const isSubscriptionFlowPath = currentPath.includes('/subscription-flow') || currentPath.includes('subscription-flow');
   const isTasteDiscoveryPath = currentPath.includes('/taste-discovery') || currentPath.includes('taste-discovery');
@@ -133,6 +135,7 @@ const AutobotApp = () => {
   const [showPushNotification, setShowPushNotification] = useState(isPushNotificationPath);
   const [showNaveenSlayerDrop, setShowNaveenSlayerDrop] = useState(isNaveenSlayerDropPath);
   const [showNaveenBackstreetBoys, setShowNaveenBackstreetBoys] = useState(isNaveenBackstreetBoysPath);
+  const [showNaveenEdSheeran, setShowNaveenEdSheeran] = useState(isNaveenEdSheeranPath);
   const [isFromPushNotification, setIsFromPushNotification] = useState(false);
   const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : isReturnsExchangesPath ? 180 : 150);
   const [isTyping, setIsTyping] = useState(false);
@@ -577,6 +580,15 @@ const AutobotApp = () => {
               setTimeout(() => {
                 showNaveenBackstreetBoysProducts();
               }, 1000);
+            } else if (isNaveenEdSheeranPath) {
+              // Coming from Naveen Ed Sheeran notification - show collection message and products immediately
+              addAutobotMessage(`Hey Naveen! The new Ed Sheeran drop is amazing. I can't wait for you to see how you look in every piece.\n\nLMK which one you like most and I'll buy it for you!`);
+              setHasInitializedMessages(true);
+              
+              // Automatically show Naveen Ed Sheeran products after a short delay
+              setTimeout(() => {
+                showNaveenEdSheeranProducts();
+              }, 1000);
             } else {
               // Coming from push notification - show Ed Sheeran message and hoodies immediately
               addAutobotMessage("Big news, Jessica! Ed Sheeran just dropped brand-new merch. We have them all in Medium - perfect for you! 🎵");
@@ -633,10 +645,10 @@ const AutobotApp = () => {
 
   // Auto-scroll to bottom when messages change (except for Naveen flows)
   useEffect(() => {
-    if (chatContainerRef.current && !isNaveenSlayerDropPath && !isNaveenBackstreetBoysPath) {
+    if (chatContainerRef.current && !isNaveenSlayerDropPath && !isNaveenBackstreetBoysPath && !isNaveenEdSheeranPath) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isTyping, isNaveenSlayerDropPath, isNaveenBackstreetBoysPath]);
+  }, [messages, isTyping, isNaveenSlayerDropPath, isNaveenBackstreetBoysPath, isNaveenEdSheeranPath]);
 
   const handlePushNotificationComplete = () => {
     setShowPushNotification(false);
@@ -741,6 +753,40 @@ const AutobotApp = () => {
     setHasInitializedMessages(false);
   };
 
+  const handleNaveenEdSheeranComplete = () => {
+    setShowNaveenEdSheeran(false);
+    setCurrentFlow('chat');
+    setUserType('returning');
+    setIsFromPushNotification(true);
+    // Initialize returning user profile
+    setBalance(150);
+    setUserProfile({
+      name: 'Karim',
+      interests: ['music merch', 'ed sheeran', 'concert wear'],
+      shoeSize: '10.5',
+      clothingSize: 'M',
+      address: '2847 Oak Street, San Francisco, CA 94115',
+      preferences: {
+        prefersFastShipping: true,
+        maxBudget: 500,
+        brandsToAvoid: ['off-brand']
+      },
+      purchaseHistory: [
+        { item: 'Ed Sheeran Tour Tee', date: '2 weeks ago', price: 75 },
+        { item: 'Math Symbols Hoodie', date: '1 month ago', price: 130 },
+        { item: 'Divide Tour Merch', date: '3 months ago', price: 90 }
+      ],
+      lastPurchasedClothing: 'Ed Sheeran Tour Tee',
+      preferredBrands: ['Ed Sheeran', 'Music Merch', 'Tour Exclusive'],
+      totalSpent: 1150,
+      memberSince: 'March 2024'
+    });
+    
+    // Reset messages and let the welcome message logic handle the Naveen Ed Sheeran message
+    setMessages([]);
+    setHasInitializedMessages(false);
+  };
+
   // Show landing page for root path
   if (isLandingPage) {
     return <LandingPage />;
@@ -764,6 +810,11 @@ const AutobotApp = () => {
   // Show Naveen Backstreet Boys flow if on that path
   if (showNaveenBackstreetBoys) {
     return <NaveenBackstreetBoysFlow onComplete={handleNaveenBackstreetBoysComplete} />;
+  }
+
+  // Show Naveen Ed Sheeran flow if on that path
+  if (showNaveenEdSheeran) {
+    return <NaveenEdSheeranFlow onComplete={handleNaveenEdSheeranComplete} />;
   }
 
   const handleUserResponse = (response) => {
@@ -1574,7 +1625,7 @@ const AutobotApp = () => {
             }
           ]
         };
-                } else if (request.includes('ed sheeran') || request.includes('edsheeran') || (request.includes('ed') && request.includes('sheeran')) || (request.includes('sheeran') && request.includes('hoodie'))) {
+                } else if (!request.includes('naveen') && (request.includes('ed sheeran') || request.includes('edsheeran') || (request.includes('ed') && request.includes('sheeran')) || (request.includes('sheeran') && request.includes('hoodie')))) {
                   return {
                     category: 'ed-sheeran',
                     emoji: '🎵',
@@ -1909,6 +1960,74 @@ const AutobotApp = () => {
               images: [
                 `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/naveen-slayer-tank-top.jpeg`,
                 `${process.env.PUBLIC_URL}/Naveen-Slayer-Drop/hell awaits product shot.webp`
+              ],
+              size: 'Medium',
+              available: true
+            }
+          ]
+        };
+      } else if (request.includes('naveen ed sheeran') || request.includes('naveen edsheeran') || (request.includes('naveen') && request.includes('ed sheeran')) || (request.includes('mathematics') && request.includes('collection'))) {
+        console.log('🎵 NAVEEN ED SHEERAN CONDITION HIT!', { request });
+        return {
+          category: 'naveen-ed-sheeran',
+          emoji: '🎵',
+          products: [
+            {
+              name: 'Leopard Stamp Hoodie',
+              basePrice: 64.99, 
+              brand: 'Ed Sheeran',
+              image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Leopard Stamp Hoodie.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Leopard Stamp Hoodie.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Leopard Stamp Hoodie-product-shot.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Peace House Hoodie',
+              basePrice: 76.99, 
+              brand: 'Ed Sheeran',
+              image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Peace House Hoodie.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Peace House Hoodie.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Peace House Hoodie-product-shot.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Play Pink Hoodie',
+              basePrice: 104.99, 
+              brand: 'Ed Sheeran',
+              image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Play Pink Hoodie.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Play Pink Hoodie.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Play Pink Hoodie-product-shot.webp`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Sun Dial Hoodie',
+              basePrice: 75.99, 
+              brand: 'Ed Sheeran',
+              image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Sun Dial Hoodie.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Sun Dial Hoodie.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Sun Dial Hoodie-product-shot.png`
+              ],
+              size: 'Medium',
+              available: true
+            },
+            {
+              name: 'Green X Tee',
+              basePrice: 34.99, 
+              brand: 'Ed Sheeran',
+              image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-green x tee.jpeg`,
+              images: [
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-green x tee.jpeg`,
+                `${process.env.PUBLIC_URL}/Naveen-Edsheeran/green x tee-product-shot.png`
               ],
               size: 'Medium',
               available: true
@@ -2253,8 +2372,11 @@ const AutobotApp = () => {
         // Check if this is a Naveen collection - don't show "View more" button for these
         const isNaveenCollection = userRequest.toLowerCase().includes('naveen slayer') || 
                                   userRequest.toLowerCase().includes('naveen backstreet') ||
+                                  userRequest.toLowerCase().includes('naveen ed sheeran') ||
+                                  userRequest.toLowerCase().includes('naveen edsheeran') ||
                                   (userRequest.toLowerCase().includes('naveen') && userRequest.toLowerCase().includes('slayer')) ||
-                                  (userRequest.toLowerCase().includes('naveen') && userRequest.toLowerCase().includes('backstreet'));
+                                  (userRequest.toLowerCase().includes('naveen') && userRequest.toLowerCase().includes('backstreet')) ||
+                                  (userRequest.toLowerCase().includes('naveen') && userRequest.toLowerCase().includes('ed sheeran'));
         
         addAutobotMessage(message, 'search-results', { 
           results: chatResults, 
@@ -2302,6 +2424,16 @@ const AutobotApp = () => {
     }, 2000);
   };
 
+  const showNaveenEdSheeranProducts = () => {
+    // Use the same approach as Backstreet Boys - trigger search results
+    triggerSearchResults("Naveen Ed Sheeran collection", "search");
+    
+    // Add follow-up message after products are displayed
+    setTimeout(() => {
+      addAutobotMessage(`This is such a great collection!\n\nThere are 18 more pieces. Ready to see you look in the rest of them?`, 'naveen-edsheeran-collection-offer');
+    }, 2000);
+  };
+
   const handlePurchaseIntent = (item) => {
     // Clear photo waiting state when user initiates purchase
     setWaitingForSelfie(false);
@@ -2321,6 +2453,16 @@ const AutobotApp = () => {
       item.title.includes('Millennium') || 
       item.brand === 'Backstreet Boys'
     );
+
+    // Check if this is a Naveen Ed Sheeran product for special order message
+    const isNaveenEdSheeranProduct = item.title && (
+      item.title.includes('Leopard Stamp') || 
+      item.title.includes('Peace House') || 
+      item.title.includes('Play Pink') ||
+      item.title.includes('Sun Dial') ||
+      item.title.includes('Green X') ||
+      item.brand === 'Ed Sheeran'
+    );
     
     // Handle group purchase from web view
     if (item.type === 'group-purchase') {
@@ -2328,8 +2470,8 @@ const AutobotApp = () => {
       const subtotalAmount = items.reduce((sum, product) => sum + product.price, 0);
       const shippingTotal = items.reduce((sum, product) => sum + (product.shipping || 8), 0);
       const taxTotal = items.reduce((sum, product) => sum + Math.round(product.price * 0.08), 0);
-      const serviceFee = Math.round(subtotalAmount * 0.03); // 3% service fee
-      const grandTotal = subtotalAmount + shippingTotal + taxTotal + serviceFee;
+      const serviceFee = parseFloat((subtotalAmount * 0.03).toFixed(2)); // 3% service fee
+      const grandTotal = parseFloat((subtotalAmount + shippingTotal + taxTotal + serviceFee).toFixed(2));
       
       // Check if any items are Naveen products for credit card message
       const hasNaveenSlayerProducts = items.some(product => 
@@ -2344,16 +2486,26 @@ const AutobotApp = () => {
         product.title?.includes('Into The Millennium') || 
         product.title?.includes('Millennium')
       );
+
+      const hasNaveenEdSheeranProducts = items.some(product => 
+        product.brand === 'Ed Sheeran' || 
+        product.title?.includes('Leopard Stamp') || 
+        product.title?.includes('Peace House') ||
+        product.title?.includes('Play Pink') ||
+        product.title?.includes('Sun Dial') ||
+        product.title?.includes('Green X')
+      );
       
       // Add credit card message for Naveen group purchases
-      if (hasNaveenBackstreetBoysProducts) {
-        addAutobotMessage("Used your remaining $38 in Blink credits and charged credit card ending in **** 5732 for the remaining balance.");
+      if (hasNaveenBackstreetBoysProducts || hasNaveenEdSheeranProducts) {
+        const chargedAmount = (grandTotal - 38).toFixed(2);
+        addAutobotMessage(`Used your remaining $38 in Blink credits and charged $${chargedAmount} to credit card ending in **** 5732.`);
       } else if (hasNaveenSlayerProducts) {
         addAutobotMessage("Using credit card ending in **** 5732.");
       }
       
-      // Wait 4 seconds before showing order confirmation for Backstreet Boys
-      const delayTime = hasNaveenBackstreetBoysProducts ? 4000 : 0;
+      // Wait 4.5 seconds before showing order confirmation for Backstreet Boys or Ed Sheeran
+      const delayTime = (hasNaveenBackstreetBoysProducts || hasNaveenEdSheeranProducts) ? 4500 : 0;
       
       setTimeout(() => {
         // Create order summary message
@@ -2368,7 +2520,7 @@ const AutobotApp = () => {
       orderSummary += `Subtotal: $${subtotalAmount}\n`;
       orderSummary += `Shipping: $${shippingTotal}\n`;
       orderSummary += `Tax: $${taxTotal}\n`;
-      orderSummary += `Service Fee: $${serviceFee}\n`;
+      orderSummary += `Service Fee: $${serviceFee.toFixed(2)}\n`;
       orderSummary += `**Total: $${grandTotal}**\n\n`;
       orderSummary += `Estimated delivery: Tomorrow\n`;
       orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
@@ -2391,14 +2543,14 @@ const AutobotApp = () => {
       // Set active order for modifications
       setActiveOrder(orderData);
       
-      // Add BOOM confirmation message 4 seconds after order summary for Backstreet Boys
-      if (hasNaveenBackstreetBoysProducts) {
+      // Add BOOM confirmation message 8 seconds after order summary for Backstreet Boys or Ed Sheeran
+      if (hasNaveenBackstreetBoysProducts || hasNaveenEdSheeranProducts) {
         setTimeout(() => {
           const firstItem = items[0];
           let confirmationMessage = `🎉 BOOM! You just ordered your ${firstItem.title}${items.length > 1 ? ` and ${items.length - 1} other item${items.length > 2 ? 's' : ''}` : ''}!\n\n📦 **Expect it at your doorstep by Tomorrow!**\n\n`;
           confirmationMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
           addAutobotMessage(confirmationMessage);
-        }, 4000);
+        }, 8000);
       }
       }, delayTime);
 
@@ -2466,7 +2618,7 @@ const AutobotApp = () => {
     const subtotal = Math.round(buttonTotal * 0.80); // ~80% for subtotal
     const shippingTotal = Math.round(buttonTotal * 0.12); // ~12% for shipping  
     const taxTotal = Math.round(buttonTotal * 0.05); // ~5% for tax
-    const serviceFee = buttonTotal - subtotal - shippingTotal - taxTotal; // Remainder for service fee
+    const serviceFee = parseFloat((buttonTotal - subtotal - shippingTotal - taxTotal).toFixed(2)); // Remainder for service fee
     const grandTotal = buttonTotal;
     
     // Check if this is a Naveen Slayer product for credit card message
@@ -2483,6 +2635,16 @@ const AutobotApp = () => {
       item.title.includes('Millennium') ||
       item.brand === 'Backstreet Boys'
     );
+
+    // Check if this is a Naveen Ed Sheeran product for credit card message
+    const isNaveenEdSheeranProductForOrder = item.title && (
+      item.title.includes('Leopard Stamp') || 
+      item.title.includes('Peace House') ||
+      item.title.includes('Play Pink') ||
+      item.title.includes('Sun Dial') ||
+      item.title.includes('Green X') ||
+      item.brand === 'Ed Sheeran'
+    );
     
     // Create order summary message (same format as web view group purchase)
     let orderSummary = "";
@@ -2498,7 +2660,7 @@ const AutobotApp = () => {
     orderSummary += `Subtotal: $${subtotal}\n`;
     orderSummary += `Shipping: $${shippingTotal}\n`;
     orderSummary += `Tax: $${taxTotal}\n`;
-    orderSummary += `Service Fee: $${serviceFee}\n`;
+    orderSummary += `Service Fee: $${serviceFee.toFixed(2)}\n`;
     orderSummary += `**Total: $${grandTotal}**\n\n`;
     orderSummary += `Estimated delivery: Tomorrow\n`;
     orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
@@ -2518,13 +2680,14 @@ const AutobotApp = () => {
     };
 
     // Add credit card message before order summary for Naveen products
-    if (isNaveenBackstreetBoysProductForOrder) {
-      addAutobotMessage("Used your remaining $38 in Blink credits and charged credit card ending in **** 5732 for the remaining balance.");
+    if (isNaveenBackstreetBoysProductForOrder || isNaveenEdSheeranProductForOrder) {
+      const chargedAmount = (grandTotal - 38).toFixed(2);
+      addAutobotMessage(`Used your remaining $38 in Blink credits and charged $${chargedAmount} to credit card ending in **** 5732.`);
       
-      // Add a small delay before showing the order summary
+      // Add 4.5 second delay before showing the order summary
       setTimeout(() => {
         addAutobotMessage(orderSummary, 'group-order-summary', orderData);
-      }, 500);
+      }, 4500);
     } else if (isNaveenSlayerProductForOrder) {
       addAutobotMessage("Using credit card ending in **** 5732.");
       
@@ -2539,10 +2702,10 @@ const AutobotApp = () => {
     // Set active order for modifications
     setActiveOrder(orderData);
     
-    // Add BOOM confirmation message 4 seconds after order summary for Backstreet Boys
-    if (isNaveenBackstreetBoysProductForOrder) {
-      // Calculate delay: 500ms (credit card message delay) + 4000ms (wait after order summary)
-      const boomDelay = 4500;
+    // Add BOOM confirmation message 8 seconds after order summary for Backstreet Boys or Ed Sheeran
+    if (isNaveenBackstreetBoysProductForOrder || isNaveenEdSheeranProductForOrder) {
+      // Calculate delay: 4500ms (credit card message delay) + 8000ms (wait after order summary)
+      const boomDelay = 12500;
       setTimeout(() => {
         let confirmationMessage = `🎉 BOOM! You just ordered your ${item.title}!\n\n📦 **Expect it at your doorstep by Tomorrow!**\n\n`;
         confirmationMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
@@ -5183,6 +5346,96 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
           </>
         )}
         
+        {message.special === 'naveen-edsheeran-collection-offer' && (
+          <>
+            <div className="message-text">{String(message.content || '')}</div>
+            <div className="whatsapp-menu-container" style={{ marginTop: '12px' }}>
+              <motion.button
+                whileHover={{ backgroundColor: '#f0f0f0' }}
+                whileTap={{ scale: 0.98 }}
+                className="whatsapp-menu-btn"
+                onClick={() => {
+                  // Open web view with all five Naveen Ed Sheeran products
+                  const naveenEdSheeranProducts = [
+                    {
+                      title: 'Leopard Stamp Hoodie',
+                      price: 64.99,
+                      shipping: 5,
+                      brand: 'Ed Sheeran',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Leopard Stamp Hoodie.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Leopard Stamp Hoodie.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Leopard Stamp Hoodie-product-shot.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Peace House Hoodie',
+                      price: 76.99,
+                      shipping: 5,
+                      brand: 'Ed Sheeran',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Peace House Hoodie.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Peace House Hoodie.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Peace House Hoodie-product-shot.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Play Pink Hoodie',
+                      price: 104.99,
+                      shipping: 5,
+                      brand: 'Ed Sheeran',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Play Pink Hoodie.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-Play Pink Hoodie.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Play Pink Hoodie-product-shot.webp`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Sun Dial Hoodie',
+                      price: 75.99,
+                      shipping: 5,
+                      brand: 'Ed Sheeran',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Sun Dial Hoodie.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Sun Dial Hoodie.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/Sun Dial Hoodie-product-shot.png`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    },
+                    {
+                      title: 'Green X Tee',
+                      price: 34.99,
+                      shipping: 5,
+                      brand: 'Ed Sheeran',
+                      image: `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-green x tee.jpeg`,
+                      images: [
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/naveen-green x tee.jpeg`,
+                        `${process.env.PUBLIC_URL}/Naveen-Edsheeran/green x tee-product-shot.png`
+                      ],
+                      size: 'Medium',
+                      available: true
+                    }
+                  ];
+                  
+                  onWebView && onWebView({
+                    results: naveenEdSheeranProducts,
+                    searchTerm: 'Naveen Ed Sheeran Collection'
+                  });
+                }}
+              >
+                <span className="whatsapp-menu-text">View full collection</span>
+              </motion.button>
+            </div>
+          </>
+        )}
+        
         {(message.special === 'collect-name' || message.special === 'collect-address') && (
           <div className="message-text">{String(message.content || '')}</div>
         )}
@@ -5224,7 +5477,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
             className="whatsapp-menu-btn"
           >
             <DollarSign size={20} className="whatsapp-menu-icon" />
-            <span className="whatsapp-menu-text">Buy Now for ${message.data.price + (message.data.shipping || 0)}</span>
+            <span className="whatsapp-menu-text">Buy Now for ${message.data.price.toFixed(2)}</span>
           </motion.button>
           <motion.button
             whileHover={{ backgroundColor: '#f0f0f0' }}
@@ -5264,8 +5517,9 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
             </div>
           )}
 
-          {/* Ed Sheeran Full Collection button - only for push notification flow */}
+          {/* Ed Sheeran Full Collection button - only for push notification flow (exclude Naveen Ed Sheeran) */}
           {isFromPushNotification && message.data.searchTerm && 
+           !message.data.searchTerm.toLowerCase().includes('naveen') &&
            (message.data.searchTerm.toLowerCase().includes('ed sheeran') || 
             message.data.searchTerm.toLowerCase().includes('edsheeran') || 
             (message.data.searchTerm.toLowerCase().includes('ed') && message.data.searchTerm.toLowerCase().includes('sheeran'))) && (
@@ -5649,7 +5903,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
                     marginBottom: '0',
                   }}
                 >
-                  <span className="whatsapp-menu-text">Buy Now for <strong>${data.price + (data.shipping || 0)}</strong></span>
+                  <span className="whatsapp-menu-text">Buy Now for <strong>${data.price.toFixed(2)}</strong></span>
                 </motion.button>
               </div>
             )}
@@ -5718,7 +5972,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             className="whatsapp-menu-btn"
             style={{ width: '100%' }}
           >
-            <span className="whatsapp-menu-text">Buy Now for <strong>${data.price + (data.shipping || 0)}</strong></span>
+            <span className="whatsapp-menu-text">Buy Now for <strong>${data.price.toFixed(2)}</strong></span>
           </motion.button>
         </div>
       )}
@@ -6069,8 +6323,8 @@ const WebViewInterface = ({ data, onClose, onPurchaseIntent }) => {
               padding: '0 10px 140px', // Extra bottom padding for Safari bar
               background: 'transparent'
             }}>
-              {/* Check if this is Naveen Slayer or Naveen Backstreet Boys Collection */}
-              {data.searchTerm && (data.searchTerm.toLowerCase().includes('naveen slayer') || data.searchTerm.toLowerCase().includes('naveen backstreet')) ? (
+              {/* Check if this is Naveen Slayer, Naveen Backstreet Boys, or Naveen Ed Sheeran Collection */}
+              {data.searchTerm && (data.searchTerm.toLowerCase().includes('naveen slayer') || data.searchTerm.toLowerCase().includes('naveen backstreet') || data.searchTerm.toLowerCase().includes('naveen ed sheeran')) ? (
                 // Show multiple Naveen products using ProductComponentTest
                 <div style={{
                   display: 'flex',
