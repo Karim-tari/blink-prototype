@@ -9667,58 +9667,51 @@ const PaymentMethodTab = ({ type, label, isSelected, onClick }) => {
         onClick={onClick}
         style={{
           width: '100%',
-          border: `1px solid ${isSelected ? '#000000' : '#e6ebf1'}`,
-          borderRadius: '25px',
-          padding: '10px 12px',
+          border: 'none',
+          padding: '10px 16px',
           cursor: 'pointer',
-          backgroundColor: isSelected ? '#000000' : 'white',
+          backgroundColor: isSelected ? 'white' : 'transparent',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '8px',
-          transition: 'all 0.15s ease',
+          gap: '6px',
+          transition: 'all 0.3s ease',
           fontSize: '14px',
-          fontWeight: '500',
-          color: isSelected ? 'white' : '#32325d',
-          outline: 'none'
+          fontWeight: isSelected ? '600' : '500',
+          color: isSelected ? '#000000' : '#8898aa',
+          outline: 'none',
+          position: 'relative',
+          borderRadius: '10px',
+          boxShadow: isSelected ? '0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'
+        }}
+        onMouseEnter={(e) => {
+          if (!isSelected) {
+            e.currentTarget.style.color = '#32325d';
+            e.currentTarget.style.backgroundColor = '#fafbfc';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) {
+            e.currentTarget.style.color = '#8898aa';
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }
         }}
       >
-        <div style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          border: `2px solid ${isSelected ? 'white' : '#cdd7e7'}`,
-          backgroundColor: isSelected ? 'white' : 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '8px',
-          color: isSelected ? '#000000' : 'white',
-          flexShrink: 0
-        }}>
-          {isSelected && '●'}
-        </div>
         {label}
+        {showSavings && (
+          <span style={{
+            backgroundColor: '#d1fae5',
+            color: '#065f46',
+            fontSize: '10px',
+            fontWeight: '600',
+            padding: '3px 7px',
+            borderRadius: '10px',
+            marginLeft: '4px'
+          }}>
+            -7%
+          </span>
+        )}
       </button>
-      
-      {/* Save 7% Badge */}
-      {showSavings && (
-        <div style={{
-          position: 'absolute',
-          top: '-8px',
-          right: '8px',
-          backgroundColor: '#10b981',
-          color: 'white',
-          fontSize: '10px',
-          fontWeight: '600',
-          padding: '2px 6px',
-          borderRadius: '8px',
-          zIndex: 10,
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-        }}>
-          Save 7%
-        </div>
-      )}
     </div>
   );
 };
@@ -9906,8 +9899,16 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
         borderBottom: '1px solid #e6ebf1',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end'
+        justifyContent: 'space-between'
       }}>
+        <div style={{
+          fontSize: '15px',
+          fontWeight: '500',
+          color: '#32325d',
+          letterSpacing: '-0.01em'
+        }}>
+          Fund Blink
+        </div>
         <button
           onClick={onClose}
           style={{
@@ -10025,18 +10026,27 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
 
           {/* Payment Method Selection */}
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ 
-              fontSize: '15px', 
-                  fontWeight: '500',
-              color: '#424770', 
-              marginBottom: '12px',
-              margin: '0 0 12px 0'
+            <label style={{ 
+              display: 'block',
+              fontSize: '13px', 
+              fontWeight: '500',
+              color: '#6772e5', 
+              letterSpacing: '0.025em',
+              textTransform: 'uppercase',
+              marginBottom: '6px'
             }}>
               Payment Method
-            </h3>
+            </label>
             
             {/* Payment Method Tabs */}
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ 
+              display: 'flex',
+              gap: '6px',
+              backgroundColor: '#eaf0f6',
+              padding: '6px',
+              borderRadius: '12px',
+              border: '1px solid #d8e1ea'
+            }}>
               
               {/* Card Tab */}
               <PaymentMethodTab 
@@ -10337,15 +10347,15 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               <div style={{ 
                 backgroundColor: 'white',
                 border: '1px solid #e6ebf1',
-                borderRadius: '12px',
-                padding: '20px',
-                marginBottom: '24px'
+                borderRadius: '8px',
+                padding: '18px',
+                marginBottom: '20px'
               }}>
                 {/* Header */}
                 <div style={{ 
                   fontSize: '13px', 
-                  fontWeight: '600', 
-                  marginBottom: '16px',
+                  fontWeight: '500', 
+                  marginBottom: '14px',
                   color: '#6772e5',
                   letterSpacing: '0.025em',
                   textTransform: 'uppercase'
@@ -10358,19 +10368,20 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  marginBottom: '16px',
-                  paddingBottom: '16px',
-                  borderBottom: '1px solid #f0f0f0'
+                  paddingBottom: '14px',
+                  marginBottom: '14px',
+                  borderBottom: '1px solid #e6ebf1'
                 }}>
                   {/* Product Thumbnail */}
                   {data.item?.image && (
                     <div style={{
-                      width: '50px',
-                      height: '50px',
-                      borderRadius: '8px',
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '6px',
                       overflow: 'hidden',
-                      backgroundColor: '#f8f9fa',
-                      flexShrink: 0
+                      backgroundColor: '#f6f9fc',
+                      flexShrink: 0,
+                      border: '1px solid #e6ebf1'
                     }}>
                       <img 
                         src={data.item.image}
@@ -10387,18 +10398,18 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   {/* Product Info */}
                   <div style={{ flex: 1 }}>
                     <div style={{ 
-                      fontSize: '14px', 
+                      fontSize: '13px', 
                       fontWeight: '500', 
                       color: '#32325d',
                       marginBottom: '4px',
-                      lineHeight: '1.4'
+                      lineHeight: '1.3'
                     }}>
                       {data.item?.title || 'Purchase'}
                     </div>
                     <div style={{ 
                       fontSize: '14px', 
                       fontWeight: '600', 
-                      color: '#32325d' 
+                      color: '#1a1a1a' 
                     }}>
                       ${purchaseAmount}
                     </div>
@@ -10407,39 +10418,37 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
 
                 {/* Blink Credits Needed */}
                 <div style={{
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
-                  padding: '14px',
-                  marginBottom: '12px'
+                  backgroundColor: '#f6f9fc',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  border: '1px solid #e6ebf1'
                 }}>
                   <div style={{ 
-                    fontSize: '12px', 
+                    fontSize: '11px', 
                     fontWeight: '500',
-                    color: '#6c757d',
-                    marginBottom: '6px',
+                    color: '#8898aa',
+                    marginBottom: '4px',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.02em'
+                    letterSpacing: '0.03em'
                   }}>
                     Blink Credits Needed
                   </div>
                   <div style={{ 
-                    fontSize: '24px', 
-                    fontWeight: '700', 
+                    fontSize: '20px', 
+                    fontWeight: '600', 
                     color: '#0088cc',
                     lineHeight: 1
                   }}>
                     ${total.toFixed(2)}
                   </div>
-                </div>
-
-                {/* Explanation */}
-                <div style={{
-                  fontSize: '12px',
-                  color: '#6c757d',
-                  lineHeight: '1.5',
-                  fontStyle: 'italic'
-                }}>
-                  You're purchasing ${total.toFixed(2)} in Blink Credits to complete this order
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#8898aa',
+                    marginTop: '6px',
+                    lineHeight: '1.4'
+                  }}>
+                    This transaction will purchase Blink Credits in this amount and complete your order
+                  </div>
                 </div>
               </div>
             )}
@@ -10447,53 +10456,82 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
             {/* Save Info Checkbox */}
             <div style={{ 
               display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              marginBottom: '16px' 
-            }}>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="checkbox"
-                  checked={saveInfo}
-                  onChange={(e) => setSaveInfo(e.target.checked)}
-                  style={{ 
-                    width: '18px', 
-                    height: '18px',
-                    appearance: 'none',
-                    backgroundColor: saveInfo ? '#007bff' : 'white',
-                    border: `2px solid ${saveInfo ? '#007bff' : '#d1d5db'}`,
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    position: 'relative'
-                  }}
-                />
-                {saveInfo && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '2px',
-                    left: '5px',
-                    width: '6px',
-                    height: '10px',
-                    border: '2px solid white',
-                    borderTop: 'none',
-                    borderLeft: 'none',
-                    transform: 'rotate(45deg)',
-                    pointerEvents: 'none'
-                  }} />
-                )}
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 16px',
+              backgroundColor: '#f6f9fc',
+              border: '1px solid #e6ebf1',
+              borderRadius: '8px',
+              marginBottom: '18px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setSaveInfo(!saveInfo)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#eaf0f6';
+              e.currentTarget.style.borderColor = '#d8e1ea';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#f6f9fc';
+              e.currentTarget.style.borderColor = '#e6ebf1';
+            }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="checkbox"
+                    checked={saveInfo}
+                    onChange={(e) => e.stopPropagation()}
+                    style={{ 
+                      width: '20px', 
+                      height: '20px',
+                      appearance: 'none',
+                      backgroundColor: saveInfo ? '#000000' : 'white',
+                      border: `2px solid ${saveInfo ? '#000000' : '#d1d5db'}`,
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      flexShrink: 0
+                    }}
+                  />
+                  {saveInfo && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: '6px',
+                      width: '6px',
+                      height: '10px',
+                      border: '2px solid white',
+                      borderTop: 'none',
+                      borderLeft: 'none',
+                      transform: 'rotate(45deg)',
+                      pointerEvents: 'none'
+                    }} />
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '14px', color: '#1a1a1a', fontWeight: '500', lineHeight: '1.3' }}>
+                    Save my info for 1-click checkout
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#8898aa', fontWeight: '400' }}>
+                    Securely store your payment details
+                  </span>
+                </div>
               </div>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                Save my info for 1-click checkout
-              </span>
               <span style={{ 
-                fontSize: '10px', 
-                color: '#007bff', 
-                backgroundColor: '#e7f3ff',
-                padding: '2px 6px',
-                borderRadius: '4px'
+                fontSize: '11px', 
+                color: '#065f46', 
+                backgroundColor: '#d1fae5',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                🔒 Encrypted
+                🔒 Secure
               </span>
             </div>
 
@@ -10503,75 +10541,68 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               disabled={isProcessing || !formData.amount}
             style={{
               width: '100%',
-              padding: '14px',
-                backgroundColor: isProcessing || !formData.amount ? '#8898aa' : '#000000',
+              padding: '15px 20px',
+                backgroundColor: isProcessing || !formData.amount ? '#d1d5db' : '#000000',
               color: 'white',
               border: 'none',
-              borderRadius: '25px',
-              fontSize: '16px',
-              fontWeight: '500',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: '600',
                 cursor: isProcessing || !formData.amount ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-                gap: '8px',
-                marginBottom: '16px'
+              justifyContent: 'space-between',
+                marginBottom: '16px',
+              transition: 'background-color 0.2s ease',
+              boxShadow: isProcessing || !formData.amount ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.15)'
+            }}
+            onMouseEnter={(e) => {
+              if (!isProcessing && formData.amount) {
+                e.target.style.backgroundColor = '#1a1a1a';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isProcessing && formData.amount) {
+                e.target.style.backgroundColor = '#000000';
+              }
             }}
           >
             {isProcessing ? (
               <>
-                <div style={{
-                    width: '16px', 
-                    height: '16px', 
-                    border: '2px solid transparent',
-                  borderTop: '2px solid white',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                  }}></div>
-                Processing...
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                      width: '16px', 
+                      height: '16px', 
+                      border: '2px solid transparent',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                    }}></div>
+                  <span style={{ fontWeight: '600', fontSize: '15px' }}>Processing...</span>
+                </div>
               </>
             ) : (
               <>
-                  Confirm Purchase
+                <span style={{ fontWeight: '600', fontSize: '15px' }}>Confirm Purchase</span>
+                {isPurchaseMode && (
+                  <span style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ${total.toFixed(2)}
+                  </span>
+                )}
               </>
             )}
           </button>
 
             {/* Footer */}
-            <div style={{ textAlign: 'center', fontSize: '12px', color: '#8898aa', marginTop: '16px' }}>
-              <div style={{ marginBottom: '8px' }}>
-                Powered by <span style={{ color: '#635bff', fontWeight: '500' }}>Coinflow</span>
-              </div>
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#8898aa', marginTop: '20px', fontWeight: '400' }}>
+              Powered by <span style={{ color: '#6772e5', fontWeight: '500' }}>Coinflow</span>
             </div>
-
-          <div style={{
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '16px',
-            marginTop: '16px',
-            fontSize: '12px',
-              color: '#6c757d'
-            }}>
-              <span>Powered by</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  backgroundColor: '#007bff', 
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <span style={{ color: 'white', fontSize: '10px', fontWeight: 'bold' }}>C</span>
-                </div>
-                <span style={{ fontWeight: '600', color: '#1a1a1a' }}>Coinflow</span>
-              </div>
-              <a href="#" style={{ color: '#007bff' }}>Terms</a>
-              <a href="#" style={{ color: '#007bff' }}>Refunds</a>
-              <a href="#" style={{ color: '#007bff' }}>Privacy</a>
-          </div>
         </form>
         </div>
           )}
