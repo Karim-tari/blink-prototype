@@ -138,6 +138,7 @@ const AutobotApp = () => {
   const [showNaveenEdSheeran, setShowNaveenEdSheeran] = useState(isNaveenEdSheeranPath);
   const [isFromPushNotification, setIsFromPushNotification] = useState(false);
   const [balance, setBalance] = useState(isNewUserPath ? 0 : isSubscriptionFlowPath ? 200 : isTasteDiscoveryPath ? 100 : isReturnsExchangesPath ? 180 : 150);
+  const [hasExplainedCredits, setHasExplainedCredits] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [userProfile, setUserProfile] = useState(
     isNewUserPath ? {
@@ -2511,47 +2512,47 @@ const AutobotApp = () => {
         // Create order summary message
         let orderSummary = "🛍️ **Your order is on its way.**\n\n";
       
-      items.forEach((product, index) => {
-        orderSummary += `${index + 1}. ${product.title}\n`;
-        orderSummary += `   $${product.price} + $${product.shipping || 8} shipping\n\n`;
-      });
-      
-      orderSummary += `**Order Total:**\n`;
-      orderSummary += `Subtotal: $${subtotalAmount}\n`;
-      orderSummary += `Shipping: $${shippingTotal}\n`;
-      orderSummary += `Tax: $${taxTotal}\n`;
-      orderSummary += `Service Fee: $${serviceFee.toFixed(2)}\n`;
-      orderSummary += `**Total: $${grandTotal}**\n\n`;
-      orderSummary += `Estimated delivery: Tomorrow\n`;
-      orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
-      
-      const orderData = {
-        items,
-        subtotal: subtotalAmount,
-        shipping: shippingTotal,
-        tax: taxTotal,
-        serviceFee: serviceFee,
-        silverFee: serviceFee, // Add silverFee for display compatibility
-        total: grandTotal,
-        timeLimit: 30,
-        originalSearchResults: item.originalSearchResults || items,
-        timestamp: Date.now()
-      };
+        items.forEach((product, index) => {
+          orderSummary += `${index + 1}. ${product.title}\n`;
+          orderSummary += `   $${product.price} + $${product.shipping || 8} shipping\n\n`;
+        });
+        
+        orderSummary += `**Order Total:**\n`;
+        orderSummary += `Subtotal: $${subtotalAmount}\n`;
+        orderSummary += `Shipping: $${shippingTotal}\n`;
+        orderSummary += `Tax: $${taxTotal}\n`;
+        orderSummary += `Service Fee: $${serviceFee.toFixed(2)}\n`;
+        orderSummary += `**Total: $${grandTotal}**\n\n`;
+        orderSummary += `Estimated delivery: Tomorrow\n`;
+        orderSummary += `Just message me if you need to make any changes. You have 3 minutes until the order is placed.`;
+        
+        const orderData = {
+          items,
+          subtotal: subtotalAmount,
+          shipping: shippingTotal,
+          tax: taxTotal,
+          serviceFee: serviceFee,
+          silverFee: serviceFee, // Add silverFee for display compatibility
+          total: grandTotal,
+          timeLimit: 30,
+          originalSearchResults: item.originalSearchResults || items,
+          timestamp: Date.now()
+        };
 
-      addAutobotMessage(orderSummary, 'group-order-summary', orderData);
+        addAutobotMessage(orderSummary, 'group-order-summary', orderData);
 
-      // Set active order for modifications
-      setActiveOrder(orderData);
-      
-      // Add BOOM confirmation message 8 seconds after order summary for Backstreet Boys or Ed Sheeran
-      if (hasNaveenBackstreetBoysProducts || hasNaveenEdSheeranProducts) {
-        setTimeout(() => {
-          const firstItem = items[0];
-          let confirmationMessage = `🎉 BOOM! You just ordered your ${firstItem.title}${items.length > 1 ? ` and ${items.length - 1} other item${items.length > 2 ? 's' : ''}` : ''}!\n\n📦 **Expect it at your doorstep by Tomorrow!**\n\n`;
-          confirmationMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
-          addAutobotMessage(confirmationMessage);
-        }, 8000);
-      }
+        // Set active order for modifications
+        setActiveOrder(orderData);
+        
+        // Add BOOM confirmation message 8 seconds after order summary for Backstreet Boys or Ed Sheeran
+        if (hasNaveenBackstreetBoysProducts || hasNaveenEdSheeranProducts) {
+          setTimeout(() => {
+            const firstItem = items[0];
+            let confirmationMessage = `🎉 BOOM! You just ordered your ${firstItem.title}${items.length > 1 ? ` and ${items.length - 1} other item${items.length > 2 ? 's' : ''}` : ''}!\n\n📦 **Expect it at your doorstep by Tomorrow!**\n\n`;
+            confirmationMessage += `I've already expedited your order and it's being prepared for shipment. You're going to absolutely love this - such a solid choice! 🔥\n\nI'll ping you with tracking info as soon as it's available so you can watch your new treasure make its way to you. Get excited! 🚀`;
+            addAutobotMessage(confirmationMessage);
+          }, 8000);
+        }
       }, delayTime);
 
       // Set 3-minute timer for final order confirmation
@@ -2587,12 +2588,30 @@ const AutobotApp = () => {
       // For new users, show direct checkout instead of funding flow
       if (balance < total) {
         setUserProfile(prev => ({ ...prev, pendingPurchase: item }));
-        addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
-          item,
-          total,
-          currentBalance: balance,
-          requiredAmount: total
-        });
+        
+        // First explain Blink Credits if we haven't already
+        if (!hasExplainedCredits) {
+          setHasExplainedCredits(true);
+          addAutobotMessage(`Perfect! Blink uses Blink Credits to make purchases for you. Your current Blink Credit balance is $${balance.toFixed(2)}`);
+          
+          // After a brief delay, show the payment options
+          setTimeout(() => {
+            addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
+              item,
+              total,
+              currentBalance: balance,
+              requiredAmount: total
+            });
+          }, 1500);
+        } else {
+          // Already explained, just show payment options
+          addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
+            item,
+            total,
+            currentBalance: balance,
+            requiredAmount: total
+          });
+        }
         return;
       }
     }
@@ -2729,12 +2748,30 @@ const AutobotApp = () => {
     // For new users, show direct checkout instead of funding flow
     if (userType === 'new' && balance < finalTotal) {
       setUserProfile(prev => ({ ...prev, pendingPurchase: orderData.item }));
-      addAutobotMessage(`Your total is $${finalTotal}. How would you like to pay?`, 'direct-checkout', {
-        item: orderData.item,
-        total: finalTotal,
-        currentBalance: balance,
-        requiredAmount: finalTotal
-      });
+      
+      // First explain Blink Credits if we haven't already
+      if (!hasExplainedCredits) {
+        setHasExplainedCredits(true);
+        addAutobotMessage(`Perfect! Blink uses Blink Credits to make purchases for you. Your current Blink Credit balance is $${balance.toFixed(2)}`);
+        
+        // After a brief delay, show the payment options
+        setTimeout(() => {
+          addAutobotMessage(`Your total is $${finalTotal}. How would you like to pay?`, 'direct-checkout', {
+            item: orderData.item,
+            total: finalTotal,
+            currentBalance: balance,
+            requiredAmount: finalTotal
+          });
+        }, 1500);
+      } else {
+        // Already explained, just show payment options
+        addAutobotMessage(`Your total is $${finalTotal}. How would you like to pay?`, 'direct-checkout', {
+          item: orderData.item,
+          total: finalTotal,
+          currentBalance: balance,
+          requiredAmount: finalTotal
+        });
+      }
       return;
     }
     
@@ -3991,16 +4028,7 @@ const AutobotApp = () => {
         }));
         setPreviousAddressAttempt(null);
         
-        // Give feedback based on what was corrected
-        let confirmationMessage = "Perfect! I've got everything I need to ship this to you.";
-        if (validation.correctionMade === 'zip') {
-          confirmationMessage = "Got it! Thanks for the ZIP code. I've got everything I need to ship this to you.";
-        } else if (validation.correctionMade === 'state') {
-          confirmationMessage = "Perfect! Thanks for adding the state. I've got everything I need to ship this to you.";
-        }
-        
         setTimeout(() => {
-          addAutobotMessage(confirmationMessage);
           // Process the pending purchase with collected info
           setTimeout(() => {
             setUserProfile(currentProfile => {
@@ -4023,12 +4051,32 @@ const AutobotApp = () => {
                 
                 // For new users, show direct checkout after collecting details
                 if (userType === 'new' && balance < total) {
-                  addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
-                    item: pendingItem,
-                    total: total,
-                    currentBalance: balance,
-                    requiredAmount: total
-                  });
+                  // First explain Blink Credits if we haven't already - combined with confirmation
+                  if (!hasExplainedCredits) {
+                    setHasExplainedCredits(true);
+                    addAutobotMessage(`Perfect! Blink uses Blink Credits to make purchases for you. Your current Blink Credit balance is $${balance.toFixed(2)}`);
+                    
+                    // After a brief delay, show the payment options
+                    setTimeout(() => {
+                      addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
+                        item: pendingItem,
+                        total: total,
+                        currentBalance: balance,
+                        requiredAmount: total
+                      });
+                    }, 1500);
+                  } else {
+                    // Already explained, just confirm and show payment options
+                    addAutobotMessage("Perfect! I've got everything I need to ship this to you.");
+                    setTimeout(() => {
+                      addAutobotMessage(`Your total is $${total}. How would you like to pay?`, 'direct-checkout', {
+                        item: pendingItem,
+                        total: total,
+                        currentBalance: balance,
+                        requiredAmount: total
+                      });
+                    }, 1000);
+                  }
                   return { ...currentProfile }; // Keep pending purchase
                 } else {
                   // Sufficient funds or returning user - show purchase confirmation
@@ -4382,6 +4430,8 @@ const AutobotApp = () => {
                   }}
                   onSubscriptionSetup={handleSubscriptionSetup}
                   onSubscriptionNudgeResponse={handleSubscriptionNudgeResponse}
+                  userType={userType}
+                  balance={balance}
                 />
               ))}
             </AnimatePresence>
@@ -5051,7 +5101,7 @@ const DemoControls = ({ onNewUser, onReturningUser, currentUserType }) => {
   );
 };
 
-const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder, isFromPushNotification, onSubscriptionSetup, onSubscriptionNudgeResponse }) => {
+const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserResponse, userProfile, onImageClick, onWebView, onFunded, onCreditCardFunding, onCancelOrder, isFromPushNotification, onSubscriptionSetup, onSubscriptionNudgeResponse, userType, balance }) => {
   const isAutobot = message.type === 'autobot';
 
   return (
@@ -5066,7 +5116,7 @@ const ChatMessage = ({ message, onPurchaseIntent, onConfirmPurchase, onUserRespo
         )}
         
         {message.special === 'search-results' && (
-          <SearchResultsCard data={message.data} onPurchaseIntent={onPurchaseIntent} onImageClick={onImageClick} onWebView={onWebView} />
+          <SearchResultsCard data={message.data} onPurchaseIntent={onPurchaseIntent} onImageClick={onImageClick} onWebView={onWebView} userType={userType} balance={balance} />
         )}
         
         {message.special === 'product-list' && (
@@ -5827,12 +5877,16 @@ const SearchResultCard = ({ data, onImageClick, onPurchaseIntent, showButtons = 
   );
 };
 
-const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, showButtons = true }) => {
+const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, showButtons = true, userType, balance }) => {
   // Helper function to determine if item is wearable
   const isWearableItem = (title) => {
     const wearableKeywords = ['shirt', 'hoodie', 'jacket', 'shoes', 'sneaker', 'hat', 'cap', 'jeans', 'pants', 'dress', 'sweater', 'coat'];
     return wearableKeywords.some(keyword => title.toLowerCase().includes(keyword));
   };
+
+  // Calculate if funds display is needed
+  const showFundsInfo = userType === 'new' && balance === 0;
+  const additionalFundsNeeded = data.price;
 
   return (
     <div style={{
@@ -5940,6 +5994,49 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
             {data.title}
           </div>
           
+          {/* Price breakdown for Death Star */}
+          {data.title && data.title.toLowerCase().includes('death star') && (
+            <div style={{
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px',
+              padding: '12px',
+              marginTop: '12px',
+              fontSize: '13px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ color: '#6c757d' }}>Subtotal</span>
+                <span style={{ color: '#000', fontWeight: '500' }}>$999.99</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ color: '#6c757d' }}>Shipping</span>
+                <span style={{ color: '#10b981', fontWeight: '500' }}>FREE</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ color: '#6c757d' }}>Tax</span>
+                <span style={{ color: '#000', fontWeight: '500' }}>$78.00</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ color: '#6c757d' }}>Service fee</span>
+                <span style={{ color: '#000', fontWeight: '500' }}>$29.25</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ color: '#10b981', fontWeight: '500' }}>Discounts</span>
+                <span style={{ color: '#10b981', fontWeight: '500' }}>-$25.00</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                borderTop: '1px solid #dee2e6', 
+                paddingTop: '8px',
+                fontWeight: '600',
+                fontSize: '15px'
+              }}>
+                <span style={{ color: '#000' }}>Total</span>
+                <span style={{ color: '#000' }}>${data.price.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          
           {isWearableItem(data.title) && (
           <div style={{
             fontSize: '14px', 
@@ -5962,6 +6059,43 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
         </div>
       </div>
 
+      {/* Available Funds Display for new users with zero balance */}
+      {showFundsInfo && showButtons && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginTop: '12px',
+          border: '1px solid rgba(148, 163, 184, 0.15)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '6px'
+          }}>
+            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+              Available Funds
+            </span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>
+              ${balance.toFixed(2)}
+            </span>
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+              Additional Funds Needed
+            </span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>
+              ${additionalFundsNeeded.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* WhatsApp-style button at full width below description - hide for Death Star since it's in the image overlay */}
       {showButtons && onPurchaseIntent && !(data.title && data.title.toLowerCase().includes('death star')) && (
         <div className="whatsapp-menu-container" style={{ marginTop: '12px', marginBottom: '0' }}>
@@ -5981,7 +6115,7 @@ const SearchResultCardWithButton = ({ data, onImageClick, onPurchaseIntent, show
   );
 };
 
-const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) => {
+const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView, userType, balance }) => {
 
   return (
     <motion.div 
@@ -5998,7 +6132,9 @@ const SearchResultsCard = ({ data, onPurchaseIntent, onImageClick, onWebView }) 
               data={result} 
               onImageClick={onImageClick} 
               onPurchaseIntent={onPurchaseIntent}
-              showButtons={true} 
+              showButtons={true}
+              userType={userType}
+              balance={balance}
             />
         </div>
         ))}
@@ -8516,6 +8652,9 @@ const DirectCheckoutCard = ({ data, onFunded, onCreditCardFunding }) => {
     onFunded('bank_transfer_checkout', true);
   };
 
+  const currentBalance = data.currentBalance || 0;
+  const additionalFundsNeeded = data.total;
+
   return (
           <div 
             className="direct-checkout-card"
@@ -8554,6 +8693,71 @@ const DirectCheckoutCard = ({ data, onFunded, onCreditCardFunding }) => {
                   Including shipping, tax, and service fee
                 </div>
               </div>
+              
+              {/* Price breakdown for Death Star */}
+              {data.item.title && data.item.title.toLowerCase().includes('death star') && (
+                <div style={{
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '16px',
+                  fontSize: '13px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#6c757d' }}>Subtotal</span>
+                    <span style={{ color: '#000', fontWeight: '500' }}>$999.99</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#6c757d' }}>Shipping</span>
+                    <span style={{ color: '#10b981', fontWeight: '500' }}>FREE</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#6c757d' }}>Tax</span>
+                    <span style={{ color: '#000', fontWeight: '500' }}>$78.00</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#6c757d' }}>Service fee</span>
+                    <span style={{ color: '#000', fontWeight: '500' }}>$29.25</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={{ color: '#10b981', fontWeight: '500' }}>Discounts</span>
+                    <span style={{ color: '#10b981', fontWeight: '500' }}>-$25.00</span>
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    borderTop: '1px solid #dee2e6', 
+                    paddingTop: '8px',
+                    fontWeight: '600',
+                    fontSize: '15px'
+                  }}>
+                    <span style={{ color: '#000' }}>Total</span>
+                    <span style={{ color: '#000' }}>${data.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Blink Credits Needed */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                border: '1px solid rgba(148, 163, 184, 0.15)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                    Blink Credits Needed
+                  </span>
+                  <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>
+                    ${data.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
         
         {/* Single Checkout Button */}
         <div>
@@ -8575,21 +8779,8 @@ const DirectCheckoutCard = ({ data, onFunded, onCreditCardFunding }) => {
               gap: '8px'
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
-            </svg>
-            Checkout
+            Buy Now
           </button>
-        </div>
-        
-        {/* Footer */}
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: '12px',
-          fontSize: '12px',
-          color: '#999'
-        }}>
-          Your card will be saved for faster future purchases
         </div>
       </div>
     </div>
@@ -9718,7 +9909,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
         justifyContent: 'space-between'
       }}>
         <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '500', color: '#32325d', letterSpacing: '-0.01em' }}>
-          {isPurchaseMode ? 'Complete Purchase' : 'Add Funds'}
+          {isPurchaseMode ? 'Blink is buying:' : 'Add Funds'}
         </h2>
         <button
           onClick={onClose}
@@ -9748,7 +9939,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
           {/* Purchase Summary or Deposit Amount */}
           {isPurchaseMode ? (
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '20px' }}>
               <div style={{
                 padding: '12px 0',
                 borderBottom: '1px solid #e6ebf1',
@@ -9937,7 +10128,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
             paddingTop: '16px'
           }}>
           <form onSubmit={handleSubmit}>
-            {/* Card Information */}
+            {/* Card Information - Combined Section */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ 
                 display: 'block', 
@@ -10064,7 +10255,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                     padding: '12px 14px',
                     border: '1px solid #e6ebf1',
                     borderTop: 'none',
-                    borderRadius: '0 0 6px 6px',
+                    borderRadius: '0',
                     fontSize: '12px',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -10079,10 +10270,9 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   display: 'flex', 
                   alignItems: 'center', 
                   padding: '0 12px',
-                  border: '1px solid #e1e5e9',
+                  border: '1px solid #e6ebf1',
                   borderTop: 'none',
                   borderLeft: 'none',
-                  borderRadius: '0 0 8px 0',
                   backgroundColor: 'white'
                 }}>
                   <div style={{ 
@@ -10111,7 +10301,53 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
                   </div>
                 </div>
               </div>
-              <ErrorMessage error={errors.cardNumber || errors.expiry || errors.cvv} />
+
+              {/* Name on card - Integrated */}
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="John Appleseed"
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  border: '1px solid #e6ebf1',
+                  borderTop: 'none',
+                  borderRadius: '0',
+                  fontSize: '12px',
+                  backgroundColor: 'white',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.15s ease',
+                  color: '#32325d'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
+              />
+
+              {/* Address - Integrated */}
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="123 Main St, New York, NY 10001"
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  border: '1px solid #e6ebf1',
+                  borderTop: 'none',
+                  borderRadius: '0 0 6px 6px',
+                  fontSize: '12px',
+                  backgroundColor: 'white',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.15s ease',
+                  color: '#32325d'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#635bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
+              />
+              <ErrorMessage error={errors.cardNumber || errors.expiry || errors.cvv || errors.name || errors.address} />
             </div>
 
             {/* Email - Only show in funding mode */}
@@ -10150,79 +10386,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
           </div>
             )}
 
-            {/* Name on card */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ 
-                display: 'block', 
-                 marginBottom: '6px', 
-                 fontSize: '13px', 
-                fontWeight: '500', 
-                 color: '#6772e5',
-                 letterSpacing: '0.025em',
-                 textTransform: 'uppercase'
-              }}>
-                 Name on card
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Jane Doe"
-                style={{
-                width: '100%',
-                  padding: '8px 10px',
-                borderRadius: '6px',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
-                outline: 'none',
-                  border: '1px solid #e6ebf1',
-                  fontSize: '12px',
-                  backgroundColor: 'white',
-                  color: '#32325d'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#635bff'}
-                onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
-            />
-            <ErrorMessage error={errors.name} />
-          </div>
-
-            {/* Address */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '6px', 
-                fontSize: '13px', 
-                fontWeight: '500', 
-                color: '#6772e5',
-                letterSpacing: '0.025em',
-                textTransform: 'uppercase'
-              }}>
-                Address
-              </label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="185 Berry St, San Francisco, CA 94107"
-                style={{
-                  width: '100%',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #e6ebf1',
-                  fontSize: '12px',
-                  backgroundColor: 'white',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.15s ease',
-                  color: '#32325d'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#635bff'}
-                onBlur={(e) => e.target.style.borderColor = '#e6ebf1'}
-              />
-              <ErrorMessage error={errors.address} />
-            </div>
-
-            {/* Order Summary */}
+            {/* Blink Credits Purchase Summary */}
             <div style={{ 
               backgroundColor: 'white',
               border: '1px solid #e1e5e9',
@@ -10230,33 +10394,14 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               padding: '16px',
               marginBottom: '24px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#6c757d', fontSize: '12px' }}>Subtotal</span>
-                <span style={{ fontSize: '12px' }}>${subtotal.toFixed(2)}</span>
+              <div style={{ 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                marginBottom: '12px',
+                color: '#1a1a1a'
+              }}>
+                Blink Credits Needed
               </div>
-              {isDeathStar && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6c757d', fontSize: '12px' }}>Shipping</span>
-                    <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '500' }}>FREE</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6c757d', fontSize: '12px' }}>Tax</span>
-                    <span style={{ fontSize: '12px' }}>${tax.toFixed(2)}</span>
-                  </div>
-                </>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#6c757d', fontSize: '12px' }}>Service fee</span>
-                <span style={{ fontSize: '12px' }}>${serviceFee.toFixed(2)}</span>
-              </div>
-              {isDeathStar && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ color: '#10b981', fontWeight: '500', fontSize: '12px' }}>Coupon discount</span>
-                  <span style={{ color: '#10b981', fontWeight: '500', fontSize: '12px' }}>-$25.00</span>
-                </div>
-              )}
-              <hr style={{ border: 'none', borderTop: '1px solid #e1e5e9', margin: '12px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
                 <span style={{ fontSize: '12px' }}>Total</span>
                 <span style={{ fontSize: '12px' }}>${total.toFixed(2)}</span>
@@ -10351,7 +10496,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               </>
             ) : (
               <>
-                  🔒 Confirm Purchase of ${total.toFixed(2)}
+                  Confirm Purchase
               </>
             )}
           </button>
