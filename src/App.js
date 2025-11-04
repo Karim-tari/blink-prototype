@@ -9901,30 +9901,34 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px 24px',
+        padding: '12px 16px',
         backgroundColor: 'white',
         borderBottom: '1px solid #e6ebf1',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'flex-end'
       }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '500', color: '#32325d', letterSpacing: '-0.01em' }}>
-          {isPurchaseMode ? 'Blink is buying:' : 'Add Funds'}
-        </h2>
         <button
           onClick={onClose}
           style={{
             background: 'none',
             border: 'none',
-            fontSize: '22px',
+            fontSize: '24px',
             cursor: 'pointer',
-            padding: '8px',
-            color: '#666',
+            padding: '4px 8px',
+            color: '#8898aa',
             borderRadius: '6px',
-            transition: 'background-color 0.2s ease'
+            transition: 'all 0.2s ease',
+            lineHeight: 1
           }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = '#f5f5f5';
+            e.target.style.color = '#32325d';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = 'transparent';
+            e.target.style.color = '#8898aa';
+          }}
         >
           ×
         </button>
@@ -9937,66 +9941,8 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
         overflow: 'auto'
       }}>
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-          {/* Purchase Summary or Deposit Amount */}
-          {isPurchaseMode ? (
-          <div style={{ marginBottom: '20px' }}>
-              <div style={{
-                padding: '12px 0',
-                borderBottom: '1px solid #e6ebf1',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                {/* Product Thumbnail */}
-                {data.item?.image && (
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    backgroundColor: '#f8f9fa',
-                    flexShrink: 0
-                  }}>
-                    <img 
-                      src={data.item.image}
-                      alt={data.item.title}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                  </div>
-                )}
-                
-                {/* Product Info */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ 
-                    fontSize: '16px', 
-                    fontWeight: '500', 
-                    color: '#32325d',
-                    marginBottom: '2px'
-                  }}>
-                    {data.item?.title || 'Purchase'}
-                  </div>
-                  <div style={{ 
-                fontSize: '16px', 
-                    fontWeight: '600', 
-                    color: '#32325d' 
-                  }}>
-                    ${purchaseAmount}
-                  </div>
-                  <div style={{ 
-                    fontSize: '11px', 
-                    color: '#8898aa', 
-                    fontWeight: '400' 
-                  }}>
-                    Including shipping and tax
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {/* Deposit Amount - Only show in funding mode */}
+          {!isPurchaseMode && (
             <div style={{ marginBottom: '32px' }}>
             <h3 style={{ 
                 fontSize: '17px', 
@@ -10086,7 +10032,7 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
               marginBottom: '12px',
               margin: '0 0 12px 0'
             }}>
-              Save payment information
+              Payment Method
             </h3>
             
             {/* Payment Method Tabs */}
@@ -10386,27 +10332,117 @@ const CreditCardFundingInterface = ({ data, onClose, onFundingComplete }) => {
           </div>
             )}
 
-            {/* Blink Credits Purchase Summary */}
-            <div style={{ 
-              backgroundColor: 'white',
-              border: '1px solid #e1e5e9',
-              borderRadius: '8px',
-              padding: '16px',
-              marginBottom: '24px'
-            }}>
+            {/* Purchase Summary - Only show in purchase mode */}
+            {isPurchaseMode && (
               <div style={{ 
-                fontSize: '14px', 
-                fontWeight: '600', 
-                marginBottom: '12px',
-                color: '#1a1a1a'
+                backgroundColor: 'white',
+                border: '1px solid #e6ebf1',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px'
               }}>
-                Blink Credits Needed
+                {/* Header */}
+                <div style={{ 
+                  fontSize: '13px', 
+                  fontWeight: '600', 
+                  marginBottom: '16px',
+                  color: '#6772e5',
+                  letterSpacing: '0.025em',
+                  textTransform: 'uppercase'
+                }}>
+                  Purchase Summary
+                </div>
+
+                {/* Item Being Purchased */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '16px',
+                  paddingBottom: '16px',
+                  borderBottom: '1px solid #f0f0f0'
+                }}>
+                  {/* Product Thumbnail */}
+                  {data.item?.image && (
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      backgroundColor: '#f8f9fa',
+                      flexShrink: 0
+                    }}>
+                      <img 
+                        src={data.item.image}
+                        alt={data.item.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Product Info */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '500', 
+                      color: '#32325d',
+                      marginBottom: '4px',
+                      lineHeight: '1.4'
+                    }}>
+                      {data.item?.title || 'Purchase'}
+                    </div>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '600', 
+                      color: '#32325d' 
+                    }}>
+                      ${purchaseAmount}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Blink Credits Needed */}
+                <div style={{
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  padding: '14px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '500',
+                    color: '#6c757d',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.02em'
+                  }}>
+                    Blink Credits Needed
+                  </div>
+                  <div style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#0088cc',
+                    lineHeight: 1
+                  }}>
+                    ${total.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Explanation */}
+                <div style={{
+                  fontSize: '12px',
+                  color: '#6c757d',
+                  lineHeight: '1.5',
+                  fontStyle: 'italic'
+                }}>
+                  You're purchasing ${total.toFixed(2)} in Blink Credits to complete this order
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
-                <span style={{ fontSize: '12px' }}>Total</span>
-                <span style={{ fontSize: '12px' }}>${total.toFixed(2)}</span>
-              </div>
-            </div>
+            )}
 
             {/* Save Info Checkbox */}
             <div style={{ 
